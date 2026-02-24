@@ -1,4 +1,3 @@
-//Skill
 "use client";
 
 import Link from "next/link";
@@ -433,10 +432,9 @@ function ProfileCard() {
 
 export default function SkillsSection() {
   return (
-    <>
-      <style>{styles}</style>
-      <section className="skills-section" aria-labelledby="skills-heading">
-        <div className="skills-container">
+    <section className="bg-[#F7F6F4]" aria-labelledby="skills-heading">
+      <div className="pt-24 px-6 md:px-20">
+      <div className="max-w-340 mx-auto">
 
           {/* Pill */}
           <div className="skills-pill" aria-hidden="true">
@@ -486,20 +484,26 @@ export default function SkillsSection() {
             </div>
           </div>
 
-          {/* Trust Bar */}
-          <div className="trust-bar">
-            <ul className="trust-list" aria-label="Platform trust indicators">
-              {trustItems.map((item) => (
-                <li key={item.label} className="trust-item">
-                  <span aria-hidden="true">{item.icon}</span>
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-        </div>
-      </section>
-    </>
+        {/* Trust bar — full width, edge to edge */}
+      </div>
+      </div>
+      <div className="bg-[#1E293B] px-6 md:px-20 py-8">
+        <ul className="flex flex-wrap justify-between items-center gap-4 max-w-340 mx-auto" role="list" aria-label="Platform trust indicators">
+            {[
+              "WCAG 2.1 AA Compliant",
+              "RA 7277 Aligned",
+              "AI-Powered Verification",
+              "PWD Identity Protected",
+              "NCDA Partnership Roadmap",
+            ].map((label) => (
+              <li key={label} className="flex-1 flex justify-center">
+                <span className="inline-flex items-center justify-center border border-white text-white text-sm font-medium font-['Lexend'] rounded-lg px-4 py-2 whitespace-nowrap">
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ul>
+      </div>
+    </section>
   );
 }
