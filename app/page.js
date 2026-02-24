@@ -1,12 +1,13 @@
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import SkillsSection from "@/components/landing/SkillsSection";
-import HowItWorksSection from "@/components/landing/HowItWorks"; // <-- Added import
+import HowItWorksSection from "@/components/landing/HowItWorks";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import VerificationSection from "@/components/landing/VerificationSection";
 import Footer from "@/components/landing/Footer";
 import AccessibilityToolbar from "@/components/accessibility/AccessibilityToolbar";
 import SkipLink from "@/components/accessibility/SkipLink";
+import { AuthModalProvider } from "@/components/landing/AuthModalContext";
 
 export const metadata = {
   title: "InklusiJobs — Verified. Skilled. Employed.",
@@ -16,7 +17,7 @@ export const metadata = {
 
 export default function LandingPage() {
   return (
-    <>
+    <AuthModalProvider>
       {/* Skip to main content — first thing screen readers and keyboard users hit */}
       <SkipLink />
 
@@ -30,7 +31,7 @@ export default function LandingPage() {
         {/* Section 2: Skills headline + profile card + trust bar */}
         <SkillsSection />
 
-        {/* NEW SECTION: How it works (Inserted exactly where you requested) */}
+        {/* How it works */}
         <HowItWorksSection />
 
         {/* Section 3: Features */}
@@ -44,6 +45,6 @@ export default function LandingPage() {
 
       {/* Floating accessibility toolbar - PWD users can toggle font size, contrast, motion */}
       <AccessibilityToolbar />
-    </>
+    </AuthModalProvider>
   );
 }

@@ -2,45 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import AuthModal from "./AuthModal";
-import RoleSelector from "./RoleSelector";
+import { useAuthModalContext } from "@/components/landing/AuthModalContext";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen]       = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { openSignIn, openRoleSelector } = useAuthModalContext();
 
-  // Step 1 — RoleSelector
-  const [roleOpen, setRoleOpen]       = useState(false);
-
-  // Step 2 — AuthModal
-  const [authOpen, setAuthOpen]       = useState(false);
-  const [authTab, setAuthTab]         = useState("signin");  // "signin" | "signup"
-  const [selectedRole, setSelectedRole] = useState(null);   // "worker" | "employer"
-
-  // "Log In" → skip role selector, open auth on sign-in tab (no role badge)
   const handleLogIn = () => {
-    setSelectedRole(null);
-    setAuthTab("signin");
-    setAuthOpen(true);
+    openSignIn();
     setMenuOpen(false);
   };
 
-  // "Get Started" → open role selector first
   const handleGetStarted = () => {
-    setRoleOpen(true);
+    openRoleSelector();
     setMenuOpen(false);
-  };
-
-  // User picks Worker or Employer in RoleSelector
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role);
-    setRoleOpen(false);
-    setAuthTab("signup");   // always land on sign-up after choosing role
-    setAuthOpen(true);
-  };
-
-  const closeAll = () => {
-    setRoleOpen(false);
-    setAuthOpen(false);
   };
 
   return (
@@ -134,21 +109,6 @@ export default function Navbar() {
           </div>
         )}
       </nav>
-
-      {/* Step 1 — Role Selector (Get Started flow) */}
-      <RoleSelector
-        isOpen={roleOpen}
-        onClose={closeAll}
-        onSelectRole={handleRoleSelect}
-      />
-
-      {/* Step 2 — Auth Modal */}
-      <AuthModal
-        isOpen={authOpen}
-        onClose={closeAll}
-        defaultTab={authTab}
-        role={selectedRole}
-      />
     </>
   );
 }
