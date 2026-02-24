@@ -3,75 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-// Profile card shown on the right side of hero
-function ProfileCard() {
-  return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="w-12 h-12 rounded-full bg-[#01322C] flex items-center justify-center text-white font-bold text-lg font-['Lexend'] shrink-0">
-          M
-        </div>
-        <div className="flex-1">
-          <p className="font-semibold text-[#1E293B] font-['Lexend'] text-base">Maria Santos</p>
-          <p className="text-sm text-slate-500 font-['Lexend']">UI/UX Designer · Quezon City</p>
-        </div>
-        <span className="text-xs font-semibold text-green-700 bg-green-100 border border-green-300 rounded-lg px-3 py-1.5">
-          ✓ Verified
-        </span>
-      </div>
-
-      {/* Skills */}
-      <div className="space-y-3 mb-5">
-        {[
-          { label: "Figma & Prototyping", pct: 90, color: "from-[#0023FF] to-green-400" },
-          { label: "Accessibility Design", pct: 75, color: "from-[#0023FF] to-green-300" },
-          { label: "User Research", pct: 60, color: "from-[#0023FF] to-green-200" },
-        ].map((skill) => (
-          <div key={skill.label}>
-            <p className="text-sm font-medium text-[#1E293B] font-['Lexend'] mb-1">{skill.label}</p>
-            <div
-              className="h-2 bg-slate-200 rounded-full overflow-hidden"
-              role="progressbar"
-              aria-valuenow={skill.pct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${skill.label}: ${skill.pct}%`}
-            >
-              <div
-                className={`h-full rounded-full bg-linear-to-r ${skill.color}`}
-                style={{ width: `${skill.pct}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-slate-100 my-4" />
-
-      {/* Activity */}
-      <div className="space-y-2 mb-5" role="log" aria-label="Recent activity">
-        <div className="flex items-start gap-2 text-sm text-slate-600 font-['Lexend']">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0 mt-1.5" aria-hidden="true" />
-          {`Completed: "Design an Accessible Dashboard" challenge`}
-        </div>
-        <div className="flex items-start gap-2 text-sm text-slate-600 font-['Lexend']">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0 mt-1.5" aria-hidden="true" />
-          Milestone: Intermediate UI/UX unlocked 🎉
-        </div>
-      </div>
-
-      {/* Badges */}
-      <div className="flex gap-2 flex-wrap" role="list" aria-label="Earned badges">
-        <span className="text-xs font-semibold bg-green-100 text-green-700 rounded-lg px-3 py-1.5" role="listitem">✓ Portfolio Live</span>
-        <span className="text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg px-3 py-1.5" role="listitem">⚡ 3 Challenges Done</span>
-        <span className="text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg px-3 py-1.5" role="listitem">🏅 Rising Talent</span>
-      </div>
-    </div>
-  );
-}
-
 export default function HeroSection() {
   return (
     <section
@@ -89,24 +20,48 @@ export default function HeroSection() {
           aria-hidden="true"
         />
         {/* Dark overlay — ensures text contrast passes WCAG AA */}
-        <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+        <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
         {/* Bottom fade to next section */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-linear-to-r from-transparent to-[#F7F6F4]" aria-hidden="true" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-linear-to-b from-transparent to-[#F7F6F4]" aria-hidden="true" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col justify-end min-h-screen pb-24 px-6 md:px-20 max-w-360 mx-auto">
-        {/* Large tagline — bottom left */}
-        <div className="max-w-2xl">
-          <h1
-            id="hero-heading"
-            className="text-white font-['Lexend'] font-normal leading-[1.05] text-6xl md:text-8xl"
+      {/* Content — centered vertically and horizontally */}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6 md:px-20 pt-24">
+        {/* Main heading */}
+        <h1
+          id="hero-heading"
+          className="text-white font-['Lexend'] font-normal leading-[1.1] text-4xl md:text-5xl lg:text-6xl mb-6 max-w-3xl"
+        >
+          Equal Opportunity<br />
+          Starts with<br />
+          Equal Access
+        </h1>
+
+        {/* Subtitle */}
+        <p className="text-white/75 font-['Lexend'] text-lg md:text-xl leading-relaxed mb-10 max-w-xl">
+          InklusiJobs connects persons with disabilities to verified, inclusive employers — with the tools and support to grow your career.
+        </p>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Link
+            href="/get-started"
+            className="inline-flex items-center justify-center bg-[#0023FF] hover:bg-blue-700 text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl transition-colors duration-200"
           >
-            Verified.<br />
-            Skilled.<br />
-            Employed.
-          </h1>
+            Get Started Free
+          </Link>
+          <Link
+            href="/find-work"
+            className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/30 text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl backdrop-blur-sm transition-colors duration-200"
+          >
+            Browse Jobs →
+          </Link>
         </div>
+
+        {/* Social proof */}
+        <p className="text-white/50 font-['Lexend'] text-sm mt-8">
+          Trusted by 500+ PWD job seekers and 120+ inclusive employers across the Philippines.
+        </p>
       </div>
     </section>
   );
