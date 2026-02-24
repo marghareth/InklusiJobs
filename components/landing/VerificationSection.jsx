@@ -1,4 +1,3 @@
-//VerificationSection.jsx
 "use client";
 
 import Link from "next/link";
@@ -40,45 +39,77 @@ export default function VerificationSection() {
     <>
       {/* ── VERIFICATION SECTION ── */}
       <section
-        className="bg-[#1E293B] py-24 px-6 md:px-20"
+        className="bg-[#1E293B] py-24 px-6 md:px-16 lg:px-24"
         aria-labelledby="verification-heading"
       >
-        <div className="max-w-340 mx-auto">
+        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
           {/* Label */}
-          <p className="text-blue-300 text-sm font-semibold font-['Roboto'] uppercase tracking-widest mb-4">
+          <p style={{
+            fontFamily: "Lexend, sans-serif",
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "#60A5FA",
+            marginBottom: 14,
+          }}>
             PWD Verification System
           </p>
 
           {/* Heading */}
           <h2
             id="verification-heading"
-            className="text-white text-4xl md:text-5xl font-normal font-['Lexend'] leading-tight mb-12 max-w-xl"
+            style={{
+              fontFamily: "Lexend, sans-serif",
+              fontWeight: 300,
+              fontSize: "clamp(2rem, 3.5vw, 2.8rem)",
+              color: "#F8FAFC",
+              lineHeight: 1.2,
+              marginBottom: 48,
+              maxWidth: 480,
+            }}
           >
             The trust layer the Philippines has been missing
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-
+          <div style={{ display: "flex", flexDirection: "row", gap: 32, alignItems: "flex-start" }}
+            className="flex-col lg:flex-row"
+          >
             {/* Steps */}
-            <div className="space-y-4" role="list" aria-label="Verification steps">
+            <div style={{ flex: "0 0 52%", display: "flex", flexDirection: "column", gap: 12 }}
+              role="list" aria-label="Verification steps"
+            >
               {steps.map((step) => (
                 <div
                   key={step.num}
-                  className="flex items-start gap-4 bg-white/10 border border-white/10 rounded-xl p-5"
                   role="listitem"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 16,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 14,
+                    padding: "18px 20px",
+                  }}
                 >
-                  <div
-                    className="w-8 h-8 rounded-full bg-[#0023FF] text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5"
-                    aria-hidden="true"
-                  >
+                  <div style={{
+                    width: 30, height: 30, borderRadius: "50%",
+                    background: "#1E40AF",
+                    color: "#fff",
+                    fontSize: 13, fontWeight: 700,
+                    fontFamily: "Lexend, sans-serif",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, marginTop: 1,
+                  }} aria-hidden="true">
                     {step.num}
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold font-['Lexend'] text-base mb-1">
+                    <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 14, color: "#F1F5F9", marginBottom: 4 }}>
                       {step.title}
                     </h3>
-                    <p className="text-white/60 text-sm font-['Lexend'] leading-relaxed">
+                    <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
                       {step.desc}
                     </p>
                   </div>
@@ -87,19 +118,34 @@ export default function VerificationSection() {
             </div>
 
             {/* VaaS Card */}
-            <div className="bg-white/10 border border-white/15 rounded-2xl p-8">
-              <h3 className="text-white text-2xl font-semibold font-['Lexend'] mb-4">
+            <div style={{
+              flex: 1,
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 20,
+              padding: "32px 28px",
+            }}>
+              <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 20, color: "#F8FAFC", marginBottom: 12 }}>
                 Verification-as-a-Service
               </h3>
-              <p className="text-white/70 text-base font-['Lexend'] leading-relaxed mb-6">
+              <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 14, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, marginBottom: 24 }}>
                 {`InklusiJobs' verification infrastructure is licensable to any business that offers PWD discounts or must comply with RA 7277 — hospitals, retailers, airlines, and more.`}
               </p>
-              <div className="flex flex-wrap gap-2" role="list" aria-label="Partner industries">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="list" aria-label="Partner industries">
                 {vaasPartners.map((p) => (
                   <span
                     key={p.label}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-sm text-white/80 font-['Lexend']"
                     role="listitem"
+                    style={{
+                      fontFamily: "Lexend, sans-serif",
+                      fontSize: 12, fontWeight: 500,
+                      display: "flex", alignItems: "center", gap: 6,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 999,
+                      padding: "6px 14px",
+                      color: "rgba(255,255,255,0.75)",
+                    }}
                   >
                     <span aria-hidden="true">{p.icon}</span> {p.label}
                   </span>
@@ -112,49 +158,162 @@ export default function VerificationSection() {
 
       {/* ── CTA SECTION ── */}
       <section
-        className="bg-[#F7F6F4] py-24 px-6 md:px-20"
+        className="py-20 px-6 md:px-16 lg:px-24"
+        style={{ background: "#F7F6F4" }}
         aria-labelledby="cta-heading"
       >
-        <div className="max-w-340 mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div
+          style={{
+            maxWidth: 1400,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 20,
+          }}
+          className="grid-cols-1 md:grid-cols-2"
+        >
 
-          {/* Job Seeker CTA */}
-          <div className="bg-[#0023FF] rounded-2xl p-10 flex flex-col justify-between min-h-340">
+          {/* ── Job Seeker CTA — Navy blue card ── */}
+          <div
+            style={{
+              background: "linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%)",
+              borderRadius: 20,
+              padding: "44px 40px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minHeight: 280,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {/* Subtle decorative circle */}
+            <div style={{
+              position: "absolute", top: -40, right: -40,
+              width: 200, height: 200, borderRadius: "50%",
+              background: "rgba(255,255,255,0.05)",
+              pointerEvents: "none",
+            }} aria-hidden="true" />
+
             <div>
               <h2
                 id="cta-heading"
-                className="text-white text-3xl font-semibold font-['Lexend'] leading-tight mb-4"
+                style={{
+                  fontFamily: "Lexend, sans-serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)",
+                  color: "#fff",
+                  lineHeight: 1.25,
+                  marginBottom: 14,
+                }}
               >
                 Ready to prove your skills?
               </h2>
-              <p className="text-white/80 text-base font-['Lexend'] leading-relaxed mb-8">
+              <p style={{
+                fontFamily: "Lexend, sans-serif",
+                fontSize: 14,
+                color: "rgba(255,255,255,0.75)",
+                lineHeight: 1.7,
+                maxWidth: 360,
+                marginBottom: 32,
+              }}>
                 Create your free profile, complete your first challenge, and get your PWD Verified badge — all in one platform.
               </p>
             </div>
+
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#0023FF] text-sm font-semibold font-['Roboto'] uppercase tracking-tight rounded-xl hover:bg-blue-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0023FF] self-start min-h-11"
+              style={{
+                fontFamily: "Lexend, sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                color: "#1E40AF",
+                background: "#fff",
+                borderRadius: 10,
+                padding: "12px 24px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                alignSelf: "flex-start",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+                transition: "background 0.2s",
+              }}
+              className="hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
             >
               Start Your Journey →
             </Link>
           </div>
 
-          {/* Employer CTA */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-10 flex flex-col justify-between min-h-70">
+          {/* ── Employer CTA — White card ── */}
+          <div
+            style={{
+              background: "#fff",
+              border: "1.5px solid #E2E8F0",
+              borderRadius: 20,
+              padding: "44px 40px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minHeight: 280,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            {/* Subtle decorative circle */}
+            <div style={{
+              position: "absolute", bottom: -50, right: -50,
+              width: 200, height: 200, borderRadius: "50%",
+              background: "rgba(30,64,175,0.04)",
+              pointerEvents: "none",
+            }} aria-hidden="true" />
+
             <div>
-              <h2 className="text-[#1E293B] text-3xl font-semibold font-['Lexend'] leading-tight mb-4">
+              <h2 style={{
+                fontFamily: "Lexend, sans-serif",
+                fontWeight: 700,
+                fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)",
+                color: "#1E293B",
+                lineHeight: 1.25,
+                marginBottom: 14,
+              }}>
                 Hiring verified PWD talent?
               </h2>
-              <p className="text-slate-600 text-base font-['Lexend'] leading-relaxed mb-8">
+              <p style={{
+                fontFamily: "Lexend, sans-serif",
+                fontSize: 14,
+                color: "#64748B",
+                lineHeight: 1.7,
+                maxWidth: 360,
+                marginBottom: 32,
+              }}>
                 Browse skill-verified candidates, post jobs for free, and earn your Inclusive Employer badge — while maximizing your RA 7277 tax benefits.
               </p>
             </div>
+
             <Link
               href="/signup?role=employer"
-              className="inline-flex items-center justify-center px-6 py-3 bg-[#1E293B] text-white text-sm font-semibold font-['Roboto'] uppercase tracking-tight rounded-xl hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E293B] focus-visible:ring-offset-2 self-start min-h-11"
+              style={{
+                fontFamily: "Lexend, sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                color: "#fff",
+                background: "#1E293B",
+                borderRadius: 10,
+                padding: "12px 24px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                alignSelf: "flex-start",
+                transition: "background 0.2s",
+              }}
+              className="hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-700 focus-visible:ring-offset-2"
             >
               Post a Job →
             </Link>
           </div>
+
         </div>
       </section>
     </>
