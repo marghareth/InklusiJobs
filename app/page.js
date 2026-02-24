@@ -1,6 +1,7 @@
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import SkillsSection from "@/components/landing/SkillsSection";
+import HowItWorksSection from "@/components/landing/HowItWorks"; // <-- Added import
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import VerificationSection from "@/components/landing/VerificationSection";
 import Footer from "@/components/landing/Footer";
@@ -29,7 +30,10 @@ export default function LandingPage() {
         {/* Section 2: Skills headline + profile card + trust bar */}
         <SkillsSection />
 
-        {/* Section 3: How it works / Features */}
+        {/* NEW SECTION: How it works (Inserted exactly where you requested) */}
+        <HowItWorksSection />
+
+        {/* Section 3: Features */}
         <FeaturesSection />
 
         {/* Section 4: PWD Verification + CTA */}
