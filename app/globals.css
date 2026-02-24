@@ -1,0 +1,103 @@
+/* ── FONTS ── */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+/* ── ACCESSIBILITY: FONT SIZE SCALING ── */
+html.text-large-root {
+  font-size: 18px;
+}
+
+html.text-xl-root {
+  font-size: 21px;
+}
+
+/* ── ACCESSIBILITY: HIGH CONTRAST MODE ── */
+html.high-contrast {
+  --tw-text-opacity: 1;
+}
+
+html.high-contrast body {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.high-contrast a,
+html.high-contrast button {
+  text-decoration: underline;
+}
+
+html.high-contrast .bg-\[\#1E293B\],
+html.high-contrast .bg-\[\#232F74\] {
+  background: #000000 !important;
+}
+
+html.high-contrast .text-white\/60,
+html.high-contrast .text-white\/70,
+html.high-contrast .text-white\/80 {
+  color: #ffffff !important;
+}
+
+html.high-contrast img {
+  filter: contrast(1.2);
+}
+
+/* ── ACCESSIBILITY: REDUCE MOTION ── */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── SYSTEM PREFERENCE: REDUCE MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── SYSTEM PREFERENCE: HIGH CONTRAST ── */
+@media (prefers-contrast: high) {
+  :root {
+    --color-primary: #0000cc;
+    --color-text: #000000;
+  }
+}
+
+/* ── FOCUS RING: globally visible for keyboard nav ── */
+:focus-visible {
+  outline: 3px solid #0023FF;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── SMOOTH SCROLL (respects reduce-motion) ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── MINIMUM TOUCH TARGET SIZE for PWDs with motor impairment ── */
+button,
+a,
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ── CUSTOM SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F6F4;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 999px;
+}
