@@ -1,4 +1,3 @@
-//Skill
 "use client";
 
 import Link from "next/link";
@@ -69,7 +68,8 @@ function ProfileCard() {
 
 export default function SkillsSection() {
   return (
-    <section className="bg-[#F7F6F4] py-24 px-6 md:px-20" aria-labelledby="skills-heading">
+    <section className="bg-[#F7F6F4]" aria-labelledby="skills-heading">
+      <div className="pt-24 px-6 md:px-20">
       <div className="max-w-340 mx-auto">
 
         {/* Accessibility badge */}
@@ -122,23 +122,25 @@ export default function SkillsSection() {
           </div>
         </div>
 
-        {/* Trust bar */}
-        <div className="mt-16 pt-10 border-t border-slate-200">
-          <ul className="flex flex-wrap gap-x-8 gap-y-3 items-center" role="list" aria-label="Platform trust indicators">
+        {/* Trust bar — full width, edge to edge */}
+      </div>
+      </div>
+      <div className="bg-[#1E293B] px-6 md:px-20 py-8">
+        <ul className="flex flex-wrap justify-between items-center gap-4 max-w-340 mx-auto" role="list" aria-label="Platform trust indicators">
             {[
-              { icon: "✅", label: "WCAG 2.1 AA Compliant" },
-              { icon: "🇵🇭", label: "RA 7277 Aligned" },
-              { icon: "🤖", label: "AI-Powered Verification" },
-              { icon: "🔒", label: "PWD Identity Protected" },
-              { icon: "📋", label: "NCDA Partnership Roadmap" },
-            ].map((item) => (
-              <li key={item.label} className="flex items-center gap-2 text-sm font-medium text-slate-600 font-['Lexend']" role="listitem">
-                <span aria-hidden="true">{item.icon}</span>
-                {item.label}
+              "WCAG 2.1 AA Compliant",
+              "RA 7277 Aligned",
+              "AI-Powered Verification",
+              "PWD Identity Protected",
+              "NCDA Partnership Roadmap",
+            ].map((label) => (
+              <li key={label} className="flex-1 flex justify-center">
+                <span className="inline-flex items-center justify-center border border-white text-white text-sm font-medium font-['Lexend'] rounded-lg px-4 py-2 whitespace-nowrap">
+                  {label}
+                </span>
               </li>
             ))}
           </ul>
-        </div>
       </div>
     </section>
   );
