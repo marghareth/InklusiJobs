@@ -1,124 +1,139 @@
-// app/api/challenge/score/route.js
+// app/api/quiz/score/route.js
 import { NextResponse } from "next/server";
 import { callAI } from "@/lib/api";
-import { saveChallengeAttempt } from "@/lib/supabase-progress";
+import { saveQuizAttempt } from "@/lib/supabase-progress";
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { challengeId, jobId, challenge, submission, userId } = body;
+    const { resourceId, jobId, questions, answers, userId } = body;
 
-    if (!challenge || !submission) {
-      return NextResponse.json({ error: "Missing challenge or submission" }, { status: 400 });
+    if (!questions || !answers) {
+      return NextResponse.json({ error: "Missing questions or answers" }, { status: 400 });
     }
 
-    const prompt = buildChallengePrompt(challenge, submission);
-    let result;
+    const questionFeedback = [];
+    let totalScore = 0;
+    let textQuestions = [];
 
-    try {
-      result = await callAI(prompt);
-    } catch (e) {
-      // Fallback scoring if AI fails
-      result = fallbackScore(challenge, submission);
-    }
+    // ── Score MC questions immediately (rule-based) ─────────────────────────
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const userAnswer = answers[i];
 
-    if (!result?.score) throw new Error("AI response missing score");
-
-    const finalResult = {
-      score:         result.score,
-      maxScore:      100,
-      passed:        result.score >= (challenge.passingScore || 70),
-      rubricScores:  result.rubricScores || [],
-      overallFeedback: result.overallFeedback || "",
-      encouragement: result.encouragement || "",
-      nextStep:      result.nextStep || "",
-      submission,
-    };
-
-    // Save to Supabase
-    if (userId && jobId && challengeId) {
-      try {
-        await saveChallengeAttempt(userId, jobId, challengeId, challenge.phaseNumber, {
-          ...finalResult,
-          feedback: finalResult.overallFeedback,
+      if (q.type === "single") {
+        const correct = userAnswer === q.correct;
+        const score   = correct ? 20 : 0; // 20 points each (5 questions = 100)
+        totalScore   += score;
+        questionFeedback.push({
+          questionIndex: i,
+          type:          "single",
+          correct,
+          score,
+          maxScore:      20,
+          explanation:   q.explanation || "",
+          feedback:      correct ? "Correct! Great thinking." : `The correct answer was: "${q.options?.find(o => o.value === q.correct)?.label}"`,
         });
-      } catch (e) {
-        console.error("[challenge/score] Supabase save error:", e);
+      } else if (q.type === "text") {
+        textQuestions.push({ index: i, question: q, answer: userAnswer });
       }
     }
 
-    return NextResponse.json(finalResult);
+    // ── Score text questions with AI ────────────────────────────────────────
+    if (textQuestions.length > 0) {
+      for (const tq of textQuestions) {
+        const prompt = buildTextScoringPrompt(tq.question, tq.answer);
+        let aiResult;
+        try {
+          aiResult = await callAI(prompt);
+        } catch {
+          // Fallback: give partial credit for attempt
+          aiResult = {
+            score: tq.answer?.trim().length > 50 ? 14 : 8,
+            feedback: "Your answer shows effort. Keep practising this skill.",
+            encouragement: "Well done for attempting the open-ended question!",
+          };
+        }
+
+        const score = Math.min(aiResult.score || 0, 20);
+        totalScore += score;
+        questionFeedback.push({
+          questionIndex: tq.index,
+          type:          "text",
+          correct:       score >= 14,
+          score,
+          maxScore:      20,
+          feedback:      aiResult.feedback || "",
+          encouragement: aiResult.encouragement || "",
+        });
+      }
+    }
+
+    // Sort feedback back into question order
+    questionFeedback.sort((a, b) => a.questionIndex - b.questionIndex);
+
+    const finalScore  = Math.round(totalScore);
+    const passed      = finalScore >= 60; // 60% passing for quizzes
+    const encouragement = passed
+      ? "Great job! You've shown a solid understanding of this topic."
+      : "Keep going — review the resource and try again. You're building real skills.";
+
+    const result = {
+      score:            finalScore,
+      maxScore:         100,
+      passed,
+      questionFeedback,
+      encouragement,
+      answers,
+    };
+
+    // Save to Supabase if userId provided
+    if (userId && jobId && resourceId) {
+      try {
+        const phaseNumber = questions[0]?.phaseNumber || 1;
+        await saveQuizAttempt(userId, jobId, resourceId, phaseNumber, {
+          ...result,
+          feedback: questionFeedback,
+        });
+      } catch (e) {
+        console.error("[quiz/score] Supabase save error:", e);
+      }
+    }
+
+    return NextResponse.json(result);
 
   } catch (error) {
-    console.error("[challenge/score] Error:", error);
+    console.error("[quiz/score] Error:", error);
     return NextResponse.json({ error: "Scoring failed", detail: error.message }, { status: 500 });
   }
 }
 
-function buildChallengePrompt(challenge, submission) {
-  const rubricText = challenge.rubric
-    ?.map(r => `- "${r.criterion}" (${r.maxScore} points): ${r.description}`)
-    .join("\n") || "Score based on overall quality, completeness, and practical value.";
+function buildTextScoringPrompt(question, answer) {
+  return `You are a fair, encouraging skills evaluator for InklusiJobs — a job platform for PWDs in the Philippines.
 
-  return `You are a fair, encouraging professional evaluator for InklusiJobs — a job platform for PWDs in the Philippines.
+Score this open-ended quiz answer out of 20 points.
 
-Evaluate this practical challenge submission as if you were a hiring manager reviewing real work.
+QUESTION: ${question.question}
 
-CHALLENGE: ${challenge.title}
-BRIEF SUMMARY: ${challenge.briefSummary}
-SKILLS BEING ASSESSED: ${challenge.skills?.join(", ")}
-PASSING SCORE: ${challenge.passingScore || 70}%
+SCORING RUBRIC: ${question.rubric || "Evaluate quality of thinking, practical knowledge, and communication clarity."}
 
-RUBRIC (Total 100 points):
-${rubricText}
+STUDENT'S ANSWER:
+"${answer || "(no answer provided)"}"
 
-SUBMISSION:
-"""
-${submission}
-"""
+SCORING GUIDE:
+- 18–20: Exceptional — shows deep understanding, specific and practical, well-structured
+- 14–17: Good — correct approach, mostly complete, minor gaps
+- 10–13: Developing — shows some understanding but missing key elements
+- 6–9:   Beginning — attempt made but significant gaps in knowledge
+- 0–5:   Insufficient — no answer or completely off-topic
 
-EVALUATION RULES:
-1. Be fair but honest — this person is trying to get their first job
-2. Give credit for correct thinking even if imperfectly expressed
-3. Filipino English and informal tone are acceptable — don't penalise for language style
-4. A submission that shows genuine effort and understanding should pass even if not perfect
-5. Be specific in your feedback — vague feedback helps no one
-6. Frame all feedback constructively — what to keep, what to improve
-7. The encouragement message must be specific to THIS submission, not generic
+ANTI-BIAS: Do NOT penalise for informal language, Filipino English, or brevity if the answer is correct.
+Give credit for correct thinking even if imperfectly expressed.
 
-Return ONLY this exact JSON:
+Return ONLY this JSON:
 {
-  "score": 74,
-  "rubricScores": [
-    {
-      "criterion": "criterion name from rubric",
-      "score": 18,
-      "maxScore": 25,
-      "feedback": "Specific 1-2 sentence feedback on this criterion"
-    }
-  ],
-  "overallFeedback": "2-3 sentences of warm, specific overall feedback written directly to the applicant",
-  "strengths": ["specific strength 1", "specific strength 2"],
-  "improvements": ["specific improvement 1", "specific improvement 2"],
-  "encouragement": "Warm, specific 1-2 sentence message about something unique you noticed in their submission",
-  "nextStep": "The single most important thing they should work on next"
+  "score": 16,
+  "feedback": "Specific, constructive 1-2 sentence feedback on what they did well and what to improve",
+  "encouragement": "Warm 1 sentence — specific to their answer, not generic"
 }`;
-}
-
-function fallbackScore(challenge, submission) {
-  const wordCount = submission.trim().split(/\s+/).length;
-  const score = wordCount > 200 ? 72 : wordCount > 100 ? 60 : wordCount > 50 ? 48 : 30;
-
-  return {
-    score,
-    rubricScores: challenge.rubric?.map(r => ({
-      criterion: r.criterion,
-      score:     Math.round(r.maxScore * (score / 100)),
-      maxScore:  r.maxScore,
-      feedback:  "AI evaluation unavailable — basic scoring applied.",
-    })) || [],
-    overallFeedback: "Your submission has been recorded. Detailed AI feedback will be available once the service is restored.",
-    encouragement:   "Great job completing this challenge! The effort you put in will pay off.",
-    nextStep:        "Review the challenge brief and compare your submission against each rubric criterion.",
-  };
 }
