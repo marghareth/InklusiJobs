@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * AuthModal.jsx
- * Location: components/landing/AuthModal.jsx
- *
- * Self-contained — includes its own useAuthModal hook.
- * Import both in Navbar.jsx like this:
- *
- *   import AuthModal, { useAuthModal } from "./AuthModal";
- */
-
 import { useEffect, useRef, useState, useCallback } from "react";
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -78,7 +68,6 @@ const css = `
   .am-close:hover         { background: rgba(255,255,255,0.30); }
   .am-close:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
 
-  /* LEFT GRADIENT PANEL */
   .am-left {
     background: linear-gradient(155deg, #0F2942 0%, #1a5f7a 45%, #6dbfb8 80%, #c9a4d4 100%);
     display: flex;
@@ -112,7 +101,6 @@ const css = `
     letter-spacing: 0.3px;
   }
 
-  /* RIGHT FORM PANEL */
   .am-right {
     background: #F7F6F4;
     padding: 44px 48px;
@@ -133,7 +121,6 @@ const css = `
   }
   .am-logo span { color: #15803D; }
 
-  /* TABS */
   .am-tabs { display: flex; border-bottom: 2px solid #E2E8F0; margin-bottom: 24px; }
   .am-tab {
     font-family: 'DM Sans', sans-serif;
@@ -154,7 +141,6 @@ const css = `
   }
   .am-tab:focus-visible    { outline: 2px solid #2563EB; outline-offset: 4px; border-radius: 2px; }
 
-  /* FORM */
   .am-heading {
     font-family: 'DM Sans', sans-serif;
     font-size: clamp(20px, 2.4vw, 26px); font-weight: 700;
@@ -250,40 +236,20 @@ const css = `
   .am-social-btn:hover         { background: #f8fafc; border-color: #CBD5E1; transform: translateY(-1px); }
   .am-social-btn:focus-visible { outline: 2px solid #2563EB; outline-offset: 3px; }
 
-  /* ROLE BADGE */
   .am-role-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    padding: 5px 12px;
-    border-radius: 100px;
-    margin-bottom: 20px;
-    width: fit-content;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 5px 12px; border-radius: 100px;
+    margin-bottom: 20px; width: fit-content;
   }
-  .am-role-badge.worker {
-    background: #EFF6FF;
-    color: #1E40AF;
-    border: 1px solid #BFDBFE;
-  }
-  .am-role-badge.employer {
-    background: #F5F3FF;
-    color: #6D28D9;
-    border: 1px solid #DDD6FE;
-  }
-  .am-role-badge::before {
-    content: '';
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.7;
-  }
+  .am-role-badge.worker   { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .am-role-badge.employer { background: #F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE; }
+  .am-role-badge::before  { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
 
-  /* RESPONSIVE */
   @media (max-width: 600px) {
     .am-modal    { grid-template-columns: 1fr; border-radius: 20px; }
     .am-left     { display: none; }
@@ -330,7 +296,7 @@ function RoleBadge({ role, tab }) {
 }
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
-function SignInForm({ onSwitch, role }) {
+function SignInForm({ onSwitch, role, onSignInComplete }) {
   const [showPwd, setShowPwd] = useState(false);
   return (
     <>
@@ -355,11 +321,12 @@ function SignInForm({ onSwitch, role }) {
           <label className="am-remember"><input type="checkbox" /> Remember me</label>
           <button type="button" className="am-forgot">Forgot Password?</button>
         </div>
-        <button type="button" className="am-submit">Sign in</button>
+        {/* ← onSignInComplete fires on click */}
+        <button type="button" className="am-submit" onClick={onSignInComplete}>Sign in</button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
-          <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
+          <button type="button" className="am-social-btn" onClick={onSignInComplete}><GoogleIcon /> Continue with Google</button>
+          <button type="button" className="am-social-btn" onClick={onSignInComplete}><FacebookIcon /> Continue with Facebook</button>
         </div>
       </div>
     </>
@@ -409,7 +376,7 @@ function SignUpForm({ onSwitch, role, onSignUpComplete }) {
 }
 
 // ─── Modal (default export) ───────────────────────────────────────────────────
-export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role = null, onSignUpComplete }) {
+export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role = null, onSignUpComplete, onSignInComplete }) {
   const [tab, setTab] = useState(defaultTab);
   const overlayRef    = useRef(null);
   const modalRef      = useRef(null);
@@ -478,7 +445,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role
               <button role="tab" aria-selected={tab === "signup"} className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign up</button>
             </div>
             {tab === "signin"
-              ? <SignInForm onSwitch={() => setTab("signup")} role={role} />
+              ? <SignInForm onSwitch={() => setTab("signup")} role={role} onSignInComplete={onSignInComplete} />
               : <SignUpForm onSwitch={() => setTab("signin")} role={role} onSignUpComplete={onSignUpComplete} />
             }
           </div>
