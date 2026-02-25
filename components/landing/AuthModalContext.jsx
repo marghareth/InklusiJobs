@@ -57,7 +57,7 @@ export function AuthModalProvider({ children }) {
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "worker") {
-      router.push("/assessment");
+      router.push("/job-select");
     } else {
       router.push("/dashboard/worker"); // swap to /dashboard/employer when built
     }

@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+export const QUESTIONS = ABOUT_YOU_QUESTIONS;
+export const QUESTION_ORDER = ABOUT_YOU_QUESTIONS.map((q) => q.id);
 import {
   QUESTIONS,
   PHASES,
