@@ -1,22 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthModal from "./AuthModal";
 import RoleSelector from "./RoleSelector";
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen]       = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState("signin");
+  const [selectedRole, setSelectedRole] = useState(null);
 
-  // Step 1 — RoleSelector
-  const [roleOpen, setRoleOpen]       = useState(false);
+  useEffect(() => {
+    const handler = () => {
+      setSelectedRole(null);
+      setAuthTab("signin");
+      setAuthOpen(true);
+    };
 
-  // Step 2 — AuthModal
-  const [authOpen, setAuthOpen]       = useState(false);
-  const [authTab, setAuthTab]         = useState("signin");  // "signin" | "signup"
-  const [selectedRole, setSelectedRole] = useState(null);   // "worker" | "employer"
+    window.addEventListener("inklusijobs:open-modal", handler);
+    return () => window.removeEventListener("inklusijobs:open-modal", handler);
+  }, []);
 
-  // "Log In" → skip role selector, open auth on sign-in tab (no role badge)
   const handleLogIn = () => {
     setSelectedRole(null);
     setAuthTab("signin");
@@ -24,17 +30,15 @@ export default function Navbar() {
     setMenuOpen(false);
   };
 
-  // "Get Started" → open role selector first
   const handleGetStarted = () => {
     setRoleOpen(true);
     setMenuOpen(false);
   };
 
-  // User picks Worker or Employer in RoleSelector
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
     setRoleOpen(false);
-    setAuthTab("signup");   // always land on sign-up after choosing role
+    setAuthTab("signup");
     setAuthOpen(true);
   };
 
@@ -47,8 +51,6 @@ export default function Navbar() {
     <>
       <nav className="absolute top-10 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-5xl z-50">
         <div className="bg-[#1E293B] rounded-xl px-6 py-4 flex items-center justify-between backdrop-blur-xl">
-
-          {/* Logo */}
           <Link
             href="/"
             className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md"
@@ -58,21 +60,25 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Nav Links — desktop */}
           <ul className="hidden md:flex items-center gap-6" role="list">
-            {["Home", "Find Work", "For Employers", "Learn", "About"].map((item) => (
-              <li key={item}>
-                <Link
-                  href={item === "Home" ? "/" : `/${item.toLowerCase().replace(" ", "-")}`}
-                  className="text-[#FAF9F8] text-base font-normal font-['Lexend'] leading-tight hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md px-1"
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
+            {["Home", "Find Work", "For Employers", "Learn", "About"].map(
+              (item) => (
+                <li key={item}>
+                  <Link
+                    href={
+                      item === "Home"
+                        ? "/"
+                        : `/${item.toLowerCase().replace(" ", "-")}`
+                    }
+                    className="text-[#FAF9F8] text-base font-normal font-['Lexend'] leading-tight hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md px-1"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
 
-          {/* Buttons — desktop */}
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={handleLogIn}
@@ -88,35 +94,56 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile hamburger */}
           <button
             className="md:hidden text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md p-1"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
           >
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              {menuOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              }
+            <svg
+              className="w-7 h-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              {menuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
             </svg>
           </button>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden mt-2 bg-[#1E293B] rounded-xl px-6 py-4 flex flex-col gap-4">
-            {["Home", "Find Work", "For Employers", "Learn", "About"].map((item) => (
-              <Link
-                key={item}
-                href={item === "Home" ? "/" : `/${item.toLowerCase().replace(" ", "-")}`}
-                className="text-[#FAF9F8] text-lg font-['Lexend'] hover:text-blue-300 transition-colors"
-                onClick={() => setMenuOpen(false)}
-              >
-                {item}
-              </Link>
-            ))}
+            {["Home", "Find Work", "For Employers", "Learn", "About"].map(
+              (item) => (
+                <Link
+                  key={item}
+                  href={
+                    item === "Home"
+                      ? "/"
+                      : `/${item.toLowerCase().replace(" ", "-")}`
+                  }
+                  className="text-[#FAF9F8] text-lg font-['Lexend'] hover:text-blue-300 transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item}
+                </Link>
+              ),
+            )}
             <div className="flex flex-col gap-2 pt-2 border-t border-slate-600">
               <button
                 onClick={handleLogIn}
@@ -135,14 +162,12 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* Step 1 — Role Selector (Get Started flow) */}
       <RoleSelector
         isOpen={roleOpen}
         onClose={closeAll}
         onSelectRole={handleRoleSelect}
       />
 
-      {/* Step 2 — Auth Modal */}
       <AuthModal
         isOpen={authOpen}
         onClose={closeAll}
