@@ -563,44 +563,45 @@ export default function AuthModal({
   const modalRef = useRef(null);
   const closeRef = useRef(null);
 
-  // ── Detect ?verified=true on page load (user returning from email link) ──
+  // ── Listen for verification signal from the new tab via localStorage ──
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-
-    if (params.get("verified") === "true") {
-      // Clean the URL so a refresh doesn't re-trigger this
-      const clean = window.location.pathname;
-      window.history.replaceState({}, "", clean);
-
-      // Pull the current session to get user metadata
-      const bootstrap = async () => {
+    const handleVerified = async (status) => {
+      if (status === "true") {
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
-
         if (user) {
           setUserData({
             first_name: user.user_metadata?.first_name || "there",
             role: user.user_metadata?.role || "worker",
           });
           setStep("basic-info");
-          // Open the modal so the user can see BasicInformation
-          // (parent must handle isOpen — we signal via a custom event)
           window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
         }
-      };
+      } else {
+        window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
+      }
+    };
 
-      bootstrap();
+    // Case 1: new tab already closed and set localStorage before this mounted
+    const existing = localStorage.getItem("inklusijobs:verified");
+    if (existing) {
+      localStorage.removeItem("inklusijobs:verified");
+      handleVerified(existing);
     }
 
-    if (params.get("verified") === "error") {
-      window.history.replaceState({}, "", window.location.pathname);
-      // Just open the modal at auth step so they can try again
-      window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
-    }
+    // Case 2: new tab sets localStorage while this tab is open
+    const onStorage = (e) => {
+      if (e.key === "inklusijobs:verified" && e.newValue) {
+        localStorage.removeItem("inklusijobs:verified");
+        handleVerified(e.newValue);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Reset when modal opens fresh (not from verified redirect)

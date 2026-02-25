@@ -7,6 +7,7 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
   const [formData, setFormData] = useState({
     firstName: initialData.firstName || "",
     lastName: initialData.lastName || "",
+    age: initialData.age || "",
     currentAddress: initialData.currentAddress || "",
     permanentAddress: initialData.permanentAddress || "",
     contactNumber: initialData.contactNumber || "",
@@ -49,11 +50,15 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
         throw new Error("Session expired. Please sign in again.");
 
       // Upsert into profiles table
+      const role = user.user_metadata?.role || "worker";
+
       const { error: upsertError } = await supabase.from("profiles").upsert({
         id: user.id,
         email: user.email,
         first_name: formData.firstName,
         last_name: formData.lastName,
+        age: formData.age ? parseInt(formData.age) : null,
+        role: role,
         current_address: formData.currentAddress,
         permanent_address: formData.permanentAddress,
         contact_number: formData.contactNumber,
@@ -63,11 +68,7 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
 
       if (upsertError) throw upsertError;
 
-      // Pass saved data up so AuthModal can show the right Welcome screen
-      onSubmit?.({
-        first_name: formData.firstName,
-        role: user.user_metadata?.role || "worker",
-      });
+      onSubmit?.({ first_name: formData.firstName, role });
     } catch (err) {
       console.error("BasicInformation save error:", err);
       setError(
@@ -130,6 +131,24 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
                 required
               />
             </div>
+          </div>
+
+          {/* Age */}
+          <div>
+            <label className="block text-sm font-medium text-[#1e293b] mb-1">
+              Age
+            </label>
+            <input
+              type="number"
+              name="age"
+              value={formData.age}
+              onChange={handleChange}
+              placeholder="Enter your Age"
+              min="1"
+              max="120"
+              className="w-full px-4 py-2 bg-[#eef2f7] border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#479880] text-[#1e293b] placeholder-[#8891c9]"
+              required
+            />
           </div>
 
           {/* Current Address */}

@@ -30,12 +30,14 @@ export async function GET(request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
-      // Redirect back to home with verified flag — AuthModal will detect this
-      return NextResponse.redirect(`${origin}/?verified=true`);
-    }
+    // Redirect to a page that signals the original tab via localStorage, then closes itself
+    const status = error ? "error" : "true";
+    return NextResponse.redirect(`${origin}/auth/verified?status=${status}`, {
+      status: 303,
+    });
   }
 
-  // Something went wrong — send back with an error flag
-  return NextResponse.redirect(`${origin}/?verified=error`);
+  return NextResponse.redirect(`${origin}/auth/verified?status=error`, {
+    status: 303,
+  });
 }
