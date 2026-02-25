@@ -1,5 +1,8 @@
 import { Lexend, Roboto } from "next/font/google";
 import "./globals.css";
+import SkipLink from "@/components/accessibility/SkipLink";
+import AccessibilityToolbar from "@/components/accessibility/AccessibilityToolbar";
+import { AccessibilityProvider } from "@/components/accessibility/AccessibilityProvider";
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -23,7 +26,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${lexend.variable} ${roboto.variable}`}>
       <body className="antialiased bg-white text-[#000000]">
-        {children}
+        <SkipLink />
+        <AccessibilityProvider>
+          {children}
+          <AccessibilityToolbar />
+        </AccessibilityProvider>
       </body>
     </html>
   );
