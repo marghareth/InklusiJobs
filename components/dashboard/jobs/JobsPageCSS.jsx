@@ -8,40 +8,71 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
   font-weight: normal; font-style: normal;
 }
 
-/* ── Dark tokens (matches CareerPath AI dashboard) ── */
-.jp-dark {
-  --bg:#0f0f1a; --sf:#1a1a2e; --sf2:#1e1e32;
-  --bd:#252540; --bd2:#2e2e50;
-  --t1:#e8e8f5; --t2:#8888aa; --t3:#55557a;
-  --teal:#479880; --teal2:#4B959E; --blue:#648FBF;
-  --purp:#8891C9; --purp2:#a78bfa;
-  --td:rgba(71,152,128,.13); --tb:rgba(71,152,128,.3);
-  --bd_:rgba(100,143,191,.13); --bb:rgba(100,143,191,.3);
-  --gold:#a78bfa; --gd:rgba(167,139,250,.13); --gb:rgba(167,139,250,.3);
-  --green:#3D8C7A; --green2:#4B9DB5;
-  --red:#f85149; --sh:rgba(0,0,10,.6);
-  --card-top:linear-gradient(135deg,#1a1a2e,rgba(167,139,250,.05));
-  --apply-grad:linear-gradient(135deg,#7c3aed,#a78bfa);
-  --apply-sh:rgba(124,58,237,.35);
-}
-/* ── Light tokens ── */
+/* ── Light tokens — InklusiJobs palette (cream + forest green) ── */
 .jp-light {
-  --bg:#F4F7F6; --sf:#ffffff; --sf2:#E8ECF5;
-  --bd:#d8e0e8; --bd2:#c8d4dc;
-  --t1:#1B2436; --t2:#4a5568; --t3:#8A9BB0;
-  --teal:#3D8C7A; --teal2:#4B959E; --blue:#648FBF;
-  --purp:#6B79C9; --purp2:#9085C4;
-  --td:rgba(61,140,122,.1); --tb:rgba(61,140,122,.28);
-  --bd_:rgba(100,143,191,.1); --bb:rgba(100,143,191,.28);
-  --gold:#9085C4; --gd:rgba(144,133,196,.12); --gb:rgba(144,133,196,.28);
-  --green:#3D8C7A; --green2:#4B9DB5;
-  --red:#c0392b; --sh:rgba(27,36,54,.1);
-  --card-top:linear-gradient(135deg,#fff,rgba(144,133,196,.04));
-  --apply-grad:linear-gradient(135deg,var(--teal),var(--teal2));
-  --apply-sh:rgba(71,152,128,.25);
+  --bg:        #F2EFE9;   /* warm cream page background */
+  --sf:        #FFFFFF;   /* white card surface */
+  --sf2:       #F7F5F0;   /* off-white secondary surface */
+  --bd:        #E4DDD2;   /* warm beige border */
+  --bd2:       #D5CCBF;   /* slightly darker border */
+  --t1:        #1C2B1A;   /* near-black with green tint */
+  --t2:        #5C6B54;   /* muted olive text */
+  --t3:        #9CA88F;   /* light sage placeholder */
+  --teal:      #2D5016;   /* forest green (sidebar color) — primary accent */
+  --teal2:     #3D6B1F;   /* slightly lighter forest green */
+  --blue:      #4A7C59;   /* sage green (secondary accent) */
+  --purp:      #6B8F5E;   /* muted olive green */
+  --purp2:     #3D6B1F;
+  --td:        rgba(45,80,22,.09);   /* teal tint bg */
+  --tb:        rgba(45,80,22,.28);   /* teal border */
+  --bd_:       rgba(74,124,89,.1);   /* blue tint bg */
+  --bb:        rgba(74,124,89,.3);   /* blue border */
+  --gold:      #7B6226;   /* warm amber/ochre for highlights */
+  --gd:        rgba(123,98,38,.1);
+  --gb:        rgba(123,98,38,.28);
+  --green:     #2D5016;
+  --green2:    #3D6B1F;
+  --red:       #B84040;
+  --sh:        rgba(28,43,26,.1);
+  --card-top:  linear-gradient(135deg,#fff,rgba(45,80,22,.03));
+  --apply-grad:linear-gradient(135deg,#2D5016,#3D6B1F);
+  --apply-sh:  rgba(45,80,22,.3);
 }
+
+/* ── Dark tokens — InklusiJobs dark variant ── */
+.jp-dark {
+  --bg:        #111810;   /* very dark forest-black */
+  --sf:        #1A2318;   /* dark forest green surface */
+  --sf2:       #1F2A1D;   /* slightly lighter surface */
+  --bd:        #2A3828;   /* muted green border */
+  --bd2:       #334530;   /* visible green border */
+  --t1:        #E8F0E5;   /* light sage white text */
+  --t2:        #8FAD84;   /* muted sage text */
+  --t3:        #536B4A;   /* dim olive placeholder */
+  --teal:      #5DB87A;   /* bright sage green accent */
+  --teal2:     #4EA869;
+  --blue:      #7BBF90;   /* lighter sage */
+  --purp:      #A0C896;   /* soft mint */
+  --purp2:     #5DB87A;
+  --td:        rgba(93,184,122,.12);
+  --tb:        rgba(93,184,122,.32);
+  --bd_:       rgba(123,191,144,.12);
+  --bb:        rgba(123,191,144,.3);
+  --gold:      #D4A843;   /* warm amber for badges */
+  --gd:        rgba(212,168,67,.12);
+  --gb:        rgba(212,168,67,.3);
+  --green:     #5DB87A;
+  --green2:    #7BBF90;
+  --red:       #E06060;
+  --sh:        rgba(0,8,0,.55);
+  --card-top:  linear-gradient(135deg,#1A2318,rgba(93,184,122,.04));
+  --apply-grad:linear-gradient(135deg,#2D6B3F,#5DB87A);
+  --apply-sh:  rgba(93,184,122,.3);
+}
+
 .jp-hc { --t2:var(--t1); --t3:var(--t1); }
 .jp-light.jp-hc { --bg:#fff; --sf:#fff; --t2:#000; --t3:#000; }
+.jp-dark.jp-hc  { --bg:#000; --sf:#0d1a0d; --t2:#e8f0e5; --t3:#e8f0e5; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 .jp-rm *{animation:none!important;transition:none!important;}
 
@@ -135,9 +166,9 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
 .ac-size-name-active{color:var(--blue);font-weight:700;}
 
 /* FAB */
-.jp-fab{position:fixed;bottom:1.4rem;right:1.4rem;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--teal2),var(--blue));color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:150;box-shadow:0 4px 14px var(--sh);transition:transform .2s,box-shadow .2s;}
+.jp-fab{position:fixed;bottom:1.4rem;right:1.4rem;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:150;box-shadow:0 4px 14px var(--sh);transition:transform .2s,box-shadow .2s;}
 .jp-fab:hover{transform:scale(1.07);box-shadow:0 7px 22px var(--sh);}
-.jp-dark .jp-fab{background:linear-gradient(135deg,#7c3aed,#a78bfa);}
+.jp-dark .jp-fab{background:linear-gradient(135deg,#2D6B3F,#5DB87A);}
 
 /* ── Layout ── */
 .jp-layout{display:flex;gap:0;padding:0 2rem;}
@@ -220,8 +251,8 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
 .jc-top{border-color:var(--gb);background:var(--card-top);}
 .jc-top:hover{border-color:var(--gold);box-shadow:0 4px 22px var(--sh);}
 .jc-badge{position:absolute;top:-1px;right:1rem;padding:.18rem .6rem;border-radius:0 0 8px 8px;font-size:.65rem;font-weight:700;letter-spacing:.04em;}
-.jc-badge-top{background:var(--gold);color:var(--bg);}
-.jp-dark .jc-badge-top{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;}
+.jc-badge-top{background:var(--gold);color:#fff;}
+.jp-dark .jc-badge-top{background:linear-gradient(135deg,#2D6B3F,#5DB87A);color:#fff;}
 .jc-badge-good{background:var(--td);color:var(--teal);border:1px solid var(--tb);border-top:none;}
 .jc-urgent{position:absolute;top:.85rem;right:.85rem;padding:.15rem .5rem;background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.28);border-radius:999px;font-size:.65rem;font-weight:700;}
 .jc-urgent-shift{right:7.5rem;}
@@ -229,7 +260,7 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
 .jc-logo{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;flex-shrink:0;letter-spacing:.02em;}
 .jc-pos{font-size:calc(0.98rem * ${fontScale});font-weight:700;color:var(--t1);margin-bottom:.18rem;letter-spacing:-.01em;}
 .jc-co{font-size:calc(0.78rem * ${fontScale});color:var(--t2);font-weight:500;display:flex;align-items:center;gap:.38rem;}
-.jc-verified{display:inline-flex;align-items:center;gap:.18rem;font-size:.62rem;font-weight:700;color:var(--green);background:rgba(61,140,122,.1);padding:.1rem .42rem;border-radius:999px;border:1px solid rgba(61,140,122,.24);}
+.jc-verified{display:inline-flex;align-items:center;gap:.18rem;font-size:.62rem;font-weight:700;color:var(--green);background:var(--td);padding:.1rem .42rem;border-radius:999px;border:1px solid var(--tb);}
 .jc-right{margin-left:auto;text-align:right;flex-shrink:0;}
 .jc-sal{font-size:calc(0.8rem * ${fontScale});font-weight:700;color:var(--teal);margin-bottom:.18rem;}
 .jc-age{font-size:.68rem;color:var(--t3);}
