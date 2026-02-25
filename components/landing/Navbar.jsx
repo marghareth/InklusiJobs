@@ -12,13 +12,13 @@ export default function Navbar() {
   const [authTab, setAuthTab] = useState("signin");
   const [selectedRole, setSelectedRole] = useState(null);
 
+  // Listen for the custom event fired by AuthModal after email verification redirect
   useEffect(() => {
     const handler = () => {
       setSelectedRole(null);
       setAuthTab("signin");
       setAuthOpen(true);
     };
-
     window.addEventListener("inklusijobs:open-modal", handler);
     return () => window.removeEventListener("inklusijobs:open-modal", handler);
   }, []);

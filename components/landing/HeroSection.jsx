@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useAuthModalContext } from "@/components/landing/AuthModalContext";
 
 export default function HeroSection() {
+  const { openRoleSelector } = useAuthModalContext();
+
   return (
     <section
       className="relative min-h-screen w-full overflow-hidden"
       aria-labelledby="hero-heading"
     >
-      {/* Background image with dark overlay for WCAG contrast */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/images/hero-bg.jpg"
@@ -19,15 +21,11 @@ export default function HeroSection() {
           priority
           aria-hidden="true"
         />
-        {/* Dark overlay — ensures text contrast passes WCAG AA */}
         <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
-        {/* Bottom fade to next section */}
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-linear-to-b from-transparent to-[#F7F6F4]" aria-hidden="true" />
       </div>
 
-      {/* Content — centered vertically and horizontally */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6 md:px-20 pt-24">
-        {/* Main heading */}
         <h1
           id="hero-heading"
           className="text-white font-['Lexend'] font-normal leading-[1.1] text-4xl md:text-5xl lg:text-6xl mb-6 max-w-3xl"
@@ -37,19 +35,18 @@ export default function HeroSection() {
           Equal Access
         </h1>
 
-        {/* Subtitle */}
         <p className="text-white/75 font-['Lexend'] text-lg md:text-xl leading-relaxed mb-10 max-w-xl">
           InklusiJobs connects persons with disabilities to verified, inclusive employers — with the tools and support to grow your career.
         </p>
 
-        {/* CTA Buttons */}
         <div className="flex flex-wrap gap-4 justify-center">
-          <Link
-            href="/get-started"
+          {/* Same flow as Navbar "Get Started" → RoleSelector → AuthModal */}
+          <button
+            onClick={openRoleSelector}
             className="inline-flex items-center justify-center bg-[#0023FF] hover:bg-blue-700 text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl transition-colors duration-200"
           >
             Get Started Free
-          </Link>
+          </button>
           <Link
             href="/find-work"
             className="inline-flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/30 text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl backdrop-blur-sm transition-colors duration-200"
@@ -58,7 +55,6 @@ export default function HeroSection() {
           </Link>
         </div>
 
-        {/* Social proof */}
         <p className="text-white/50 font-['Lexend'] text-sm mt-8">
           Trusted by 500+ PWD job seekers and 120+ inclusive employers across the Philippines.
         </p>
