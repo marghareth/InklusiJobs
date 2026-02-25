@@ -1,19 +1,5 @@
 "use client";
 
-/**
- * AuthModalContext.jsx
- * Location: components/landing/AuthModalContext.jsx
- *
- * Change summary vs original:
- *   - Imports useRouter from next/navigation
- *   - Adds handleAuthSuccess(role) → redirects to /dashboard/worker or /dashboard/employer
- *   - Passes onSuccess={handleAuthSuccess} to <AuthModal>
- *
- * When you add real auth later:
- *   - Put your token/session logic inside handleAuthSuccess before router.push
- *   - Everything else stays the same
- */
-
 import { createContext, useContext, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import RoleSelector from "@/components/landing/RoleSelector";
@@ -24,59 +10,38 @@ const AuthModalContext = createContext(null);
 export function AuthModalProvider({ children }) {
   const router = useRouter();
 
-  const [roleOpen, setRoleOpen]         = useState(false);
-  const [authOpen, setAuthOpen]         = useState(false);
-  const [authTab, setAuthTab]           = useState("signup");
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [roleOpen, setRoleOpen]           = useState(false);
+  const [authOpen, setAuthOpen]           = useState(false);
+  const [authTab, setAuthTab]             = useState("signup");
+  const [selectedRole, setSelectedRole]   = useState(null);
 
-  // ─── Redirect handler ─────────────────────────────────────────────────────
-  /**
-   * Called by AuthModal's SignInForm / SignUpForm on submit.
-   * @param {string|null} role - "worker" | "employer" | null
-   *
-   * TODO: when you wire up real auth, add your session/token logic here
-   * before the router.push call. Example:
-   *
-   *   await saveSessionToStorage(token, role);
-   *   router.push(`/dashboard/${role}`);
-   */
-  const handleAuthSuccess = useCallback((role) => {
-    setAuthOpen(false);
-
-    if (role === "worker") {
-      router.push("/dashboard/worker");
-    } else if (role === "employer") {
-      router.push("/dashboard/employer");
-    } else {
-      // Fallback: no role selected (e.g. plain sign-in without role picker)
-      // You can update this once your real auth returns a role from the server
-      router.push("/dashboard/worker");
-    }
-  }, [router]);
-
-  // ─── Existing openers (unchanged) ─────────────────────────────────────────
+  // SkillsSection "Start Your Journey" → worker signup directly
   const openAsWorker = useCallback(() => {
     setSelectedRole("worker");
     setAuthTab("signup");
     setAuthOpen(true);
   }, []);
 
+  // SkillsSection "I'm an Employer" → employer signup directly
   const openAsEmployer = useCallback(() => {
     setSelectedRole("employer");
     setAuthTab("signup");
     setAuthOpen(true);
   }, []);
 
+  // Navbar "Get Started" → show role picker first
   const openRoleSelector = useCallback(() => {
     setRoleOpen(true);
   }, []);
 
+  // Navbar "Log In" → straight to sign-in, no role badge
   const openSignIn = useCallback(() => {
     setSelectedRole(null);
     setAuthTab("signin");
     setAuthOpen(true);
   }, []);
 
+  // RoleSelector card clicked → close selector, open auth
   const handleRoleSelect = useCallback((role) => {
     setSelectedRole(role);
     setRoleOpen(false);
@@ -84,13 +49,34 @@ export function AuthModalProvider({ children }) {
     setAuthOpen(true);
   }, []);
 
+  /**
+   * Called by AuthModal's submit button (when you wire up real auth).
+   * Workers  → /onboarding/assessment
+   * Employers → /dashboard/worker  (change to /dashboard/employer when ready)
+   */
+  const handleSignUpComplete = useCallback((role) => {
+    setAuthOpen(false);
+    if (role === "worker") {
+      router.push("/assessment");
+    } else {
+      router.push("/dashboard/worker"); // swap to /dashboard/employer when built
+    }
+  }, [router]);
+
   const closeAll = useCallback(() => {
     setRoleOpen(false);
     setAuthOpen(false);
   }, []);
 
   return (
-    <AuthModalContext.Provider value={{ openAsWorker, openAsEmployer, openRoleSelector, openSignIn }}>
+    <AuthModalContext.Provider value={{
+      openAsWorker,
+      openAsEmployer,
+      openRoleSelector,
+      openSignIn,
+      handleSignUpComplete,
+      selectedRole,
+    }}>
       {children}
 
       <RoleSelector
@@ -98,14 +84,12 @@ export function AuthModalProvider({ children }) {
         onClose={closeAll}
         onSelectRole={handleRoleSelect}
       />
-
-      {/* onSuccess is the only new prop — everything else is identical */}
       <AuthModal
         isOpen={authOpen}
         onClose={closeAll}
-        onSuccess={handleAuthSuccess}
         defaultTab={authTab}
         role={selectedRole}
+        onSignUpComplete={() => handleSignUpComplete(selectedRole)}
       />
     </AuthModalContext.Provider>
   );

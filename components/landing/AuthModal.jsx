@@ -8,9 +8,6 @@
  * Import both in Navbar.jsx like this:
  *
  *   import AuthModal, { useAuthModal } from "./AuthModal";
- *
- * onSuccess(role) is called when the user clicks Sign In / Get Started.
- * The parent (AuthModalContext) handles the actual redirect.
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -333,24 +330,8 @@ function RoleBadge({ role, tab }) {
 }
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
-
-/**
- * onSuccess(role) — called when user clicks "Sign in".
- * Replace the body of handleSubmit with your real auth call later.
- * Role is passed through so the parent can redirect accordingly.
- */
-function SignInForm({ onSwitch, role, onSuccess }) {
+function SignInForm({ onSwitch, role }) {
   const [showPwd, setShowPwd] = useState(false);
-
-  const handleSubmit = useCallback(() => {
-    // ─── TODO: replace with real auth call ───────────────────────────────────
-    // e.g. await signIn(email, password)
-    // On success, call onSuccess with the authenticated user's role.
-    // For now we use the role already known from the modal context.
-    // ─────────────────────────────────────────────────────────────────────────
-    onSuccess(role);
-  }, [onSuccess, role]);
-
   return (
     <>
       <RoleBadge role={role} tab="signin" />
@@ -374,12 +355,7 @@ function SignInForm({ onSwitch, role, onSuccess }) {
           <label className="am-remember"><input type="checkbox" /> Remember me</label>
           <button type="button" className="am-forgot">Forgot Password?</button>
         </div>
-
-        {/* ── Only change: onClick wired to handleSubmit ── */}
-        <button type="button" className="am-submit" onClick={handleSubmit}>
-          Sign in
-        </button>
-
+        <button type="button" className="am-submit">Sign in</button>
         <div className="am-divider">or</div>
         <div className="am-social">
           <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
@@ -390,19 +366,8 @@ function SignInForm({ onSwitch, role, onSuccess }) {
   );
 }
 
-/**
- * Same pattern — onSuccess(role) fires on "Get Started".
- */
-function SignUpForm({ onSwitch, role, onSuccess }) {
+function SignUpForm({ onSwitch, role, onSignUpComplete }) {
   const [showPwd, setShowPwd] = useState(false);
-
-  const handleSubmit = useCallback(() => {
-    // ─── TODO: replace with real auth call ───────────────────────────────────
-    // e.g. await signUp(firstName, lastName, email, password, role)
-    // ─────────────────────────────────────────────────────────────────────────
-    onSuccess(role);
-  }, [onSuccess, role]);
-
   return (
     <>
       <RoleBadge role={role} tab="signup" />
@@ -432,12 +397,7 @@ function SignUpForm({ onSwitch, role, onSuccess }) {
             </button>
           </div>
         </div>
-
-        {/* ── Only change: onClick wired to handleSubmit ── */}
-        <button type="button" className="am-submit" onClick={handleSubmit}>
-          Get Started
-        </button>
-
+        <button type="button" className="am-submit" onClick={onSignUpComplete}>Get Started</button>
         <div className="am-divider">or</div>
         <div className="am-social">
           <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
@@ -449,12 +409,7 @@ function SignUpForm({ onSwitch, role, onSuccess }) {
 }
 
 // ─── Modal (default export) ───────────────────────────────────────────────────
-
-/**
- * New prop: onSuccess(role) — called by SignInForm / SignUpForm on submit.
- * AuthModalContext passes router.push logic here.
- */
-export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = "signin", role = null }) {
+export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role = null, onSignUpComplete }) {
   const [tab, setTab] = useState(defaultTab);
   const overlayRef    = useRef(null);
   const modalRef      = useRef(null);
@@ -522,10 +477,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = "si
               <button role="tab" aria-selected={tab === "signin"} className={`am-tab ${tab === "signin" ? "active" : ""}`} onClick={() => setTab("signin")}>Sign in</button>
               <button role="tab" aria-selected={tab === "signup"} className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign up</button>
             </div>
-
             {tab === "signin"
-              ? <SignInForm onSwitch={() => setTab("signup")} role={role} onSuccess={onSuccess} />
-              : <SignUpForm onSwitch={() => setTab("signin")} role={role} onSuccess={onSuccess} />
+              ? <SignInForm onSwitch={() => setTab("signup")} role={role} />
+              : <SignUpForm onSwitch={() => setTab("signin")} role={role} onSignUpComplete={onSignUpComplete} />
             }
           </div>
 
