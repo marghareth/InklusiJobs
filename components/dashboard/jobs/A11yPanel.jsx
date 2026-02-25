@@ -1,7 +1,7 @@
 'use client';
 
 import { Ic } from './Icons';
-import { FONT_SIZES } from './data/jobsData';
+import { FONT_SIZES } from './jobsData';
 
 export default function A11yPanel({ 
   hc, setHc, 

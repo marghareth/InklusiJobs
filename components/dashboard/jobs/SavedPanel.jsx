@@ -1,7 +1,7 @@
 'use client';
 
 import { Ic } from './Icons';
-import { JOB_LISTINGS, PWD_TYPES, USER_PROFILE } from './data/jobsData';
+import { JOB_LISTINGS, PWD_TYPES, USER_PROFILE } from './jobsData';
 
 export default function SavedPanel({ savedIds, onClose, full, setFull, onUnsave }) {
   const jobs = JOB_LISTINGS.filter(j => savedIds.includes(j.id));

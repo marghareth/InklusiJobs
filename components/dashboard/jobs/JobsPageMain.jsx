@@ -12,7 +12,7 @@ import {
   SETUP_OPTIONS, 
   PWD_TYPES,
   FONT_SIZES 
-} from './data/jobsData';
+} from './jobsData';
 import JobsPageCSS from './JobsPageCSS';
 
 export default function JobsPageMain() {
