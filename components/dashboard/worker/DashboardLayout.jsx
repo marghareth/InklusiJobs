@@ -1,5 +1,6 @@
 'use client';
 
+import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardHome from './DashboardHome';
@@ -130,6 +131,7 @@ export default function DashboardLayout() {
           </div>
         </div>
       </div>
+      <AccessibilityPanel />
     </>
   );
 }

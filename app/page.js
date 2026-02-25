@@ -5,7 +5,7 @@ import HowItWorksSection from "@/components/landing/HowItWorks";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import VerificationSection from "@/components/landing/VerificationSection";
 import Footer from "@/components/landing/Footer";
-import AccessibilityToolbar from "@/components/accessibility/AccessibilityToolbar";
+import AccessibilityPanel from "@/components/accessibility/AccessibilityPanel";
 import SkipLink from "@/components/accessibility/SkipLink";
 import { AuthModalProvider } from "@/components/landing/AuthModalContext";
 
@@ -44,7 +44,7 @@ export default function LandingPage() {
       <Footer />
 
       {/* Floating accessibility toolbar - PWD users can toggle font size, contrast, motion */}
-      <AccessibilityToolbar />
+      <AccessibilityPanel />
     </AuthModalProvider>
   );
 }
