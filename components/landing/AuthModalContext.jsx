@@ -52,14 +52,14 @@ export function AuthModalProvider({ children }) {
   /**
    * Called by AuthModal's submit button (when you wire up real auth).
    * Workers  → /onboarding/assessment
-   * Employers → /dashboard/worker  (change to /dashboard/employer when ready)
+   * Employers → /dashboard/employer
    */
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "worker") {
       router.push("/assessment");
     } else {
-      router.push("/dashboard/worker"); // swap to /dashboard/employer when built
+      router.push("/dashboard/employer");
     }
   }, [router]);
 
