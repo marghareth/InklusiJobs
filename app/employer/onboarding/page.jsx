@@ -389,7 +389,7 @@ export default function EmployerOnboarding() {
           <p style={{ color:C.muted, fontSize:14, marginBottom:32, lineHeight:1.6 }}>
             InklusiJobs will now surface AI-matched PWD candidates for your <strong style={{ color:C.navy }}>{s3.jobTitle || "open role"}</strong>.
           </p>
-          <a href="/dashboard/employer" style={{ display:"inline-block", padding:"14px 36px", borderRadius:12, background:`linear-gradient(135deg, ${C.navy}, #2A3F6F)`, color:"#fff", fontSize:15, fontWeight:700, textDecoration:"none", boxShadow:"0 4px 16px rgba(26,39,68,0.3)" }}>
+          <a href="/employer/dashboard" style={{ display:"inline-block", padding:"14px 36px", borderRadius:12, background:`linear-gradient(135deg, ${C.navy}, #2A3F6F)`, color:"#fff", fontSize:15, fontWeight:700, textDecoration:"none", boxShadow:"0 4px 16px rgba(26,39,68,0.3)" }}>
             Go to Dashboard →
           </a>
         </div>

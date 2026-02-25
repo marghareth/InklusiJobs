@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import LogoutButton from "@/components/employer/LogoutButton";
 
 // ── Theme definitions (matches onboarding Step 5 picker) ─────────────────────
 const THEMES = {
@@ -163,7 +162,7 @@ const StatCard = ({ label, value, delta, icon, color }) => (
 );
 
 // ════════════════════════════════════════════════════════════════════════════
-//  PAGES
+//  PAGES — each receives `profile` and `T` (theme colors)
 // ════════════════════════════════════════════════════════════════════════════
 
 const PageOverview = ({ profile, T }) => {
@@ -177,9 +176,10 @@ const PageOverview = ({ profile, T }) => {
   const userName    = s1.firstName ? `${s1.firstName} ${s1.lastName||""}`.trim() : null;
   const greeting    = userName ? `Welcome back, ${userName} 👋` : `Welcome back, ${displayName} 👋`;
 
+  // Build a dynamic first job card from onboarding data
   const firstJob = s3.jobTitle ? {
     title: s3.jobTitle,
-    dept: s3.dept || "General",
+    dept: s3.dept || "—",
     workType: s3.workType || "Remote",
     skills: s3.skills?.slice(0,3) || [],
   } : null;
@@ -200,6 +200,7 @@ const PageOverview = ({ profile, T }) => {
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:20, marginBottom:20 }}>
+        {/* Funnel — only if widget selected */}
         {activeWidgets.includes("Hiring Funnel") && (
           <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
             <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:20 }}>Hiring Funnel</h2>
@@ -211,6 +212,7 @@ const PageOverview = ({ profile, T }) => {
           </div>
         )}
 
+        {/* Recent Applications */}
         {activeWidgets.includes("Recent Applications") && (
           <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
@@ -236,6 +238,7 @@ const PageOverview = ({ profile, T }) => {
           </div>
         )}
 
+        {/* If funnel not selected but recent apps is, show full width */}
         {!activeWidgets.includes("Hiring Funnel") && !activeWidgets.includes("Recent Applications") && (
           <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, gridColumn:"1/-1", textAlign:"center", color:BASE.muted, fontSize:14 }}>
             No widgets selected — go to Settings to customize your dashboard.
@@ -243,6 +246,7 @@ const PageOverview = ({ profile, T }) => {
         )}
       </div>
 
+      {/* AI Match Preview */}
       {activeWidgets.includes("AI Match Preview") && (
         <div style={{ background:`linear-gradient(135deg, ${T.sidebar} 0%, ${T.sidebarEnd} 100%)`, borderRadius:16, padding:24, color:"#fff" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
@@ -276,6 +280,7 @@ const PageOverview = ({ profile, T }) => {
         </div>
       )}
 
+      {/* Quick Actions widget */}
       {activeWidgets.includes("Quick Actions") && (
         <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, marginTop:20 }}>
           <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:16 }}>Quick Actions</h2>
@@ -298,11 +303,13 @@ const PageOverview = ({ profile, T }) => {
   );
 };
 
+// ── Job Listings — shows onboarding job first ────────────────────────────────
 const PageJobs = ({ profile, T }) => {
   const [filter, setFilter] = useState("All Jobs");
   const s3 = profile?.s3 || {};
 
   const jobs = [
+    // If onboarding data exists, make it the first "real" job
     ...(s3.jobTitle ? [{
       title: s3.jobTitle,
       dept: s3.dept || "General",
@@ -372,6 +379,7 @@ const PageJobs = ({ profile, T }) => {
   );
 };
 
+// ── Candidate Matches — skills from onboarding ───────────────────────────────
 const PageCandidates = ({ profile, T }) => {
   const s3 = profile?.s3 || {};
   const roleSkills = s3.skills?.slice(0,3) || [];
@@ -442,6 +450,7 @@ const PageCandidates = ({ profile, T }) => {
   );
 };
 
+// ── Portfolio, Analytics, Messages, Feedback — theme-aware ──────────────────
 const PagePortfolio = ({ profile, T }) => {
   const s3 = profile?.s3 || {};
   const items = [
@@ -651,6 +660,7 @@ const PageFeedback = ({ T }) => (
   </div>
 );
 
+// ── Company Profile — populated from onboarding ──────────────────────────────
 const PageProfile = ({ profile, T }) => {
   const s1 = profile?.s1 || {};
   const s2 = profile?.s2 || {};
@@ -743,6 +753,7 @@ const PageSettings = ({ profile, T }) => {
   );
 };
 
+// ── Page router ──────────────────────────────────────────────────────────────
 const renderPage = (id, profile, T) => {
   switch (id) {
     case "overview":   return <PageOverview   profile={profile} T={T} />;
@@ -769,6 +780,7 @@ export default function EmployerDashboard() {
   const [search,      setSearch]      = useState("");
   const [profile,     setProfile]     = useState(null);
 
+  // Load from localStorage on mount — redirect to onboarding if no data yet
   useEffect(() => {
     const data = loadProfile();
     if (!data) {
@@ -778,15 +790,16 @@ export default function EmployerDashboard() {
     }
   }, []);
 
+  // Pick theme from onboarding Step 5, fallback to navy
   const themeKey = profile?.s5?.theme || "navy";
   const T = THEMES[themeKey] || THEMES.navy;
 
   const s1 = profile?.s1 || {};
   const s2 = profile?.s2 || {};
 
-  const companyName   = s2.company   || "Your Company";
-  const adminName     = s1.firstName ? `${s1.firstName} ${s1.lastName||""}`.trim() : "HR Admin";
-  const adminInitial  = (s1.firstName || "H")[0].toUpperCase();
+  const companyName = s2.company  || "Your Company";
+  const adminName   = s1.firstName ? `${s1.firstName} ${s1.lastName||""}`.trim() : "HR Admin";
+  const adminInitial = (s1.firstName || "H")[0].toUpperCase();
   const companyInitial = companyName[0].toUpperCase();
 
   const SB_W = collapsed ? 68 : 252;
@@ -796,6 +809,8 @@ export default function EmployerDashboard() {
 
       {/* ── SIDEBAR ── */}
       <aside style={{ width:SB_W, minWidth:SB_W, height:"100vh", background:`linear-gradient(180deg, ${T.sidebar} 0%, ${T.sidebarEnd} 100%)`, display:"flex", flexDirection:"column", transition:"width 0.25s cubic-bezier(0.4,0,0.2,1)", overflow:"hidden", boxShadow:"4px 0 24px rgba(26,39,68,0.18)", zIndex:20, flexShrink:0 }}>
+
+        {/* Brand — shows real company name */}
         <div style={{ padding:collapsed?"22px 14px":"22px 20px", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:12, overflow:"hidden" }}>
           <div style={{ width:38, height:38, borderRadius:"50%", background:`linear-gradient(135deg, ${T.accent}, rgba(255,255,255,0.3))`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:"#fff", flexShrink:0 }}>{companyInitial}</div>
           {!collapsed && (
@@ -806,6 +821,7 @@ export default function EmployerDashboard() {
           )}
         </div>
 
+        {/* Nav */}
         <nav style={{ flex:1, padding:"10px 0", overflowY:"auto" }}>
           {NAV.map(n => {
             const on = active === n.id;
@@ -821,6 +837,7 @@ export default function EmployerDashboard() {
           })}
         </nav>
 
+        {/* Collapse */}
         <div style={{ padding:"14px", borderTop:"1px solid rgba(255,255,255,0.08)" }}>
           <button onClick={() => setCollapsed(v => !v)} aria-label={collapsed?"Expand sidebar":"Collapse sidebar"}
             style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:collapsed?"center":"flex-start", gap:8, background:"rgba(255,255,255,0.06)", border:"none", borderRadius:10, padding:"9px", color:"rgba(255,255,255,0.55)", cursor:"pointer" }}
@@ -860,9 +877,9 @@ export default function EmployerDashboard() {
               <div style={{ position:"absolute", top:46, right:0, width:300, background:BASE.card, borderRadius:14, border:`1px solid ${BASE.border}`, boxShadow:"0 12px 40px rgba(26,39,68,0.15)", zIndex:100, overflow:"hidden" }}>
                 <div style={{ padding:"13px 18px", borderBottom:`1px solid ${BASE.border}`, fontSize:14, fontWeight:700, color:BASE.navy }}>Notifications</div>
                 {[
-                  {text:"New application from Maria Santos", time:"2 min ago",  dot:T.accent     },
-                  {text:"Interview reminder: Juan at 3pm",   time:"1 hour ago", dot:BASE.warning },
-                  {text:"AI matched 5 new candidates",       time:"Today",      dot:BASE.success },
+                  {text:"New application from Maria Santos", time:"2 min ago",  dot:T.accent      },
+                  {text:"Interview reminder: Juan at 3pm",   time:"1 hour ago", dot:BASE.warning  },
+                  {text:"AI matched 5 new candidates",       time:"Today",      dot:BASE.success  },
                 ].map((n,i) => (
                   <div key={i} style={{ padding:"11px 18px", borderBottom:i<2?`1px solid ${BASE.border}`:"none", display:"flex", gap:10, alignItems:"flex-start" }}>
                     <span style={{ width:7, height:7, borderRadius:"50%", background:n.dot, marginTop:5, flexShrink:0 }} />
@@ -873,7 +890,7 @@ export default function EmployerDashboard() {
             )}
           </div>
 
-          {/* Profile dropdown */}
+          {/* Profile — shows real name */}
           <div style={{ position:"relative" }}>
             <button onClick={() => { setProfileOpen(v=>!v); setNotifOpen(false); }}
               style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 10px 5px 5px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, cursor:"pointer" }}>
@@ -882,17 +899,14 @@ export default function EmployerDashboard() {
               <Icon name="chevDown" size={13} color={BASE.muted} />
             </button>
             {profileOpen && (
-              <div style={{ position:"absolute", top:46, right:0, width:200, background:BASE.card, borderRadius:14, border:`1px solid ${BASE.border}`, boxShadow:"0 12px 40px rgba(26,39,68,0.15)", zIndex:100, overflow:"hidden" }}>
-                {/* Regular menu items */}
-                {["Profile", "Company Settings", "Billing"].map((item, i) => (
-                  <button key={i} style={{ width:"100%", padding:"11px 18px", background:"none", border:"none", fontSize:13, color:BASE.navy, fontWeight:500, textAlign:"left", cursor:"pointer", borderBottom:`1px solid ${BASE.border}`, fontFamily:"inherit" }}
+              <div style={{ position:"absolute", top:46, right:0, width:200, background:BASE.card, borderRadius:14, border:`1px solid ${BASE.border}`, boxShadow:"0 12px 40px rgba(26,39,68,0.15)", zIndex:100 }}>
+                {["Profile","Company Settings","Billing","Sign Out"].map((item,i) => (
+                  <button key={i} style={{ width:"100%", padding:"11px 18px", background:"none", border:"none", fontSize:13, color:item==="Sign Out"?BASE.error:BASE.navy, fontWeight:item==="Sign Out"?700:500, textAlign:"left", cursor:"pointer", borderBottom:i<3?`1px solid ${BASE.border}`:"none", fontFamily:"inherit" }}
                     onMouseEnter={e => e.currentTarget.style.background="#F8F9FD"}
                     onMouseLeave={e => e.currentTarget.style.background="none"}>
                     {item}
                   </button>
                 ))}
-                {/* ── Log Out button — uses LogoutButton component ── */}
-                <LogoutButton />
               </div>
             )}
           </div>

@@ -53,16 +53,20 @@ export function AuthModalProvider({ children }) {
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "worker") {
-      router.push("/assessment");
+      router.push("/job-select");
     } else {
-      router.push("/dashboard/employer");
+      router.push("/employer/dashboard"); // ← fixed from /dashboard/employer
     }
   }, [router]);
 
-  // Sign IN complete — workers go to worker dashboard
-  const handleSignInComplete = useCallback(() => {
+  // Sign IN complete — role-aware redirect
+  const handleSignInComplete = useCallback((role) => {
     setAuthOpen(false);
-    router.push("/dashboard/worker");
+    if (role === "employer") {
+      router.push("/employer/dashboard");
+    } else {
+      router.push("/dashboard/worker");
+    }
   }, [router]);
 
   const closeAll = useCallback(() => {
@@ -91,7 +95,7 @@ export function AuthModalProvider({ children }) {
         defaultTab={authTab}
         role={selectedRole}
         onSignUpComplete={() => handleSignUpComplete(selectedRole)}
-        onSignInComplete={handleSignInComplete}
+        onSignInComplete={() => handleSignInComplete(selectedRole)}
       />
     </AuthModalContext.Provider>
   );
