@@ -1,7 +1,7 @@
 'use client';
 
 import { Ic } from './Icons';
-import { PWD_TYPES, USER_PROFILE } from './data/jobsData';
+import { PWD_TYPES, USER_PROFILE } from './jobsData';
 
 export default function JobCard({ job, expanded, onToggle, saved, onSave, score }) {
   const isTop = score >= 4;
