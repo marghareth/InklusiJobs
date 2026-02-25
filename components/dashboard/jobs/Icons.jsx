@@ -1,4 +1,4 @@
-// All SVG icon components
+// SVG Icons for Jobs page
 export const Ic = {
   Bookmark: ({f})=>(
     <svg width="15" height="15" viewBox="0 0 24 24" fill={f?"currentColor":"none"} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
