@@ -1,10 +1,11 @@
 'use client';
 
+import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardHome from './DashboardHome';
 import PlaceholderPage from './PlaceholderPage';
-import JobsPageMain from './jobs/JobsPageMain';  // Import the new Jobs page
+import JobsPageMain from '../jobs/JobsPageMain';  // Import the new Jobs page
 import { Bell } from 'lucide-react';
 import SettingsPage from './SettingsPage';
 
@@ -130,6 +131,7 @@ export default function DashboardLayout() {
           </div>
         </div>
       </div>
+      <AccessibilityPanel />
     </>
   );
 }
