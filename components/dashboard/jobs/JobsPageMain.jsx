@@ -17,7 +17,7 @@ import JobsPageCSS from './JobsPageCSS';
 
 export default function JobsPageMain() {
   // Theme and accessibility state
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const [hc, setHc] = useState(false);
   const [rm, setRm] = useState(false);
   const [fontSize, setFontSize] = useState("md");
