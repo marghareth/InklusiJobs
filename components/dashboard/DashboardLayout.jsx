@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardHome from './DashboardHome';
 import PlaceholderPage from './PlaceholderPage';
+import JobsPageMain from './jobs/JobsPageMain';  // Import the new Jobs page
 import { Bell } from 'lucide-react';
 
 const PAGE_CONFIG = {
@@ -11,7 +12,7 @@ const PAGE_CONFIG = {
   roadmap:    { component: <PlaceholderPage title="Roadmap" icon="🗺️" description="Your personalised skill roadmap will be built from your career goals and current capabilities." /> },
   challenges: { component: <PlaceholderPage title="Challenges" icon="⚡" description="Browse and tackle hands-on coding challenges matched to your skill level and target role." /> },
   portfolio:  { component: <PlaceholderPage title="Portfolio" icon="🗂️" description="Showcase your completed projects and challenge submissions to potential employers." /> },
-  jobs:       { component: <PlaceholderPage title="Jobs" icon="🔍" description="Explore curated job listings matched to your skill profile and career trajectory." /> },
+  jobs:       { component: <JobsPageMain /> },  // ← REPLACED placeholder with real JobsPageMain
   feedback:   { component: <PlaceholderPage title="Feedback" icon="💬" description="Get AI-powered feedback on your submissions and request mentor reviews." /> },
   settings:   { component: <PlaceholderPage title="Settings" icon="⚙️" description="Manage your account, preferences, notifications, and privacy options." /> },
 };
