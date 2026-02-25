@@ -10,10 +10,10 @@ const AuthModalContext = createContext(null);
 export function AuthModalProvider({ children }) {
   const router = useRouter();
 
-  const [roleOpen, setRoleOpen]           = useState(false);
-  const [authOpen, setAuthOpen]           = useState(false);
-  const [authTab, setAuthTab]             = useState("signup");
-  const [selectedRole, setSelectedRole]   = useState(null);
+  const [roleOpen, setRoleOpen]         = useState(false);
+  const [authOpen, setAuthOpen]         = useState(false);
+  const [authTab, setAuthTab]           = useState("signup");
+  const [selectedRole, setSelectedRole] = useState(null);
 
   // SkillsSection "Start Your Journey" → worker signup directly
   const openAsWorker = useCallback(() => {
@@ -29,7 +29,7 @@ export function AuthModalProvider({ children }) {
     setAuthOpen(true);
   }, []);
 
-  // Navbar "Get Started" → show role picker first
+  // Navbar / Hero "Get Started" → show role picker first
   const openRoleSelector = useCallback(() => {
     setRoleOpen(true);
   }, []);
@@ -49,18 +49,20 @@ export function AuthModalProvider({ children }) {
     setAuthOpen(true);
   }, []);
 
-  /**
-   * Called by AuthModal's submit button (when you wire up real auth).
-   * Workers  → /onboarding/assessment
-   * Employers → /dashboard/employer
-   */
+  // Sign UP complete — workers go to assessment, employers go to dashboard
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "worker") {
-      router.push("/job-select");
+      router.push("/assessment");
     } else {
       router.push("/dashboard/employer");
     }
+  }, [router]);
+
+  // Sign IN complete — workers go to worker dashboard
+  const handleSignInComplete = useCallback(() => {
+    setAuthOpen(false);
+    router.push("/dashboard/worker");
   }, [router]);
 
   const closeAll = useCallback(() => {
@@ -74,7 +76,6 @@ export function AuthModalProvider({ children }) {
       openAsEmployer,
       openRoleSelector,
       openSignIn,
-      handleSignUpComplete,
       selectedRole,
     }}>
       {children}
@@ -90,6 +91,7 @@ export function AuthModalProvider({ children }) {
         defaultTab={authTab}
         role={selectedRole}
         onSignUpComplete={() => handleSignUpComplete(selectedRole)}
+        onSignInComplete={handleSignInComplete}
       />
     </AuthModalContext.Provider>
   );
