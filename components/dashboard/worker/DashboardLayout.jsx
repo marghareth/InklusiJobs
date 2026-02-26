@@ -5,15 +5,17 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardHome from './DashboardHome';
 import PlaceholderPage from './PlaceholderPage';
-import JobsPageMain from '../jobs/JobsPageMain';
+import JobsPageMain from '../jobs/JobsPageMain.jsx';
 import { Bell } from 'lucide-react';
 import SettingsPage from './SettingsPage';
 import PortfolioPage from './portfolio/PortfolioPage';
+import TrackerPage from './TrackerPage';
 
 const PAGE_CONFIG = {
   dashboard:  { component: <DashboardHome /> },
   roadmap:    { component: <PlaceholderPage title="Roadmap"    icon="🗺️" description="Your personalised skill roadmap will be built from your career goals and current capabilities." /> },
   challenges: { component: <PlaceholderPage title="Challenges" icon="⚡" description="Browse and tackle hands-on coding challenges matched to your skill level and target role." /> },
+  tracker:    { component: <TrackerPage /> },
   portfolio:  { component: <PortfolioPage /> },
   jobs:       { component: <JobsPageMain /> },
   feedback:   { component: <PlaceholderPage title="Feedback"   icon="💬" description="Get AI-powered feedback on your submissions and request mentor reviews." /> },
