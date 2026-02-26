@@ -621,6 +621,24 @@ export default function AuthModal({
     setStep("verify-email");
   };
 
+  // Called after BasicInformation saves successfully
+  const handleBasicInfoComplete = (savedData) => {
+    setUserData((prev) => ({ ...prev, ...savedData }));
+    setStep("auth"); // reset internal step
+    onClose(); // close the auth modal
+    window.location.href = "/assessment";
+  };
+
+  // Called when user dismisses Welcome
+  const handleWelcomeClose = () => {
+    setWelcome(false);
+    const destination =
+      userData?.role === "employer"
+        ? "/employer/dashboard"
+        : "/worker/dashboard";
+    window.location.href = destination;
+  };
+
   // Called after successful sign-in
   const handleSignIn = async (user) => {
     const supabase = createClient();

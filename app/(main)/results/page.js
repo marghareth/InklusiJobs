@@ -8,7 +8,9 @@ function loadResults() {
   try {
     const r = localStorage.getItem("inklusijobs_results");
     return r ? JSON.parse(r) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 function getScoreColor(score) {
@@ -78,10 +80,19 @@ function ScoreRing({ score, qualified, size = 140 }) {
     <div className="score-ring-wrapper">
       <svg width={size} height={size} viewBox="0 0 120 120">
         {/* Background track */}
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="#e8f0ef" strokeWidth="10" />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="#e8f0ef"
+          strokeWidth="10"
+        />
         {/* Progress arc */}
         <circle
-          cx="60" cy="60" r={radius}
+          cx="60"
+          cy="60"
+          r={radius}
           fill="none"
           stroke={color}
           strokeWidth="10"
@@ -89,18 +100,41 @@ function ScoreRing({ score, qualified, size = 140 }) {
           strokeDasharray={circumference}
           strokeDashoffset={circumference - progress}
           transform="rotate(-90 60 60)"
-          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" }}
+          style={{
+            transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
+          }}
         />
         {/* Score text */}
-        <text x="60" y="55" textAnchor="middle" fill="#0f2421" fontSize="22" fontWeight="800" fontFamily="'Plus Jakarta Sans', sans-serif">
+        <text
+          x="60"
+          y="55"
+          textAnchor="middle"
+          fill="#0f2421"
+          fontSize="22"
+          fontWeight="800"
+          fontFamily="'Plus Jakarta Sans', sans-serif"
+        >
           {animated ? score : 0}%
         </text>
-        <text x="60" y="72" textAnchor="middle" fill="#7a9b97" fontSize="9.5" fontWeight="600" fontFamily="'Plus Jakarta Sans', sans-serif" letterSpacing="0.04em">
+        <text
+          x="60"
+          y="72"
+          textAnchor="middle"
+          fill="#7a9b97"
+          fontSize="9.5"
+          fontWeight="600"
+          fontFamily="'Plus Jakarta Sans', sans-serif"
+          letterSpacing="0.04em"
+        >
           OVERALL
         </text>
       </svg>
       <style jsx>{`
-        .score-ring-wrapper { display: flex; align-items: center; justify-content: center; }
+        .score-ring-wrapper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
       `}</style>
     </div>
   );
@@ -117,10 +151,15 @@ function SkillBar({ skillScore, index }) {
   }, [index]);
 
   return (
-    <div className="skill-bar-item" style={{ animationDelay: `${0.1 + index * 0.08}s` }}>
+    <div
+      className="skill-bar-item"
+      style={{ animationDelay: `${0.1 + index * 0.08}s` }}
+    >
       <div className="skill-bar-header">
         <span className="skill-name">{skillScore.skill}</span>
-        <span className="skill-score" style={{ color: colors.text }}>{skillScore.score}%</span>
+        <span className="skill-score" style={{ color: colors.text }}>
+          {skillScore.score}%
+        </span>
       </div>
       <div className="skill-bar-track">
         <div
@@ -141,8 +180,14 @@ function SkillBar({ skillScore, index }) {
           animation: fadeSlideUp 0.4s ease forwards;
         }
         @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         .skill-bar-header {
           display: flex;
@@ -194,7 +239,7 @@ function SkillBar({ skillScore, index }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ResultsPage() {
   const router = useRouter();
-  const [results, setResults]   = useState(null);
+  const [results, setResults] = useState(null);
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -213,9 +258,26 @@ export default function ResultsPage() {
       <div className="ij-loading">
         <div className="ij-spinner" />
         <style jsx>{`
-          .ij-loading { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f4f9f8; }
-          .ij-spinner { width:48px; height:48px; border:4px solid #e8f0ef; border-top-color:#479880; border-radius:50%; animation:spin 0.9s linear infinite; }
-          @keyframes spin { to { transform:rotate(360deg); } }
+          .ij-loading {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f9f8;
+          }
+          .ij-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e8f0ef;
+            border-top-color: #479880;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+          }
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
         `}</style>
       </div>
     );
@@ -250,7 +312,6 @@ export default function ResultsPage() {
       <GlobalStyles />
 
       <div className="ij-shell">
-
         {/* Logo */}
         <div className="ij-logo-row">
           <div className="ij-logo-mark">IJ</div>
@@ -258,24 +319,34 @@ export default function ResultsPage() {
         </div>
 
         {/* Hero result card */}
-        <div className="ij-hero-card" style={{ borderColor: config.badgeColor + "33" }}>
+        <div
+          className="ij-hero-card"
+          style={{ borderColor: config.badgeColor + "33" }}
+        >
           {/* Qualification badge */}
-          <div className="ij-qual-badge" style={{
-            color: config.badgeColor,
-            background: config.badgeBg,
-            border: `1.5px solid ${config.badgeBorder}`,
-          }}>
+          <div
+            className="ij-qual-badge"
+            style={{
+              color: config.badgeColor,
+              background: config.badgeBg,
+              border: `1.5px solid ${config.badgeBorder}`,
+            }}
+          >
             {config.emoji} {config.badge}
           </div>
 
           {/* Score ring + headline */}
           <div className="ij-hero-content">
-            <ScoreRing score={scoring.overallScore} qualified={scoring.qualified} />
+            <ScoreRing
+              score={scoring.overallScore}
+              qualified={scoring.qualified}
+            />
             <div className="ij-hero-text">
               <h1 className="ij-headline">{config.headline}</h1>
               <p className="ij-subtext">{config.subtext}</p>
               <div className="ij-threshold-note">
-                Passing score for this role: <strong>{scoring.passingThreshold}%</strong>
+                Passing score for this role:{" "}
+                <strong>{scoring.passingThreshold}%</strong>
               </div>
             </div>
           </div>
@@ -283,7 +354,9 @@ export default function ResultsPage() {
           {/* Job tag */}
           <div className="ij-job-tag">
             Assessed for: <strong>{job?.title}</strong>
-            {job?.company && <span className="ij-job-company"> · {job.company}</span>}
+            {job?.company && (
+              <span className="ij-job-company"> · {job.company}</span>
+            )}
           </div>
         </div>
 
@@ -345,9 +418,12 @@ export default function ResultsPage() {
           <p className="ij-next-step-text">{scoring.nextStep}</p>
         </div>
 
-        {/* CTA */}
+        {/* CTA - THIS BUTTON ALREADY LINKS TO ROADMAP WHEN NEEDED */}
         <div className="ij-cta-row">
-          <button className="ij-btn-secondary" onClick={() => router.push("/job-select")}>
+          <button
+            className="ij-btn-secondary"
+            onClick={() => router.push("/job-select")}
+          >
             ← Try a Different Job
           </button>
           <button className="ij-btn-primary" onClick={handleCTA}>
@@ -355,7 +431,9 @@ export default function ResultsPage() {
           </button>
         </div>
 
-        <p className="ij-footer-note">🔒 Your results are saved privately on this device.</p>
+        <p className="ij-footer-note">
+          🔒 Your results are saved privately on this device.
+        </p>
       </div>
     </div>
   );
@@ -365,41 +443,76 @@ export default function ResultsPage() {
 function GlobalStyles() {
   return (
     <style jsx global>{`
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap");
 
       :root {
-        --teal:   #479880;
-        --blue:   #4B959E;
-        --mid:    #648FBF;
-        --purple: #8891C9;
-        --bg:     #f4f9f8;
+        --teal: #479880;
+        --blue: #4b959e;
+        --mid: #648fbf;
+        --purple: #8891c9;
+        --bg: #f4f9f8;
       }
 
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: var(--bg); }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--bg);
+      }
 
       .ij-page {
         min-height: 100vh;
         background: var(--bg);
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: "Plus Jakarta Sans", sans-serif;
         padding: 2rem 1.5rem 4rem;
         display: flex;
         justify-content: center;
         opacity: 0;
         transform: translateY(10px);
-        transition: opacity 0.5s ease, transform 0.5s ease;
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
       }
       .ij-page.revealed {
         opacity: 1;
         transform: translateY(0);
       }
 
-      .ij-shell { width: 100%; max-width: 620px; }
+      .ij-shell {
+        width: 100%;
+        max-width: 620px;
+      }
 
       /* Logo */
-      .ij-logo-row { display:flex; align-items:center; gap:0.6rem; justify-content:center; margin-bottom:1.75rem; }
-      .ij-logo-mark { width:36px; height:36px; background:linear-gradient(135deg,var(--teal),var(--blue)); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:0.85rem; }
-      .ij-logo-text { font-weight:700; font-size:1.1rem; color:#0f2421; letter-spacing:-0.02em; }
+      .ij-logo-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        justify-content: center;
+        margin-bottom: 1.75rem;
+      }
+      .ij-logo-mark {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--teal), var(--blue));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 800;
+        font-size: 0.85rem;
+      }
+      .ij-logo-text {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #0f2421;
+        letter-spacing: -0.02em;
+      }
 
       /* Hero card */
       .ij-hero-card {
@@ -407,7 +520,7 @@ function GlobalStyles() {
         border-radius: 24px;
         padding: 2rem;
         border: 2px solid;
-        box-shadow: 0 8px 40px rgba(71,152,128,0.10);
+        box-shadow: 0 8px 40px rgba(71, 152, 128, 0.1);
         margin-bottom: 1rem;
       }
       .ij-qual-badge {
@@ -428,7 +541,9 @@ function GlobalStyles() {
         gap: 1.5rem;
         margin-bottom: 1.25rem;
       }
-      .ij-hero-text { flex: 1; }
+      .ij-hero-text {
+        flex: 1;
+      }
       .ij-headline {
         font-size: 1.45rem;
         font-weight: 800;
@@ -454,7 +569,9 @@ function GlobalStyles() {
         padding-top: 1rem;
         border-top: 1px solid #eef4f2;
       }
-      .ij-job-company { color: #94b0ac; }
+      .ij-job-company {
+        color: #94b0ac;
+      }
 
       /* Encouragement */
       .ij-encouragement {
@@ -467,11 +584,22 @@ function GlobalStyles() {
         margin-bottom: 1.5rem;
         border: 1px solid #c8e8df;
       }
-      .ij-encouragement-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
-      .ij-encouragement p { font-size: 0.9rem; color: #2d5f55; line-height: 1.6; font-style: italic; }
+      .ij-encouragement-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .ij-encouragement p {
+        font-size: 0.9rem;
+        color: #2d5f55;
+        line-height: 1.6;
+        font-style: italic;
+      }
 
       /* Section */
-      .ij-section { margin-bottom: 1.5rem; }
+      .ij-section {
+        margin-bottom: 1.5rem;
+      }
       .ij-section-header {
         display: flex;
         align-items: center;
@@ -505,7 +633,7 @@ function GlobalStyles() {
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
-        box-shadow: 0 2px 16px rgba(71,152,128,0.06);
+        box-shadow: 0 2px 16px rgba(71, 152, 128, 0.06);
         border: 1px solid #eef4f2;
       }
 
@@ -522,8 +650,12 @@ function GlobalStyles() {
         padding: 1.1rem;
         border: 1px solid #eef4f2;
       }
-      .ij-insight-card.strengths { border-color: #c8e8df; }
-      .ij-insight-card.grow      { border-color: #c8d5e8; }
+      .ij-insight-card.strengths {
+        border-color: #c8e8df;
+      }
+      .ij-insight-card.grow {
+        border-color: #c8d5e8;
+      }
       .ij-insight-header {
         display: flex;
         align-items: center;
@@ -595,7 +727,7 @@ function GlobalStyles() {
         font-weight: 500;
       }
 
-      /* CTA row */
+      /* CTA row - THIS BUTTON ALREADY WORKS */
       .ij-cta-row {
         display: flex;
         gap: 0.85rem;
@@ -608,7 +740,7 @@ function GlobalStyles() {
         border: 2px solid #e4ecea;
         border-radius: 12px;
         padding: 0.75rem 1.2rem;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: "Plus Jakarta Sans", sans-serif;
         font-size: 0.88rem;
         font-weight: 600;
         color: #4a6360;
@@ -616,31 +748,52 @@ function GlobalStyles() {
         transition: all 0.18s ease;
         white-space: nowrap;
       }
-      .ij-btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+      .ij-btn-secondary:hover {
+        border-color: var(--teal);
+        color: var(--teal);
+      }
 
       .ij-btn-primary {
         background: linear-gradient(135deg, var(--teal), var(--blue));
         border: none;
         border-radius: 12px;
         padding: 0.85rem 2rem;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: "Plus Jakarta Sans", sans-serif;
         font-size: 0.95rem;
         font-weight: 700;
         color: white;
         cursor: pointer;
         transition: all 0.2s ease;
-        box-shadow: 0 4px 16px rgba(71,152,128,0.3);
+        box-shadow: 0 4px 16px rgba(71, 152, 128, 0.3);
         flex: 1;
       }
-      .ij-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(71,152,128,0.35); }
+      .ij-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(71, 152, 128, 0.35);
+      }
 
-      .ij-footer-note { text-align: center; font-size: 0.78rem; color: #7a9b97; }
+      .ij-footer-note {
+        text-align: center;
+        font-size: 0.78rem;
+        color: #7a9b97;
+      }
 
       @media (max-width: 480px) {
-        .ij-hero-content { flex-direction: column; text-align: center; }
-        .ij-two-col { grid-template-columns: 1fr; }
-        .ij-cta-row { flex-direction: column; }
-        .ij-btn-primary, .ij-btn-secondary { width: 100%; text-align: center; }
+        .ij-hero-content {
+          flex-direction: column;
+          text-align: center;
+        }
+        .ij-two-col {
+          grid-template-columns: 1fr;
+        }
+        .ij-cta-row {
+          flex-direction: column;
+        }
+        .ij-btn-primary,
+        .ij-btn-secondary {
+          width: 100%;
+          text-align: center;
+        }
       }
     `}</style>
   );

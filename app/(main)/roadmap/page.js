@@ -476,6 +476,20 @@ export default function RoadmapPage() {
           </button>
         </div>
 
+        {/* Dashboard Button - ADDED HERE */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => {
+              // Get user role from localStorage or default to "worker"
+              const role = localStorage.getItem("userRole") || "worker";
+              window.location.href = role === "employer" ? "/employer/dashboard" : "/worker/dashboard";
+            }}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+
         <p className="ij-footer-note">🔒 Your progress is saved automatically.</p>
       </div>
     </div>
@@ -630,6 +644,18 @@ function GlobalStyles() {
       .ij-btn-primary { background:linear-gradient(135deg,var(--teal),var(--blue)); border:none; border-radius:12px; padding:0.85rem 1.5rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.88rem; font-weight:700; color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 16px rgba(71,152,128,0.3); }
       .ij-btn-primary:hover { transform:translateY(-2px); }
       .ij-footer-note { text-align:center; font-size:0.78rem; color:#7a9b97; }
+
+      /* Dashboard button styles - ADDED HERE */
+      .mt-8 { margin-top: 2rem; }
+      .text-center { text-align: center; }
+      .px-8 { padding-left: 2rem; padding-right: 2rem; }
+      .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+      .bg-blue-600 { background-color: #2563eb; }
+      .text-white { color: white; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .font-semibold { font-weight: 600; }
+      .hover\\:bg-blue-700:hover { background-color: #1d4ed8; }
+      .transition-colors { transition-property: background-color, border-color, color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
 
       @media(max-width:480px) {
         .ij-stats-row { flex-wrap:wrap; }
