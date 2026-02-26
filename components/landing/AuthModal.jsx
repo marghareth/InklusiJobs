@@ -671,7 +671,7 @@ export default function AuthModal({
     setUserData((prev) => ({ ...prev, ...savedData }));
     setStep("auth"); // reset internal step
     onClose(); // close the auth modal
-    setWelcome(true); // show the welcome overlay
+    window.location.href = "/assessment";
   };
 
   // Called when user dismisses Welcome

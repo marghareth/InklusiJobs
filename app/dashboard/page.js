@@ -34,7 +34,8 @@ function getRole() {
   // Safe guard for SSR — window is undefined on server
   if (typeof window === "undefined") return null;
   // ← swap this line for your real auth check
-  return null;
+  const role = localStorage.getItem("userRole");
+  return role || null;
 }
 
 export default function DashboardIndexPage() {
