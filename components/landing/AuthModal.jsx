@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import EmailVerification from "./EmailVerification";
 import BasicInformation from "./BasicInformation";
 import WelcomeWorker from "./WelcomeWorker";
@@ -423,7 +423,6 @@ function SignUpForm({ role, onSignUp }) {
         email,
         password,
         options: {
-          // Supabase will append ?code=xxx to this URL — our callback route handles it
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             first_name: firstName,
@@ -435,10 +434,8 @@ function SignUpForm({ role, onSignUp }) {
 
       if (error) throw error;
 
-      // Show EmailVerification step
       onSignUp?.(email);
     } catch (err) {
-      // "Confirmation emails are rate-limited" or other Supabase messages
       if (err.message?.toLowerCase().includes("email")) {
         setError(
           "There was a problem sending the confirmation email. Please wait a moment and try again.",
@@ -553,58 +550,16 @@ export default function AuthModal({
   defaultTab = "signin",
   role = null,
 }) {
+  const router = useRouter();
   const [step, setStep] = useState("auth");
   const [userEmail, setUserEmail] = useState("");
   const [tab, setTab] = useState(defaultTab);
-  const [userData, setUserData] = useState(null); // holds { first_name, role } after verification
-  const [welcome, setWelcome] = useState(false);
 
   const overlayRef = useRef(null);
   const modalRef = useRef(null);
   const closeRef = useRef(null);
 
-  // ── Listen for verification signal from the new tab via localStorage ──
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleVerified = async (status) => {
-      if (status === "true") {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          setUserData({
-            first_name: user.user_metadata?.first_name || "there",
-            role: user.user_metadata?.role || "worker",
-          });
-          setStep("basic-info");
-          window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
-        }
-      } else {
-        window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
-      }
-    };
-
-    // Case 1: new tab already closed and set localStorage before this mounted
-    const existing = localStorage.getItem("inklusijobs:verified");
-    if (existing) {
-      localStorage.removeItem("inklusijobs:verified");
-      handleVerified(existing);
-    }
-
-    // Case 2: new tab sets localStorage while this tab is open
-    const onStorage = (e) => {
-      if (e.key === "inklusijobs:verified" && e.newValue) {
-        localStorage.removeItem("inklusijobs:verified");
-        handleVerified(e.newValue);
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  // Reset when modal opens fresh (not from verified redirect)
+  // Reset tab when modal opens
   useEffect(() => {
     if (isOpen && step === "auth") {
       setTab(defaultTab);
@@ -660,7 +615,7 @@ export default function AuthModal({
     [onClose],
   );
 
-  // Called after successful signup — go to EmailVerification
+  // Called after successful signup — show email verification screen
   const handleSignUp = (email) => {
     setUserEmail(email);
     setStep("verify-email");
@@ -687,6 +642,7 @@ export default function AuthModal({
   // Called after successful sign-in
   const handleSignIn = async (user) => {
     const supabase = createClient();
+
     // Check if profile is complete
     const { data: profile } = await supabase
       .from("profiles")
@@ -697,19 +653,14 @@ export default function AuthModal({
     onClose();
 
     if (!profile?.current_address) {
-      // Profile incomplete — open basic info
-      setUserData({
-        first_name: user.user_metadata?.first_name || "there",
-        role: user.user_metadata?.role || "worker",
-      });
-      setStep("basic-info");
-      window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"));
+      // Profile incomplete — send to onboarding page
+      router.push("/onboarding");
     } else {
       const destination =
         user.user_metadata?.role === "employer"
           ? "/employer/dashboard"
-          : "/worker/dashboard";
-      window.location.href = destination;
+          : "/dashboard/worker";
+      router.push(destination);
     }
   };
 
@@ -723,15 +674,6 @@ export default function AuthModal({
             await supabase.auth.resend({ type: "signup", email: userEmail });
           }}
           onReturn={() => setStep("auth")}
-        />
-      );
-    }
-
-    if (step === "basic-info") {
-      return (
-        <BasicInformation
-          initialData={{ firstName: userData?.first_name || "" }}
-          onSubmit={handleBasicInfoComplete}
         />
       );
     }
@@ -753,20 +695,6 @@ export default function AuthModal({
   return (
     <>
       <style>{css}</style>
-
-      {/* Welcome overlays — rendered outside the modal so they appear after it closes */}
-      {welcome && userData?.role === "employer" && (
-        <WelcomeEmployer
-          name={userData.first_name}
-          onClose={handleWelcomeClose}
-        />
-      )}
-      {welcome && userData?.role !== "employer" && (
-        <WelcomeWorker
-          name={userData?.first_name || "there"}
-          onClose={handleWelcomeClose}
-        />
-      )}
 
       {isOpen && (
         <div

@@ -1,3 +1,4 @@
+//app/auth/verified/page.jsx
 "use client";
 
 import { useEffect } from "react";
