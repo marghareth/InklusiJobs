@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard, Map, Zap, Briefcase, Search,
   MessageSquare, Settings, ChevronLeft, ChevronRight,
-  Bell, LogOut,
+  Bell, LogOut, BarChart2,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: 'roadmap',    label: 'Roadmap',    icon: Map,             group: 'main' },
   { id: 'challenges', label: 'Challenges', icon: Zap,             group: 'main' },
   { id: 'portfolio',  label: 'Portfolio',  icon: Briefcase,       group: 'main' },
+  { id: 'tracker',    label: 'Tracker',    icon: BarChart2,       group: 'main' },
   { id: 'jobs',       label: 'Jobs',       icon: Search,          group: 'main', badge: '3' },
   { id: 'feedback',   label: 'Feedback',   icon: MessageSquare,   group: 'support' },
   { id: 'settings',   label: 'Settings',   icon: Settings,        group: 'support' },
