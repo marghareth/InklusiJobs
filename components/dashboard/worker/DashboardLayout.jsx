@@ -8,7 +8,7 @@ import PlaceholderPage from './PlaceholderPage';
 import JobsPageMain from '../jobs/JobsPageMain';
 import { Bell } from 'lucide-react';
 import SettingsPage from './SettingsPage';
-import PortfolioPage from './worker/portfolio/PortfolioPage';  // CHANGED: Added 'worker/' to the path
+import PortfolioPage from './portfolio/PortfolioPage';
 
 const PAGE_CONFIG = {
   dashboard:  { component: <DashboardHome /> },
