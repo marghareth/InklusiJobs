@@ -37,10 +37,8 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
 
     // TODO: re-enable Supabase upsert when backend is ready
     // For now, just proceed with the form data directly
-    setTimeout(() => {
-      onSubmit?.({ first_name: formData.firstName, role: "worker" });
-      setLoading(false);
-    }, 300);
+    onSubmit?.(formData);
+    setLoading(false);
   };
 
   return (

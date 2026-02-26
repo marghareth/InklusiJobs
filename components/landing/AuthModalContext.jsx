@@ -1,26 +1,26 @@
-"use client";
+    "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import RoleSelector from "@/components/landing/RoleSelector";
-import AuthModal from "@/components/landing/AuthModal";
+    import { createContext, useContext, useState, useCallback } from "react";
+    import { useRouter } from "next/navigation";
+    import RoleSelector from "@/components/landing/RoleSelector";
+    import AuthModal from "@/components/landing/AuthModal";
 
-const AuthModalContext = createContext(null);
+    const AuthModalContext = createContext(null);
 
-export function AuthModalProvider({ children }) {
-  const router = useRouter();
+    export function AuthModalProvider({ children }) {
+    const router = useRouter();
 
-  const [roleOpen, setRoleOpen]         = useState(false);
-  const [authOpen, setAuthOpen]         = useState(false);
-  const [authTab, setAuthTab]           = useState("signup");
-  const [selectedRole, setSelectedRole] = useState(null);
+    const [roleOpen, setRoleOpen]         = useState(false);
+    const [authOpen, setAuthOpen]         = useState(false);
+    const [authTab, setAuthTab]           = useState("signup");
+    const [selectedRole, setSelectedRole] = useState(null);
 
-  // SkillsSection "Start Your Journey" → worker signup directly
-  const openAsWorker = useCallback(() => {
-    setSelectedRole("worker");
-    setAuthTab("signup");
-    setAuthOpen(true);
-  }, []);
+    // SkillsSection "Start Your Journey" → worker signup directly
+    const openAsWorker = useCallback(() => {
+        setSelectedRole("worker");
+        setAuthTab("signup");
+        setAuthOpen(true);
+    }, []);
 
   // SkillsSection "I'm an Employer" → employer signup directly
   const openAsEmployer = useCallback(() => {

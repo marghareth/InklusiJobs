@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import StatCard from './StatCard';
 
 const STATS = [
@@ -23,6 +25,25 @@ const LEARNING_PATH = [
 ];
 
 export default function DashboardHome() {
+  const [firstName, setFirstName] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      supabase
+        .from('profiles')
+        .select('first_name')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.first_name) setFirstName(data.first_name);
+        });
+    });
+  }, []);
+
   return (
     <>
       <style>{`
@@ -343,7 +364,7 @@ export default function DashboardHome() {
         <div className="dh-topbar">
           <div>
             <div className="dh-greet">
-              Welcome back, Sarah <span className="dh-greet-wave">👋</span>
+              Welcome back, {firstName || 'there'} <span className="dh-greet-wave">👋</span>
             </div>
             <div className="dh-sub">You're on a roll — keep the momentum going.</div>
           </div>

@@ -32,10 +32,31 @@ export default function OnboardingPage() {
     });
   }, [router]);
 
-  const handleBasicInfoComplete = (savedData) => {
+  const handleBasicInfoComplete = async (savedData) => {
+  try {
+    const supabase = createClient();
+
+    await supabase
+      .from("profiles")
+      .update({
+        first_name:             savedData.firstName,
+        last_name:              savedData.lastName,
+        age:                    Number(savedData.age),
+        current_address:        savedData.currentAddress,
+        permanent_address:      savedData.permanentAddress,
+        contact_number:         savedData.contactNumber,
+        educational_attainment: savedData.educationalAttainment,
+        updated_at:             new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
     setUserData((prev) => ({ ...prev, ...savedData }));
     setStep("welcome");
-  };
+  } catch (err) {
+    console.error("Failed to save basic info:", err);
+    alert("Failed to save your information. Please try again.");
+  }
+};
 
   const handleWelcomeClose = () => {
     const destination =
