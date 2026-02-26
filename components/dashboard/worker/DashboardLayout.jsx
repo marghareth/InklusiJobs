@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import DashboardHome from './DashboardHome';
 import PlaceholderPage from './PlaceholderPage';
-import JobsPageMain from './jobs/JobsPageMain';
+import JobsPageMain from '../jobs/JobsPageMain';
 import { Bell } from 'lucide-react';
 import SettingsPage from './SettingsPage';
 
