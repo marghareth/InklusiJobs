@@ -8,12 +8,13 @@ import PlaceholderPage from './PlaceholderPage';
 import JobsPageMain from '../jobs/JobsPageMain';
 import { Bell } from 'lucide-react';
 import SettingsPage from './SettingsPage';
+import PortfolioPage from './worker/portfolio/PortfolioPage';  // CHANGED: Added 'worker/' to the path
 
 const PAGE_CONFIG = {
   dashboard:  { component: <DashboardHome /> },
   roadmap:    { component: <PlaceholderPage title="Roadmap"    icon="🗺️" description="Your personalised skill roadmap will be built from your career goals and current capabilities." /> },
   challenges: { component: <PlaceholderPage title="Challenges" icon="⚡" description="Browse and tackle hands-on coding challenges matched to your skill level and target role." /> },
-  portfolio:  { component: <PlaceholderPage title="Portfolio"  icon="🗂️" description="Showcase your completed projects and challenge submissions to potential employers." /> },
+  portfolio:  { component: <PortfolioPage /> },
   jobs:       { component: <JobsPageMain /> },
   feedback:   { component: <PlaceholderPage title="Feedback"   icon="💬" description="Get AI-powered feedback on your submissions and request mentor reviews." /> },
   settings:   { component: <SettingsPage /> },
