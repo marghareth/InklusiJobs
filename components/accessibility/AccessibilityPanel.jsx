@@ -275,11 +275,21 @@ function useGlobalStyles() {
 }
 
 // ─── Hook: drag ───────────────────────────────────────────────────────────────
-function useDrag(initialPos = { x: 24, y: "auto" }) {
-  const [pos, setPos] = useState(initialPos);
+function useDrag() {
+  // FIX: Always initialize with a static default (no window access).
+  // Update to the actual screen position in useEffect (client-only).
+  const [pos, setPos] = useState({ x: 24, y: 24 });
   const dragging      = useRef(false);
   const startOffset   = useRef({ x: 0, y: 0 });
   const btnRef        = useRef(null);
+
+  // Set real initial position after mount (client only — no SSR mismatch)
+  useEffect(() => {
+    setPos({
+      x: window.innerWidth  - 72,
+      y: window.innerHeight - 72,
+    });
+  }, []);
 
   const onMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -441,10 +451,9 @@ export default function AccessibilityPanel() {
   const panelRef  = useRef(null);
   const triggerRef = useRef(null);
 
-  const { pos, btnRef, onMouseDown, onTouchStart } = useDrag({
-    x: typeof window !== "undefined" ? window.innerWidth - 72 : 24,
-    y: typeof window !== "undefined" ? window.innerHeight - 72 : 24,
-  });
+  // FIX: useDrag no longer accepts initialPos — it sets a safe static default
+  // and updates to the real screen position after mount via useEffect.
+  const { pos, btnRef, onMouseDown, onTouchStart } = useDrag();
 
   const tts = useTTS();
 
@@ -529,10 +538,18 @@ export default function AccessibilityPanel() {
   ];
 
   // Panel positioning — ensure it doesn't go off screen
-  const panelLeft = pos.x > (typeof window !== "undefined" ? window.innerWidth / 2 : 400)
-    ? "auto" : `${pos.x}px`;
-  const panelRight = pos.x > (typeof window !== "undefined" ? window.innerWidth / 2 : 400)
-    ? `${(typeof window !== "undefined" ? window.innerWidth : 800) - pos.x - 56}px` : "auto";
+  // FIX: Use a safe fallback (800) instead of window.innerWidth during render.
+  // These values are only used for visual positioning, not hydration-critical.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const winW = mounted ? window.innerWidth  : 800;
+  const winH = mounted ? window.innerHeight : 600;
+
+  const panelLeft  = pos.x > winW / 2 ? "auto" : `${pos.x}px`;
+  const panelRight = pos.x > winW / 2 ? `${winW - pos.x - 56}px` : "auto";
+  const panelTop   = pos.y > winH / 2 ? "auto" : `${pos.y + 64}px`;
+  const panelBottom = pos.y > winH / 2 ? `${winH - pos.y + 8}px` : "auto";
 
   return (
     <>
@@ -585,10 +602,8 @@ export default function AccessibilityPanel() {
             ...S.panel,
             left:   panelLeft,
             right:  panelRight,
-            top:    pos.y > (typeof window !== "undefined" ? window.innerHeight / 2 : 400)
-              ? "auto" : `${pos.y + 64}px`,
-            bottom: pos.y > (typeof window !== "undefined" ? window.innerHeight / 2 : 400)
-              ? `${(typeof window !== "undefined" ? window.innerHeight : 800) - pos.y + 8}px` : "auto",
+            top:    panelTop,
+            bottom: panelBottom,
           }}
         >
           {/* Panel header */}
