@@ -1,42 +1,22 @@
 "use client";
 
-/**
- * AccessibilityPanel.jsx
- * Location: components/accessibility/AccessibilityPanel.jsx
- *
- * Drop-in floating accessibility panel. Zero external dependencies.
- * Usage: <AccessibilityPanel />
- *
- * Features:
- *  - Draggable floating trigger button
- *  - Text: dyslexia font, font size slider
- *  - Display: high contrast, highlight links, large cursor
- *  - Motion: reduce motion
- *  - Reading: reading mode, text-to-speech "read from here"
- *  - Color: protanopia / deuteranopia / tritanopia filters
- *  - Keyboard shortcuts panel
- *  - Fully ARIA-compliant, screen-reader friendly
- *  - Settings persist via localStorage
- */
-
 import {
   useState, useEffect, useRef, useCallback, useReducer,
 } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "ij_a11y_v1";
 const DYSLEXIA_FONT_URL =
   "https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap";
 
 const DEFAULT_SETTINGS = {
   dyslexiaFont:   false,
-  fontSize:       100,       // percent, 80–150
+  fontSize:       100,
   highContrast:   false,
   highlightLinks: false,
   largeCursor:    false,
   reduceMotion:   false,
   readingMode:    false,
-  colorFilter:    "none",    // none | protanopia | deuteranopia | tritanopia
+  colorFilter:    "none",
 };
 
 const KEYBOARD_SHORTCUTS = [
@@ -57,7 +37,6 @@ const COLOR_FILTERS = [
   { value: "tritanopia",   label: "Tritanopia",   color: "#4DE5B8" },
 ];
 
-// CSS SVG filters for colour blindness simulation
 const SVG_FILTERS = `
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
     <defs>
@@ -86,7 +65,6 @@ const SVG_FILTERS = `
   </svg>
 `;
 
-// ─── Reducer ──────────────────────────────────────────────────────────────────
 function settingsReducer(state, action) {
   switch (action.type) {
     case "TOGGLE":   return { ...state, [action.key]: !state[action.key] };
@@ -97,7 +75,6 @@ function settingsReducer(state, action) {
   }
 }
 
-// ─── Hook: persist settings ───────────────────────────────────────────────────
 function usePersistedSettings() {
   const [settings, dispatch] = useReducer(settingsReducer, DEFAULT_SETTINGS);
 
@@ -115,12 +92,10 @@ function usePersistedSettings() {
   return [settings, dispatch];
 }
 
-// ─── Hook: apply settings to DOM ─────────────────────────────────────────────
 function useApplySettings(settings) {
   useEffect(() => {
     const root = document.documentElement;
 
-    // Dyslexia font
     if (settings.dyslexiaFont) {
       if (!document.getElementById("a11y-dyslexia-font")) {
         const link = document.createElement("link");
@@ -134,26 +109,14 @@ function useApplySettings(settings) {
       root.style.removeProperty("--a11y-font");
     }
 
-    // Font size
     root.style.setProperty("--a11y-font-size", `${settings.fontSize}%`);
     root.style.fontSize = `${settings.fontSize}%`;
-
-    // High contrast
     root.classList.toggle("a11y-high-contrast", settings.highContrast);
-
-    // Highlight links
     root.classList.toggle("a11y-highlight-links", settings.highlightLinks);
-
-    // Large cursor
     root.classList.toggle("a11y-large-cursor", settings.largeCursor);
-
-    // Reduce motion
     root.classList.toggle("a11y-reduce-motion", settings.reduceMotion);
-
-    // Reading mode
     root.classList.toggle("a11y-reading-mode", settings.readingMode);
 
-    // Colour filter
     const mainEl = document.getElementById("a11y-filter-target") || document.body;
     if (settings.colorFilter !== "none") {
       mainEl.style.filter = `url(#a11y-${settings.colorFilter})`;
@@ -163,7 +126,6 @@ function useApplySettings(settings) {
   }, [settings]);
 }
 
-// ─── Hook: inject global CSS ──────────────────────────────────────────────────
 function useGlobalStyles() {
   useEffect(() => {
     if (document.getElementById("a11y-global-styles")) return;
@@ -171,14 +133,11 @@ function useGlobalStyles() {
     const style = document.createElement("style");
     style.id = "a11y-global-styles";
     style.textContent = `
-      /* Dyslexia font */
       .a11y-dyslexia body,
       html[style*="--a11y-font"] body,
       html[style*="--a11y-font"] * {
         font-family: var(--a11y-font, inherit) !important;
       }
-
-      /* High contrast */
       .a11y-high-contrast body {
         background: #000 !important;
         color: #fff !important;
@@ -188,16 +147,12 @@ function useGlobalStyles() {
         color: #fff !important;
         border-color: #fff !important;
       }
-      .a11y-high-contrast a {
-        color: #ffff00 !important;
-      }
+      .a11y-high-contrast a { color: #ffff00 !important; }
       .a11y-high-contrast button, .a11y-high-contrast input, .a11y-high-contrast select, .a11y-high-contrast textarea {
         background: #111 !important;
         color: #fff !important;
         border: 2px solid #fff !important;
       }
-
-      /* Highlight links */
       .a11y-highlight-links a {
         background: #ffff0088 !important;
         outline: 2px solid #f59e0b !important;
@@ -206,14 +161,10 @@ function useGlobalStyles() {
         text-decoration: underline !important;
         text-underline-offset: 3px !important;
       }
-
-      /* Large cursor */
       .a11y-large-cursor,
       .a11y-large-cursor * {
         cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M8 4 L8 32 L14 26 L19 36 L22 35 L17 25 L26 25 Z' fill='black' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 8 4, auto !important;
       }
-
-      /* Reduce motion */
       .a11y-reduce-motion *,
       .a11y-reduce-motion *::before,
       .a11y-reduce-motion *::after {
@@ -222,8 +173,6 @@ function useGlobalStyles() {
         transition-duration: 0.001ms !important;
         scroll-behavior: auto !important;
       }
-
-      /* Reading mode */
       .a11y-reading-mode body > *:not(#a11y-reading-overlay):not([class*="a11y-"]) {
         filter: blur(2px) !important;
         opacity: 0.15 !important;
@@ -231,30 +180,20 @@ function useGlobalStyles() {
         user-select: none !important;
       }
       #a11y-reading-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 9990;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
+        position: fixed; inset: 0; z-index: 9990;
+        display: flex; align-items: flex-start; justify-content: center;
         padding: 60px 20px;
         background: rgba(0,0,0,0.7);
         overflow-y: auto;
       }
       #a11y-reading-content {
-        max-width: 680px;
-        width: 100%;
-        background: #fafaf9;
-        border-radius: 16px;
+        max-width: 680px; width: 100%;
+        background: #fafaf9; border-radius: 16px;
         padding: 48px 52px;
         font-family: 'Lexend', Georgia, serif;
-        font-size: 1.1rem;
-        line-height: 1.9;
-        color: #1a1a1a;
+        font-size: 1.1rem; line-height: 1.9; color: #1a1a1a;
         box-shadow: 0 32px 80px rgba(0,0,0,0.5);
       }
-
-      /* TTS highlight */
       .a11y-tts-highlight {
         background: #fef08a !important;
         color: #1a1a1a !important;
@@ -263,7 +202,6 @@ function useGlobalStyles() {
     `;
     document.head.appendChild(style);
 
-    // Inject SVG filters
     const svgWrap = document.createElement("div");
     svgWrap.innerHTML = SVG_FILTERS;
     document.body.prepend(svgWrap.firstElementChild);
@@ -274,12 +212,20 @@ function useGlobalStyles() {
   }, []);
 }
 
-// ─── Hook: drag ───────────────────────────────────────────────────────────────
-function useDrag(initialPos = { x: 24, y: "auto" }) {
+// ── FIXED: useDrag now starts with safe static values, then updates after mount
+function useDrag(initialPos = { x: 24, y: 24 }) {
   const [pos, setPos] = useState(initialPos);
   const dragging      = useRef(false);
   const startOffset   = useRef({ x: 0, y: 0 });
   const btnRef        = useRef(null);
+
+  // Set real window-based position after mount to avoid hydration mismatch
+  useEffect(() => {
+    setPos({
+      x: window.innerWidth - 72,
+      y: window.innerHeight - 72,
+    });
+  }, []);
 
   const onMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -322,9 +268,8 @@ function useDrag(initialPos = { x: 24, y: "auto" }) {
   return { pos, btnRef, onMouseDown, onTouchStart };
 }
 
-// ─── Hook: text-to-speech ─────────────────────────────────────────────────────
 function useTTS() {
-  const [speaking,    setSpeaking]    = useState(false);
+  const [speaking,     setSpeaking]     = useState(false);
   const [waitingClick, setWaitingClick] = useState(false);
   const utterRef = useRef(null);
 
@@ -358,14 +303,8 @@ function useTTS() {
     utterance.rate  = 0.95;
     utterance.pitch = 1;
     utterance.onstart = () => setSpeaking(true);
-    utterance.onend   = () => {
-      el.classList.remove("a11y-tts-highlight");
-      setSpeaking(false);
-    };
-    utterance.onerror = () => {
-      el.classList.remove("a11y-tts-highlight");
-      setSpeaking(false);
-    };
+    utterance.onend   = () => { el.classList.remove("a11y-tts-highlight"); setSpeaking(false); };
+    utterance.onerror = () => { el.classList.remove("a11y-tts-highlight"); setSpeaking(false); };
     utterRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, []);
@@ -384,8 +323,6 @@ function useTTS() {
 
   return { speaking, waitingClick, startFromHere, stop };
 }
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionHeader({ icon, title }) {
   return (
@@ -433,25 +370,30 @@ function ShortcutRow({ keys, desc }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function AccessibilityPanel() {
-  const [open,        setOpen]        = useState(false);
-  const [activeTab,   setActiveTab]   = useState("text");
-  const [settings,    dispatch]       = usePersistedSettings();
-  const panelRef  = useRef(null);
+  const [open,      setOpen]      = useState(false);
+  const [activeTab, setActiveTab] = useState("text");
+  const [settings,  dispatch]     = usePersistedSettings();
+
+  // ── FIXED: mounted guard to prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
+
+  const panelRef   = useRef(null);
   const triggerRef = useRef(null);
 
-  const { pos, btnRef, onMouseDown, onTouchStart } = useDrag({
-    x: typeof window !== "undefined" ? window.innerWidth - 72 : 24,
-    y: typeof window !== "undefined" ? window.innerHeight - 72 : 24,
-  });
+  // ── FIXED: useDrag now uses safe static initial values
+  const { pos, btnRef, onMouseDown, onTouchStart } = useDrag({ x: 24, y: 24 });
 
   const tts = useTTS();
 
   useApplySettings(settings);
   useGlobalStyles();
 
-  // Apply dyslexia font directly when toggled
+  // Set mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     if (settings.dyslexiaFont) {
@@ -461,7 +403,6 @@ export default function AccessibilityPanel() {
     }
   }, [settings.dyslexiaFont]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
       if (!e.altKey) return;
@@ -481,7 +422,6 @@ export default function AccessibilityPanel() {
     return () => window.removeEventListener("keydown", handler);
   }, [settings.fontSize, tts, dispatch]);
 
-  // Focus trap inside panel
   useEffect(() => {
     if (!open || !panelRef.current) return;
     const focusable = panelRef.current.querySelectorAll(
@@ -501,7 +441,6 @@ export default function AccessibilityPanel() {
     return () => document.removeEventListener("keydown", trap);
   }, [open, activeTab]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -520,23 +459,23 @@ export default function AccessibilityPanel() {
   ).length;
 
   const tabs = [
-    { id: "text",    icon: "Aa",  label: "Text"    },
-    { id: "display", icon: "◑",   label: "Display" },
-    { id: "motion",  icon: "⟳",   label: "Motion"  },
-    { id: "reading", icon: "📖",  label: "Reading" },
-    { id: "color",   icon: "◉",   label: "Color"   },
-    { id: "keys",    icon: "⌨",   label: "Keys"    },
+    { id: "text",    icon: "Aa", label: "Text"    },
+    { id: "display", icon: "◑",  label: "Display" },
+    { id: "motion",  icon: "⟳",  label: "Motion"  },
+    { id: "reading", icon: "📖", label: "Reading" },
+    { id: "color",   icon: "◉",  label: "Color"   },
+    { id: "keys",    icon: "⌨",  label: "Keys"    },
   ];
 
-  // Panel positioning — ensure it doesn't go off screen
-  const panelLeft = pos.x > (typeof window !== "undefined" ? window.innerWidth / 2 : 400)
-    ? "auto" : `${pos.x}px`;
-  const panelRight = pos.x > (typeof window !== "undefined" ? window.innerWidth / 2 : 400)
-    ? `${(typeof window !== "undefined" ? window.innerWidth : 800) - pos.x - 56}px` : "auto";
+  // ── FIXED: don't render anything until mounted (prevents hydration mismatch)
+  if (!mounted) return null;
+
+  // ── FIXED: all window references are now safe since we only render client-side
+  const panelLeft  = pos.x > window.innerWidth / 2 ? "auto" : `${pos.x}px`;
+  const panelRight = pos.x > window.innerWidth / 2 ? `${window.innerWidth - pos.x - 56}px` : "auto";
 
   return (
     <>
-      {/* Waiting-to-click banner */}
       {tts.waitingClick && (
         <div style={S.ttsBanner} role="alert" aria-live="assertive">
           🎯 Click any paragraph or heading to start reading from there
@@ -585,10 +524,9 @@ export default function AccessibilityPanel() {
             ...S.panel,
             left:   panelLeft,
             right:  panelRight,
-            top:    pos.y > (typeof window !== "undefined" ? window.innerHeight / 2 : 400)
-              ? "auto" : `${pos.y + 64}px`,
-            bottom: pos.y > (typeof window !== "undefined" ? window.innerHeight / 2 : 400)
-              ? `${(typeof window !== "undefined" ? window.innerHeight : 800) - pos.y + 8}px` : "auto",
+            // ── FIXED: direct window references, safe since mounted
+            top:    pos.y > window.innerHeight / 2 ? "auto" : `${pos.y + 64}px`,
+            bottom: pos.y > window.innerHeight / 2 ? `${window.innerHeight - pos.y + 8}px` : "auto",
           }}
         >
           {/* Panel header */}
@@ -638,11 +576,9 @@ export default function AccessibilityPanel() {
           {/* Tab panels */}
           <div style={S.tabContent}>
 
-            {/* TEXT */}
             {activeTab === "text" && (
               <div id="a11y-tab-text" role="tabpanel" aria-labelledby="a11y-tab-btn-text">
                 <SectionHeader icon="✦" title="Text Options" />
-
                 <ToggleRow
                   id="toggle-dyslexia"
                   label="Dyslexia-friendly font"
@@ -650,7 +586,6 @@ export default function AccessibilityPanel() {
                   checked={settings.dyslexiaFont}
                   onChange={() => dispatch({ type: "TOGGLE", key: "dyslexiaFont" })}
                 />
-
                 <div style={S.sliderSection}>
                   <div style={S.sliderHeader}>
                     <span style={S.toggleLabel}>Font Size</span>
@@ -695,7 +630,6 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
-            {/* DISPLAY */}
             {activeTab === "display" && (
               <div id="a11y-tab-display" role="tabpanel" aria-labelledby="a11y-tab-btn-display">
                 <SectionHeader icon="◑" title="Display Options" />
@@ -723,7 +657,6 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
-            {/* MOTION */}
             {activeTab === "motion" && (
               <div id="a11y-tab-motion" role="tabpanel" aria-labelledby="a11y-tab-btn-motion">
                 <SectionHeader icon="⟳" title="Motion" />
@@ -743,11 +676,9 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
-            {/* READING */}
             {activeTab === "reading" && (
               <div id="a11y-tab-reading" role="tabpanel" aria-labelledby="a11y-tab-btn-reading">
                 <SectionHeader icon="📖" title="Reading Features" />
-
                 <ToggleRow
                   id="toggle-reading"
                   label="Reading mode"
@@ -755,9 +686,7 @@ export default function AccessibilityPanel() {
                   checked={settings.readingMode}
                   onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })}
                 />
-
                 <div style={S.divider} />
-
                 <div style={S.ttsSection}>
                   <div style={S.toggleInfo}>
                     <span style={S.toggleLabel}>Read from here</span>
@@ -793,7 +722,6 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
-            {/* COLOR */}
             {activeTab === "color" && (
               <div id="a11y-tab-color" role="tabpanel" aria-labelledby="a11y-tab-btn-color">
                 <SectionHeader icon="◉" title="Colour Accessibility" />
@@ -812,10 +740,7 @@ export default function AccessibilityPanel() {
                       }}
                       onClick={() => dispatch({ type: "SET", key: "colorFilter", value: cf.value })}
                     >
-                      <span
-                        style={{ ...S.colorDot, background: cf.color }}
-                        aria-hidden="true"
-                      />
+                      <span style={{ ...S.colorDot, background: cf.color }} aria-hidden="true" />
                       {cf.label}
                     </button>
                   ))}
@@ -828,7 +753,6 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
-            {/* KEYBOARD SHORTCUTS */}
             {activeTab === "keys" && (
               <div id="a11y-tab-keys" role="tabpanel" aria-labelledby="a11y-tab-btn-keys">
                 <SectionHeader icon="⌨" title="Keyboard Shortcuts" />
@@ -861,9 +785,7 @@ export default function AccessibilityPanel() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
-  // Floating trigger
   floatWrap: {
     position:  "fixed",
     zIndex:    10000,
@@ -910,8 +832,6 @@ const S = {
     border: "2px solid #fff",
     fontFamily: "system-ui, sans-serif",
   },
-
-  // Panel
   panel: {
     position:   "fixed",
     zIndex:     9999,
@@ -927,7 +847,6 @@ const S = {
     fontFamily: "'DM Sans', system-ui, sans-serif",
     animation:  "a11ySlideIn 0.22s cubic-bezier(0.22,1,0.36,1)",
   },
-
   panelHeader: {
     display:    "flex",
     alignItems: "center",
@@ -950,7 +869,6 @@ const S = {
     color: "#64748B",
     fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-
   closeBtn: {
     width: 28,
     height: 28,
@@ -978,8 +896,6 @@ const S = {
     fontFamily: "'DM Sans', system-ui, sans-serif",
     transition: "all 0.15s",
   },
-
-  // Tabs
   tabBar: {
     display: "flex",
     borderBottom: "1px solid #f1f5f9",
@@ -1010,16 +926,8 @@ const S = {
     color: "#1E40AF",
     borderBottomColor: "#1E40AF",
   },
-  tabIcon: {
-    fontSize: 14,
-    lineHeight: 1,
-  },
-  tabLabel: {
-    fontSize: 9,
-    letterSpacing: "0.4px",
-  },
-
-  // Tab content
+  tabIcon:  { fontSize: 14, lineHeight: 1 },
+  tabLabel: { fontSize: 9, letterSpacing: "0.4px" },
   tabContent: {
     flex: 1,
     overflowY: "auto",
@@ -1027,28 +935,18 @@ const S = {
     scrollbarWidth: "thin",
     scrollbarColor: "#e2e8f0 transparent",
   },
-
-  // Section header
   sectionHeader: {
     display: "flex",
     alignItems: "center",
     gap: 7,
     marginBottom: 12,
   },
-  sectionIcon: {
-    fontSize: 13,
-    color: "#1E40AF",
-  },
+  sectionIcon:  { fontSize: 13, color: "#1E40AF" },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#1E40AF",
-    letterSpacing: "0.8px",
-    textTransform: "uppercase",
+    fontSize: 11, fontWeight: 700, color: "#1E40AF",
+    letterSpacing: "0.8px", textTransform: "uppercase",
     fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-
-  // Toggle row
   toggleRow: {
     display: "flex",
     alignItems: "center",
@@ -1058,331 +956,134 @@ const S = {
     cursor: "pointer",
     borderBottom: "1px solid #f8fafc",
   },
-  toggleInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    flex: 1,
-  },
+  toggleInfo: { display: "flex", flexDirection: "column", gap: 2, flex: 1 },
   toggleLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#1E293B",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    lineHeight: 1.3,
+    fontSize: 13, fontWeight: 600, color: "#1E293B",
+    fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.3,
   },
   toggleDesc: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    lineHeight: 1.4,
+    fontSize: 11, color: "#94A3B8",
+    fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4,
   },
   toggle: {
-    width: 38,
-    height: 22,
-    borderRadius: 11,
-    border: "none",
-    background: "#e2e8f0",
-    cursor: "pointer",
-    position: "relative",
-    flexShrink: 0,
-    transition: "background 0.22s",
-    padding: 0,
+    width: 38, height: 22, borderRadius: 11, border: "none",
+    background: "#e2e8f0", cursor: "pointer", position: "relative",
+    flexShrink: 0, transition: "background 0.22s", padding: 0,
   },
-  toggleOn: {
-    background: "linear-gradient(135deg, #1E40AF, #0e7490)",
-  },
+  toggleOn:    { background: "linear-gradient(135deg, #1E40AF, #0e7490)" },
   toggleThumb: {
-    position: "absolute",
-    top: 3,
-    left: 3,
-    width: 16,
-    height: 16,
-    borderRadius: "50%",
-    background: "#fff",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-    transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)",
-    display: "block",
+    position: "absolute", top: 3, left: 3,
+    width: 16, height: 16, borderRadius: "50%",
+    background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+    transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)", display: "block",
   },
-  toggleThumbOn: {
-    left: 19,
-  },
-
-  // Slider
-  sliderSection: {
-    padding: "12px 0 4px",
-    borderBottom: "1px solid #f8fafc",
-  },
-  sliderHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  sliderValue: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#1E40AF",
-    fontFamily: "monospace",
-  },
-  sliderTrackWrap: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
+  toggleThumbOn: { left: 19 },
+  sliderSection: { padding: "12px 0 4px", borderBottom: "1px solid #f8fafc" },
+  sliderHeader:  { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  sliderValue:   { fontSize: 12, fontWeight: 700, color: "#1E40AF", fontFamily: "monospace" },
+  sliderTrackWrap: { display: "flex", alignItems: "center", gap: 8 },
   sliderBtn: {
-    width: 32,
-    height: 28,
-    borderRadius: 8,
-    border: "1.5px solid #e2e8f0",
-    background: "#fff",
-    color: "#64748B",
-    fontSize: 10,
-    fontWeight: 700,
-    cursor: "pointer",
-    flexShrink: 0,
-    fontFamily: "system-ui",
+    width: 32, height: 28, borderRadius: 8,
+    border: "1.5px solid #e2e8f0", background: "#fff",
+    color: "#64748B", fontSize: 10, fontWeight: 700,
+    cursor: "pointer", flexShrink: 0, fontFamily: "system-ui",
     transition: "border-color 0.15s",
   },
   sliderWrap: {
-    flex: 1,
-    position: "relative",
-    height: 20,
-    display: "flex",
-    alignItems: "center",
+    flex: 1, position: "relative", height: 20,
+    display: "flex", alignItems: "center",
   },
   slider: {
-    width: "100%",
-    appearance: "none",
-    WebkitAppearance: "none",
-    height: 4,
-    borderRadius: 2,
-    background: "#e2e8f0",
-    outline: "none",
-    cursor: "pointer",
-    position: "relative",
-    zIndex: 2,
+    width: "100%", appearance: "none", WebkitAppearance: "none",
+    height: 4, borderRadius: 2, background: "#e2e8f0",
+    outline: "none", cursor: "pointer", position: "relative", zIndex: 2,
   },
   sliderFill: {
-    position: "absolute",
-    left: 0,
-    height: 4,
+    position: "absolute", left: 0, height: 4,
     background: "linear-gradient(90deg, #1E40AF, #0e7490)",
-    borderRadius: 2,
-    pointerEvents: "none",
-    zIndex: 1,
-    transition: "width 0.1s",
+    borderRadius: 2, pointerEvents: "none", zIndex: 1, transition: "width 0.1s",
   },
   smallReset: {
-    marginTop: 6,
-    background: "none",
-    border: "none",
-    color: "#94A3B8",
-    fontSize: 10,
-    cursor: "pointer",
+    marginTop: 6, background: "none", border: "none",
+    color: "#94A3B8", fontSize: 10, cursor: "pointer",
     fontFamily: "'DM Sans', system-ui, sans-serif",
-    padding: 0,
-    textDecoration: "underline",
+    padding: 0, textDecoration: "underline",
   },
-
-  // Color chips
   colorDesc: {
-    fontSize: 12,
-    color: "#64748B",
-    marginBottom: 12,
-    lineHeight: 1.5,
-    fontFamily: "'DM Sans', system-ui, sans-serif",
+    fontSize: 12, color: "#64748B", marginBottom: 12,
+    lineHeight: 1.5, fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-  colorGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 8,
-    marginBottom: 12,
-  },
+  colorGrid:      { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
   colorChip: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1.5px solid #e2e8f0",
-    background: "#fff",
-    cursor: "pointer",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#1E293B",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    transition: "all 0.15s",
+    display: "flex", alignItems: "center", gap: 8,
+    padding: "10px 12px", borderRadius: 10,
+    border: "1.5px solid #e2e8f0", background: "#fff",
+    cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#1E293B",
+    fontFamily: "'DM Sans', system-ui, sans-serif", transition: "all 0.15s",
   },
-  colorChipActive: {
-    border: "1.5px solid #1E40AF",
-    background: "#EFF6FF",
-    color: "#1E40AF",
-  },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: "50%",
-    flexShrink: 0,
-  },
-
-  // TTS
-  ttsSection: {
-    padding: "10px 0",
-  },
+  colorChipActive: { border: "1.5px solid #1E40AF", background: "#EFF6FF", color: "#1E40AF" },
+  colorDot:        { width: 12, height: 12, borderRadius: "50%", flexShrink: 0 },
+  ttsSection:      { padding: "10px 0" },
   ttsBtn: {
-    padding: "8px 16px",
-    borderRadius: 10,
-    border: "none",
+    padding: "8px 16px", borderRadius: 10, border: "none",
     background: "linear-gradient(135deg, #1E40AF, #0e7490)",
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
+    color: "#fff", fontSize: 12, fontWeight: 700,
+    cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
     transition: "opacity 0.15s",
   },
-  ttsBtnStop: {
-    background: "linear-gradient(135deg, #dc2626, #b91c1c)",
-  },
-
-  // TTS banner
+  ttsBtnStop: { background: "linear-gradient(135deg, #dc2626, #b91c1c)" },
   ttsBanner: {
-    position: "fixed",
-    top: 16,
-    left: "50%",
-    transform: "translateX(-50%)",
-    zIndex: 10001,
-    background: "#1E293B",
-    color: "#fff",
-    padding: "10px 20px",
-    borderRadius: 12,
-    fontSize: 13,
-    fontWeight: 600,
+    position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+    zIndex: 10001, background: "#1E293B", color: "#fff",
+    padding: "10px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600,
     fontFamily: "'DM Sans', system-ui, sans-serif",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-    whiteSpace: "nowrap",
+    display: "flex", alignItems: "center", gap: 12,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.25)", whiteSpace: "nowrap",
   },
   ttsBannerClose: {
-    background: "rgba(255,255,255,0.15)",
-    border: "none",
-    color: "#fff",
-    cursor: "pointer",
-    borderRadius: 6,
-    width: 22,
-    height: 22,
-    fontSize: 12,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    background: "rgba(255,255,255,0.15)", border: "none",
+    color: "#fff", cursor: "pointer", borderRadius: 6,
+    width: 22, height: 22, fontSize: 12,
+    display: "flex", alignItems: "center", justifyContent: "center",
   },
-
-  // Keyboard shortcuts
-  shortcutList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-  },
+  shortcutList:  { display: "flex", flexDirection: "column", gap: 2 },
   shortcutRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    padding: "8px 0",
-    borderBottom: "1px solid #f8fafc",
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc",
   },
-  shortcutKeys: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    flexShrink: 0,
-  },
+  shortcutKeys:  { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
   kbd: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "2px 7px",
-    borderRadius: 5,
-    background: "#1E293B",
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: 700,
-    fontFamily: "monospace",
-    border: "1px solid #334155",
-    boxShadow: "0 2px 0 #0f172a",
-    minWidth: 24,
-    lineHeight: 1.4,
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    padding: "2px 7px", borderRadius: 5, background: "#1E293B",
+    color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+    border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a",
+    minWidth: 24, lineHeight: 1.4,
   },
   kbdInline: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "1px 5px",
-    borderRadius: 4,
-    background: "#f1f5f9",
-    color: "#1E293B",
-    fontSize: 10,
-    fontWeight: 700,
-    fontFamily: "monospace",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 0 #cbd5e1",
+    display: "inline-flex", alignItems: "center",
+    padding: "1px 5px", borderRadius: 4, background: "#f1f5f9",
+    color: "#1E293B", fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+    border: "1px solid #e2e8f0", boxShadow: "0 1px 0 #cbd5e1",
   },
-  kbdPlus: {
-    fontSize: 10,
-    color: "#94A3B8",
-    margin: "0 2px",
-    fontFamily: "system-ui",
-  },
+  kbdPlus:      { fontSize: 10, color: "#94A3B8", margin: "0 2px", fontFamily: "system-ui" },
   shortcutDesc: {
-    fontSize: 11,
-    color: "#64748B",
-    textAlign: "right",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-    lineHeight: 1.4,
+    fontSize: 11, color: "#64748B", textAlign: "right",
+    fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4,
   },
-
-  // Info box
   infoBox: {
-    marginTop: 12,
-    padding: "10px 12px",
-    background: "#F8FAFC",
-    borderRadius: 10,
-    border: "1px solid #e2e8f0",
+    marginTop: 12, padding: "10px 12px",
+    background: "#F8FAFC", borderRadius: 10, border: "1px solid #e2e8f0",
   },
   infoText: {
-    margin: 0,
-    fontSize: 11,
-    color: "#64748B",
-    lineHeight: 1.6,
-    fontFamily: "'DM Sans', system-ui, sans-serif",
+    margin: 0, fontSize: 11, color: "#64748B",
+    lineHeight: 1.6, fontFamily: "'DM Sans', system-ui, sans-serif",
   },
-
-  // Divider
-  divider: {
-    height: 1,
-    background: "#f1f5f9",
-    margin: "8px 0",
-  },
-
-  // Footer
+  divider: { height: 1, background: "#f1f5f9", margin: "8px 0" },
   panelFooter: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    padding: "8px 16px",
-    borderTop: "1px solid #f1f5f9",
-    background: "#fafafa",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    gap: 6, padding: "8px 16px",
+    borderTop: "1px solid #f1f5f9", background: "#fafafa",
   },
-  footerText: {
-    fontSize: 10,
-    color: "#CBD5E1",
-    fontFamily: "'DM Sans', system-ui, sans-serif",
-  },
-  footerDot: {
-    color: "#CBD5E1",
-    fontSize: 10,
-  },
+  footerText: { fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui, sans-serif" },
+  footerDot:  { color: "#CBD5E1", fontSize: 10 },
 };
