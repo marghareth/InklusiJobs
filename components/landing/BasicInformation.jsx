@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 export default function BasicInformation({ onSubmit, initialData = {} }) {
   const [formData, setFormData] = useState({
@@ -14,7 +13,6 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
     educationalAttainment: initialData.educationalAttainment || "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const educationalOptions = [
     "Some Elementary",
@@ -36,53 +34,19 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
-    const supabase = createClient();
-
-    try {
-      // Get the current authenticated user
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user)
-        throw new Error("Session expired. Please sign in again.");
-
-      // Upsert into profiles table
-      const role = user.user_metadata?.role || "worker";
-
-      const { error: upsertError } = await supabase.from("profiles").upsert({
-        id: user.id,
-        email: user.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        age: formData.age ? parseInt(formData.age) : null,
-        role: role,
-        current_address: formData.currentAddress,
-        permanent_address: formData.permanentAddress,
-        contact_number: formData.contactNumber,
-        educational_attainment: formData.educationalAttainment,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (upsertError) throw upsertError;
-
-      onSubmit?.({ first_name: formData.firstName, role });
-    } catch (err) {
-      console.error("BasicInformation save error:", err);
-      setError(
-        err.message || "Failed to save your information. Please try again.",
-      );
-    } finally {
+    // TODO: re-enable Supabase upsert when backend is ready
+    // For now, just proceed with the form data directly
+    setTimeout(() => {
+      onSubmit?.({ first_name: formData.firstName, role: "worker" });
       setLoading(false);
-    }
+    }, 300);
   };
 
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#648fbf] via-[#8891c9] to-[#9a89c6] text-white p-6 rounded-t-2xl">
+      <div className="bg-linear-to-r from-[#648fbf] via-[#8891c9] to-[#9a89c6] text-white p-6 rounded-t-2xl">
         <h2 className="text-2xl font-bold">Basic Information</h2>
         <p className="text-white/90 text-sm mt-1">
           Please complete your profile
@@ -94,12 +58,6 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
         onSubmit={handleSubmit}
         className="p-6 bg-[#f4f7f9] max-h-[70vh] overflow-y-auto"
       >
-        {error && (
-          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
-
         <div className="space-y-4">
           {/* Name */}
           <div className="grid grid-cols-2 gap-4">
@@ -226,7 +184,7 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-[#3d7b74] via-[#5fa8d3] to-[#7286d3] text-white font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60"
+            className="w-full py-3 px-4 bg-linear-to-r from-[#3d7b74] via-[#5fa8d3] to-[#7286d3] text-white font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             {loading ? "Saving…" : "Continue"}
           </button>
