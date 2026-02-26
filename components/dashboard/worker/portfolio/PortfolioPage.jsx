@@ -3,9 +3,9 @@ import { useState } from "react";
 import PortfolioCSS from "./PortfolioCSS";
 import { USER, SKILLS_DATA, CHALLENGES_DATA, INIT_BIO, INIT_HEADLINE, INIT_SECTIONS } from "./portfolioData";
 import { TABS } from "./utils/constants";
-import { 
-  IcEye, IcShare, IcCheck, IcInfo, IcEdit2, IcSparkle, 
-  IcLink, IcBell, IcX 
+import {
+  IcEye, IcShare, IcCheck, IcInfo, IcEdit2, IcSparkle,
+  IcLink, IcBell, IcX
 } from "./portfolio_components/Icons";
 import StatPill from "./portfolio_components/StatPill";
 import SkillRow from "./portfolio_components/SkillRow";
@@ -25,10 +25,10 @@ export default function PortfolioPage() {
   const [bannerOpen, setBannerOpen] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const done = CHALLENGES_DATA.filter(c => c.status === "completed");
+  const done    = CHALLENGES_DATA.filter(c => c.status === "completed");
   const ongoing = CHALLENGES_DATA.filter(c => c.status === "ongoing");
-  const totalPts = done.reduce((a, c) => a + c.pts, 0);
-  const avgSkill = Math.round(SKILLS_DATA.reduce((a, s) => a + s.pct, 0) / SKILLS_DATA.length);
+  const totalPts  = done.reduce((a, c) => a + c.pts, 0);
+  const avgSkill  = Math.round(SKILLS_DATA.reduce((a, s) => a + s.pct, 0) / SKILLS_DATA.length);
 
   const handleShare = () => {
     navigator.clipboard?.writeText("https://inklusijobs.ph/portfolio/sarah-johnson").then(() => {
@@ -41,12 +41,13 @@ export default function PortfolioPage() {
     <>
       <PortfolioCSS />
       <div className="pf-root">
+
         {/* Banner */}
         {bannerOpen && (
-          <UpdateBanner 
-            lastUpdated={USER.lastUpdated} 
-            prevUpdate={USER.prevUpdate} 
-            onDismiss={() => setBannerOpen(false)} 
+          <UpdateBanner
+            lastUpdated={USER.lastUpdated}
+            prevUpdate={USER.prevUpdate}
+            onDismiss={() => setBannerOpen(false)}
           />
         )}
 
@@ -131,9 +132,9 @@ export default function PortfolioPage() {
           </div>
 
           <div className="pf-stats-col">
-            <StatPill n={done.length} label="Completed" accent="#2D5016" />
-            <StatPill n={ongoing.length} label="In Progress" accent="#7B6226" />
-            <StatPill n={`${avgSkill}%`} label="Avg. Skill" accent="#4A7C59" />
+            <StatPill n={done.length}              label="Completed"    accent="#2D5016" />
+            <StatPill n={ongoing.length}           label="In Progress"  accent="#7B6226" />
+            <StatPill n={`${avgSkill}%`}           label="Avg. Skill"   accent="#4A7C59" />
             <StatPill n={totalPts.toLocaleString()} label="Total Points" accent="#5C6B54" />
           </div>
         </div>
@@ -162,8 +163,11 @@ export default function PortfolioPage() {
 
         {/* Tab Content */}
         <div className="pf-content">
+
+          {/* ── OVERVIEW ── */}
           {tab === "overview" && (
             <div className="pf-overview-grid">
+
               {/* Bio Card */}
               <div className="pf-card">
                 <div className="pf-card-hd">
@@ -217,7 +221,9 @@ export default function PortfolioPage() {
                   <button className="pf-card-action" onClick={() => setTab("skills")}>View all →</button>
                 </div>
                 <div className="pf-skill-list">
-                  {SKILLS_DATA.slice(0, 4).map((s, i) => <SkillRow key={s.name} skill={s} i={i} compact />)}
+                  {SKILLS_DATA.slice(0, 4).map((s, i) => (
+                    <SkillRow key={s.name} skill={s} i={i} compact />
+                  ))}
                 </div>
               </div>
 
@@ -239,9 +245,11 @@ export default function PortfolioPage() {
                   )}
                 </div>
               </div>
+
             </div>
           )}
 
+          {/* ── SKILLS ── */}
           {tab === "skills" && (
             <>
               <div className="pf-card pf-card-wide">
@@ -259,6 +267,7 @@ export default function PortfolioPage() {
             </>
           )}
 
+          {/* ── CHALLENGES ── */}
           {tab === "challenges" && (
             <>
               <div className="pf-ch-strip">
@@ -287,6 +296,7 @@ export default function PortfolioPage() {
             </>
           )}
 
+          {/* ── CUSTOM SECTIONS ── */}
           {tab === "sections" && (
             <div className="pf-card pf-card-wide">
               <div className="pf-card-hd">
@@ -296,6 +306,7 @@ export default function PortfolioPage() {
               <CustomSections sections={sections} setSections={setSections} readOnly={false} />
             </div>
           )}
+
         </div>
 
         {showPreview && (
@@ -306,6 +317,7 @@ export default function PortfolioPage() {
             onClose={() => setShowPreview(false)}
           />
         )}
+
       </div>
     </>
   );
