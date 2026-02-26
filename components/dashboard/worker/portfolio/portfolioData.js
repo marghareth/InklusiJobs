@@ -17,12 +17,12 @@ export const USER = {
 
 // SKILLS DATA
 export const SKILLS_DATA = [
-  { name: "HTML & CSS",    pct: 92, tag: "Frontend"  },
-  { name: "JavaScript",   pct: 78, tag: "Core"       },
-  { name: "React",        pct: 71, tag: "Framework"  },
-  { name: "Accessibility",pct: 88, tag: "Specialty"  },
-  { name: "UI/UX Design", pct: 65, tag: "Design"     },
-  { name: "Node.js",      pct: 55, tag: "Backend"    },
+  { name: "HTML & CSS",     pct: 92, tag: "Frontend"  },
+  { name: "JavaScript",    pct: 78, tag: "Core"       },
+  { name: "React",         pct: 71, tag: "Framework"  },
+  { name: "Accessibility", pct: 88, tag: "Specialty"  },
+  { name: "UI/UX Design",  pct: 65, tag: "Design"     },
+  { name: "Node.js",       pct: 55, tag: "Backend"    },
 ];
 
 // CHALLENGES DATA
