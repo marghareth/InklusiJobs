@@ -45,9 +45,9 @@ const styles = `
 
   .skills-grid {
     display: grid;
-    grid-template-columns: 55% 45%;
+    grid-template-columns: 50% 50%;
     align-items: center;
-    gap: 48px;
+    gap: 32px;
   }
 
   .skills-left {
@@ -157,19 +157,20 @@ const styles = `
   .skills-right {
     display: flex;
     justify-content: center;
+    align-items: center;
   }
 
   .profile-card {
     background: #ffffff;
-    border-radius: 20px;
-    padding: 28px;
+    border-radius: 24px;
+    padding: 36px;
     width: 100%;
-    max-width: 420px;
-    box-shadow: 0 4px 32px rgba(15,92,110,0.10);
+    max-width: 100%;
+    box-shadow: 0 8px 48px rgba(15,92,110,0.14);
     border: 1px solid #DDE8EC;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
     animation: skills-float 4s ease-in-out infinite;
   }
 
@@ -181,11 +182,11 @@ const styles = `
   .card-header {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
   }
   .card-avatar {
-    width: 44px;
-    height: 44px;
+    width: 54px;
+    height: 54px;
     background: #0F5C6E;
     border-radius: 50%;
     display: flex;
@@ -193,30 +194,30 @@ const styles = `
     justify-content: center;
     color: #ffffff;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 20px;
     font-family: 'DM Sans', sans-serif;
     flex-shrink: 0;
   }
   .card-name {
     font-family: 'DM Sans', sans-serif;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
     color: #1A1A2E;
     margin: 0;
   }
   .card-title {
     font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: #7A9AAA;
-    margin: 2px 0 0;
+    margin: 3px 0 0;
   }
   .verified-badge {
     margin-left: auto;
-    padding: 5px 12px;
+    padding: 6px 14px;
     border: 1px solid #BBF7D0;
     border-radius: 100px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: #15803D;
     background: #F0FDF4;
@@ -226,14 +227,14 @@ const styles = `
   .skills-bars {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
   }
-  .skill-row { display: flex; flex-direction: column; gap: 6px; }
+  .skill-row { display: flex; flex-direction: column; gap: 8px; }
   .skill-label-row {
     display: flex;
     justify-content: space-between;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #1A1A2E;
   }
@@ -242,7 +243,7 @@ const styles = `
     color: #7A9AAA;
   }
   .skill-bar-bg {
-    height: 8px;
+    height: 10px;
     background: #E8F2F5;
     border-radius: 99px;
     overflow: hidden;
@@ -261,7 +262,7 @@ const styles = `
   .card-milestones {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
   .milestone-item {
     display: flex;
@@ -269,15 +270,15 @@ const styles = `
     gap: 10px;
   }
   .milestone-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     flex-shrink: 0;
     margin-top: 4px;
   }
   .milestone-text {
     font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     color: #4A6070;
     line-height: 1.5;
   }
@@ -289,9 +290,9 @@ const styles = `
   }
   .badge {
     font-family: 'DM Sans', sans-serif;
-    padding: 5px 12px;
+    padding: 6px 14px;
     border-radius: 100px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     border: 1px solid;
   }
