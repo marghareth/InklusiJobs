@@ -25,6 +25,8 @@ const KEYBOARD_SHORTCUTS = [
   { keys: ["Alt", "+"],   desc: "Increase font size" },
   { keys: ["Alt", "−"],   desc: "Decrease font size" },
   { keys: ["Alt", "C"],   desc: "Toggle high contrast" },
+  { keys: ["Alt", "L"],   desc: "Toggle highlight links" },
+  { keys: ["Alt", "U"],   desc: "Toggle large cursor" },
   { keys: ["Alt", "R"],   desc: "Toggle reading mode" },
   { keys: ["Alt", "S"],   desc: "Start / stop text-to-speech" },
   { keys: ["Escape"],     desc: "Close panel / stop reading" },
@@ -92,6 +94,8 @@ function usePersistedSettings() {
 function useApplySettings(settings) {
   useEffect(() => {
     const root = document.documentElement;
+
+    // Dyslexia font
     if (settings.dyslexiaFont) {
       if (!document.getElementById("a11y-dyslexia-font")) {
         const link = document.createElement("link");
@@ -100,17 +104,23 @@ function useApplySettings(settings) {
         link.href = DYSLEXIA_FONT_URL;
         document.head.appendChild(link);
       }
-      root.style.setProperty("--a11y-font", "'Lexend', sans-serif");
+      root.classList.add("a11y-dyslexia");
     } else {
-      root.style.removeProperty("--a11y-font");
+      root.classList.remove("a11y-dyslexia");
     }
+
+    // Font size
     root.style.setProperty("--a11y-font-size", `${settings.fontSize}%`);
     root.style.fontSize = `${settings.fontSize}%`;
+
+    // Classes
     root.classList.toggle("a11y-high-contrast",   settings.highContrast);
     root.classList.toggle("a11y-highlight-links", settings.highlightLinks);
     root.classList.toggle("a11y-large-cursor",    settings.largeCursor);
     root.classList.toggle("a11y-reduce-motion",   settings.reduceMotion);
     root.classList.toggle("a11y-reading-mode",    settings.readingMode);
+
+    // Color filter
     const mainEl = document.getElementById("a11y-filter-target") || document.body;
     mainEl.style.filter = settings.colorFilter !== "none" ? `url(#a11y-${settings.colorFilter})` : "";
   }, [settings]);
@@ -122,14 +132,57 @@ function useGlobalStyles() {
     const style = document.createElement("style");
     style.id = "a11y-global-styles";
     style.textContent = `
+      /* Dyslexia font — force override everything including Tailwind font classes */
+      .a11y-dyslexia *,
+      .a11y-dyslexia *::before,
+      .a11y-dyslexia *::after {
+        font-family: 'Lexend', sans-serif !important;
+      }
+
+      /* High contrast */
       .a11y-high-contrast body { background: #000 !important; color: #fff !important; }
-      .a11y-high-contrast *:not([class*="a11y-panel"]):not([class*="a11y-btn"]) { background-color: #000 !important; color: #fff !important; border-color: #fff !important; }
+      .a11y-high-contrast *:not([class*="a11y-panel"]):not([class*="a11y-btn"]):not(nav):not(nav *) {
+        background-color: #000 !important; color: #fff !important; border-color: #fff !important;
+      }
       .a11y-high-contrast a { color: #ffff00 !important; }
-      .a11y-high-contrast button, .a11y-high-contrast input, .a11y-high-contrast select, .a11y-high-contrast textarea { background: #111 !important; color: #fff !important; border: 2px solid #fff !important; }
-      .a11y-highlight-links a { background: #ffff0088 !important; outline: 2px solid #f59e0b !important; outline-offset: 2px !important; border-radius: 3px !important; text-decoration: underline !important; }
-      .a11y-large-cursor, .a11y-large-cursor * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M8 4 L8 32 L14 26 L19 36 L22 35 L17 25 L26 25 Z' fill='black' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 8 4, auto !important; }
-      .a11y-reduce-motion *, .a11y-reduce-motion *::before, .a11y-reduce-motion *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+      .a11y-high-contrast button, .a11y-high-contrast input, .a11y-high-contrast select, .a11y-high-contrast textarea {
+        background: #111 !important; color: #fff !important; border: 2px solid #fff !important;
+      }
+      /* Protect logo/navbar from high contrast override */
+      .a11y-high-contrast nav,
+      .a11y-high-contrast nav * {
+        background-color: revert !important;
+        color: revert !important;
+        border-color: revert !important;
+      }
+      /* Give logo a visible background when high contrast is on */
+      .a11y-high-contrast [data-logo] {
+        background: #fff !important;
+        padding: 4px 10px !important;
+        border-radius: 6px !important;
+      }
+
+      /* Highlight links — underline only, no background */
+      .a11y-highlight-links a {
+        text-decoration: underline !important;
+        text-underline-offset: 4px !important;
+        text-decoration-thickness: 2px !important;
+        text-decoration-color: #1E40AF !important;
+      }
+
+      /* Large cursor */
+      .a11y-large-cursor, .a11y-large-cursor * {
+        cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M8 4 L8 32 L14 26 L19 36 L22 35 L17 25 L26 25 Z' fill='black' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 8 4, auto !important;
+      }
+
+      /* Reduce motion */
+      .a11y-reduce-motion *, .a11y-reduce-motion *::before, .a11y-reduce-motion *::after {
+        animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+      }
+
+      /* TTS highlight */
       .a11y-tts-highlight { background: #fef08a !important; color: #1a1a1a !important; border-radius: 3px; }
+
       @keyframes a11ySlideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     `;
     document.head.appendChild(style);
@@ -146,7 +199,6 @@ function useDrag() {
   const startOffset   = useRef({ x: 0, y: 0 });
   const btnRef        = useRef(null);
 
-  // Set position to bottom-right only on client after mount
   useEffect(() => {
     setPos({ x: window.innerWidth - 72, y: window.innerHeight - 72 });
   }, []);
@@ -192,54 +244,72 @@ function useDrag() {
 }
 
 function useTTS() {
-  const [speaking,     setSpeaking]     = useState(false);
-  const [waitingClick, setWaitingClick] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const utterRef = useRef(null);
 
   const stop = useCallback(() => {
     window.speechSynthesis?.cancel();
     setSpeaking(false);
-    setWaitingClick(false);
     document.querySelectorAll(".a11y-tts-highlight").forEach(el => el.classList.remove("a11y-tts-highlight"));
-    document.body.style.cursor = "";
   }, []);
 
-  const startFromHere = useCallback(() => {
-    if (!window.speechSynthesis) { alert("Text-to-speech is not supported in this browser."); return; }
+  // Read page from top automatically — finds all readable elements in order
+  const startReading = useCallback(() => {
+    if (!window.speechSynthesis) {
+      alert("Text-to-speech is not supported in this browser.");
+      return;
+    }
     stop();
-    setWaitingClick(true);
-    document.body.style.cursor = "crosshair";
+
+    // Gather all visible text elements in DOM order
+    const selector = "h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote, figcaption";
+    const elements = Array.from(document.querySelectorAll(selector)).filter(el => {
+      const text = el.innerText?.trim();
+      if (!text) return false;
+      // Skip elements inside the accessibility panel itself
+      if (el.closest("#a11y-panel") || el.closest("[data-a11y-panel]")) return false;
+      return true;
+    });
+
+    if (elements.length === 0) return;
+
+    let index = 0;
+    setSpeaking(true);
+
+    const speakNext = () => {
+      if (index >= elements.length) {
+        setSpeaking(false);
+        return;
+      }
+
+      // Remove previous highlight
+      document.querySelectorAll(".a11y-tts-highlight").forEach(el => el.classList.remove("a11y-tts-highlight"));
+
+      const el = elements[index];
+      el.classList.add("a11y-tts-highlight");
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      const text = el.innerText || el.textContent;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate  = 0.95;
+      utterance.pitch = 1;
+      utterance.onend = () => {
+        el.classList.remove("a11y-tts-highlight");
+        index++;
+        speakNext();
+      };
+      utterance.onerror = () => {
+        el.classList.remove("a11y-tts-highlight");
+        setSpeaking(false);
+      };
+      utterRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speakNext();
   }, [stop]);
 
-  const speakElement = useCallback((el) => {
-    if (!el) return;
-    const text = el.innerText || el.textContent;
-    if (!text?.trim()) return;
-    el.classList.add("a11y-tts-highlight");
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate  = 0.95;
-    utterance.pitch = 1;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend   = () => { el.classList.remove("a11y-tts-highlight"); setSpeaking(false); };
-    utterance.onerror = () => { el.classList.remove("a11y-tts-highlight"); setSpeaking(false); };
-    utterRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  useEffect(() => {
-    if (!waitingClick) return;
-    const onClick = (e) => {
-      const target = e.target.closest("p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, article, section") || e.target;
-      setWaitingClick(false);
-      document.body.style.cursor = "";
-      speakElement(target);
-    };
-    document.addEventListener("click", onClick, { once: true });
-    return () => document.removeEventListener("click", onClick);
-  }, [waitingClick, speakElement]);
-
-  return { speaking, waitingClick, startFromHere, stop };
+  return { speaking, startReading, stop };
 }
 
 function SectionHeader({ icon, title }) {
@@ -251,11 +321,28 @@ function SectionHeader({ icon, title }) {
   );
 }
 
-function ToggleRow({ label, desc, checked, onChange, id }) {
+// Shortcut badge shown inline next to feature label
+function ShortcutBadge({ keys }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 6 }}>
+      {keys.map((k, i) => (
+        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
+          <kbd style={S.kbdInline}>{k}</kbd>
+          {i < keys.length - 1 && <span style={{ fontSize: 9, color: "#CBD5E1" }}>+</span>}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function ToggleRow({ label, desc, checked, onChange, id, shortcut }) {
   return (
     <label htmlFor={id} style={S.toggleRow}>
       <div style={S.toggleInfo}>
-        <span style={S.toggleLabel}>{label}</span>
+        <span style={S.toggleLabel}>
+          {label}
+          {shortcut && <ShortcutBadge keys={shortcut} />}
+        </span>
         {desc && <span style={S.toggleDesc}>{desc}</span>}
       </div>
       <button id={id} role="switch" aria-checked={checked} aria-label={label}
@@ -291,7 +378,6 @@ export default function AccessibilityPanel() {
   const panelRef   = useRef(null);
   const triggerRef = useRef(null);
 
-  // ── Only render on client — prevents hydration mismatch ──────────────────
   useEffect(() => { setMounted(true); }, []);
 
   const { pos, btnRef, onMouseDown, onTouchStart } = useDrag();
@@ -300,14 +386,11 @@ export default function AccessibilityPanel() {
   useApplySettings(settings);
   useGlobalStyles();
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (settings.dyslexiaFont) { root.style.fontFamily = "'Lexend', sans-serif"; }
-    else { root.style.fontFamily = ""; }
-  }, [settings.dyslexiaFont]);
+
 
   useEffect(() => {
     const handler = (e) => {
+      if (e.key === "Escape") { setOpen(false); tts.stop(); return; }
       if (!e.altKey) return;
       switch (e.key.toLowerCase()) {
         case "a": e.preventDefault(); setOpen(o => !o); break;
@@ -316,10 +399,11 @@ export default function AccessibilityPanel() {
         case "=": e.preventDefault(); dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 10) }); break;
         case "-": e.preventDefault(); dispatch({ type: "SET", key: "fontSize", value: Math.max(80,  settings.fontSize - 10) }); break;
         case "c": e.preventDefault(); dispatch({ type: "TOGGLE", key: "highContrast" }); break;
+        case "l": e.preventDefault(); dispatch({ type: "TOGGLE", key: "highlightLinks" }); break;
+        case "u": e.preventDefault(); dispatch({ type: "TOGGLE", key: "largeCursor" }); break;
         case "r": e.preventDefault(); dispatch({ type: "TOGGLE", key: "readingMode" }); break;
-        case "s": e.preventDefault(); tts.speaking ? tts.stop() : tts.startFromHere(); break;
+        case "s": e.preventDefault(); tts.speaking ? tts.stop() : tts.startReading(); break;
       }
-      if (e.key === "Escape") { setOpen(false); tts.stop(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -350,7 +434,6 @@ export default function AccessibilityPanel() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // ── Don't render anything server-side ────────────────────────────────────
   if (!mounted) return null;
 
   const activeCount = Object.entries(settings).filter(([k, v]) =>
@@ -373,14 +456,8 @@ export default function AccessibilityPanel() {
 
   return (
     <>
-      {tts.waitingClick && (
-        <div style={S.ttsBanner} role="alert" aria-live="assertive">
-          🎯 Click any paragraph or heading to start reading from there
-          <button style={S.ttsBannerClose} onClick={tts.stop} aria-label="Cancel">✕</button>
-        </div>
-      )}
-
       <div ref={(el) => { btnRef.current = el; triggerRef.current = el; }}
+        suppressHydrationWarning
         style={{ ...S.floatWrap, left: `${pos.x}px`, top: `${pos.y}px` }}
         onMouseDown={onMouseDown} onTouchStart={onTouchStart}>
         <button onClick={() => setOpen(o => !o)}
@@ -399,7 +476,7 @@ export default function AccessibilityPanel() {
       </div>
 
       {open && (
-        <div id="a11y-panel" ref={panelRef} role="dialog" aria-label="Accessibility Settings" aria-modal="false"
+        <div id="a11y-panel" data-a11y-panel ref={panelRef} role="dialog" aria-label="Accessibility Settings" aria-modal="false"
           style={{ ...S.panel, left: panelLeft, right: panelRight, top: panelTop, bottom: panelBot }}>
 
           <div style={S.panelHeader}>
@@ -428,24 +505,35 @@ export default function AccessibilityPanel() {
           </div>
 
           <div style={S.tabContent}>
+
+            {/* TEXT */}
             {activeTab === "text" && (
               <div id="a11y-tab-text" role="tabpanel" aria-labelledby="a11y-tab-btn-text">
                 <SectionHeader icon="✦" title="Text Options" />
-                <ToggleRow id="toggle-dyslexia" label="Dyslexia-friendly font" desc="Switches to Lexend — optimised for readability" checked={settings.dyslexiaFont} onChange={() => dispatch({ type: "TOGGLE", key: "dyslexiaFont" })} />
+                <ToggleRow id="toggle-dyslexia" label="Dyslexia-friendly font"
+                  desc="Switches to Lexend — optimised for readability"
+                  shortcut={["Alt", "D"]}
+                  checked={settings.dyslexiaFont}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "dyslexiaFont" })} />
                 <div style={S.sliderSection}>
                   <div style={S.sliderHeader}>
-                    <span style={S.toggleLabel}>Font Size</span>
+                    <span style={S.toggleLabel}>
+                      Font Size
+                      <ShortcutBadge keys={["Alt", "+"]} />
+                    </span>
                     <span style={S.sliderValue}>{settings.fontSize}%</span>
                   </div>
                   <div style={S.sliderTrackWrap}>
-                    <button style={S.sliderBtn} aria-label="Decrease font size" onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 5) })}>A−</button>
+                    <button style={S.sliderBtn} aria-label="Decrease font size"
+                      onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 5) })}>A−</button>
                     <div style={S.sliderWrap}>
                       <input type="range" min={80} max={150} step={5} value={settings.fontSize}
                         onChange={e => dispatch({ type: "SET", key: "fontSize", value: Number(e.target.value) })}
                         aria-label="Font size" style={S.slider} />
                       <div style={{ ...S.sliderFill, width: `${((settings.fontSize - 80) / 70) * 100}%` }} />
                     </div>
-                    <button style={S.sliderBtn} aria-label="Increase font size" onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 5) })}>A+</button>
+                    <button style={S.sliderBtn} aria-label="Increase font size"
+                      onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 5) })}>A+</button>
                   </div>
                   {settings.fontSize !== 100 && (
                     <button style={S.smallReset} onClick={() => dispatch({ type: "SET", key: "fontSize", value: 100 })}>Reset to 100%</button>
@@ -454,47 +542,83 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
+            {/* DISPLAY */}
             {activeTab === "display" && (
               <div id="a11y-tab-display" role="tabpanel" aria-labelledby="a11y-tab-btn-display">
                 <SectionHeader icon="◑" title="Display Options" />
-                <ToggleRow id="toggle-contrast" label="High contrast" desc="Dark background, white text" checked={settings.highContrast} onChange={() => dispatch({ type: "TOGGLE", key: "highContrast" })} />
-                <ToggleRow id="toggle-links" label="Highlight links" desc="Yellow highlight on all links" checked={settings.highlightLinks} onChange={() => dispatch({ type: "TOGGLE", key: "highlightLinks" })} />
-                <ToggleRow id="toggle-cursor" label="Large cursor" desc="Bigger mouse pointer for visibility" checked={settings.largeCursor} onChange={() => dispatch({ type: "TOGGLE", key: "largeCursor" })} />
+                <ToggleRow id="toggle-contrast" label="High contrast"
+                  desc="Dark background, white text"
+                  shortcut={["Alt", "C"]}
+                  checked={settings.highContrast}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "highContrast" })} />
+                <ToggleRow id="toggle-links" label="Highlight links"
+                  desc="Underlines all links for visibility"
+                  shortcut={["Alt", "L"]}
+                  checked={settings.highlightLinks}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "highlightLinks" })} />
+                <ToggleRow id="toggle-cursor" label="Large cursor"
+                  desc="Bigger mouse pointer for visibility"
+                  shortcut={["Alt", "U"]}
+                  checked={settings.largeCursor}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "largeCursor" })} />
               </div>
             )}
 
+            {/* MOTION */}
             {activeTab === "motion" && (
               <div id="a11y-tab-motion" role="tabpanel" aria-labelledby="a11y-tab-btn-motion">
                 <SectionHeader icon="⟳" title="Motion" />
-                <ToggleRow id="toggle-motion" label="Reduce motion" desc="Disables animations and transitions" checked={settings.reduceMotion} onChange={() => dispatch({ type: "TOGGLE", key: "reduceMotion" })} />
+                <ToggleRow id="toggle-motion" label="Reduce motion"
+                  desc="Disables animations and transitions"
+                  checked={settings.reduceMotion}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "reduceMotion" })} />
                 <div style={S.infoBox} role="note">
                   <p style={S.infoText}>Useful for users with vestibular disorders or motion sensitivity.</p>
                 </div>
               </div>
             )}
 
+            {/* READING */}
             {activeTab === "reading" && (
               <div id="a11y-tab-reading" role="tabpanel" aria-labelledby="a11y-tab-btn-reading">
                 <SectionHeader icon="📖" title="Reading Features" />
-                <ToggleRow id="toggle-reading" label="Reading mode" desc="Dims background content for focus" checked={settings.readingMode} onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })} />
+                <ToggleRow id="toggle-reading" label="Reading mode"
+                  desc="Dims background content for focus"
+                  shortcut={["Alt", "R"]}
+                  checked={settings.readingMode}
+                  onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })} />
                 <div style={S.divider} />
                 <div style={S.ttsSection}>
                   <div style={S.toggleInfo}>
-                    <span style={S.toggleLabel}>Read from here</span>
-                    <span style={S.toggleDesc}>{tts.waitingClick ? "Click any text on the page to start reading" : tts.speaking ? "Reading aloud…" : "Uses browser text-to-speech"}</span>
+                    <span style={S.toggleLabel}>
+                      Read page aloud
+                      <ShortcutBadge keys={["Alt", "S"]} />
+                    </span>
+                    <span style={S.toggleDesc}>
+                      {tts.speaking ? "Reading aloud — reads the entire page top to bottom" : "Reads the full page automatically using browser text-to-speech"}
+                    </span>
                   </div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    {!tts.speaking && !tts.waitingClick && (
-                      <button style={S.ttsBtn} onClick={() => { setOpen(false); tts.startFromHere(); }} aria-label="Start reading">▶ Start</button>
+                    {!tts.speaking && (
+                      <button style={S.ttsBtn}
+                        onClick={() => { setOpen(false); tts.startReading(); }}
+                        aria-label="Start reading page aloud">
+                        ▶ Read Page
+                      </button>
                     )}
-                    {(tts.speaking || tts.waitingClick) && (
-                      <button style={{ ...S.ttsBtn, ...S.ttsBtnStop }} onClick={tts.stop} aria-label="Stop reading">■ Stop</button>
+                    {tts.speaking && (
+                      <button style={{ ...S.ttsBtn, ...S.ttsBtnStop }}
+                        onClick={tts.stop}
+                        aria-label="Stop reading">
+                        ■ Stop
+                      </button>
                     )}
                   </div>
                 </div>
               </div>
             )}
 
+            {/* COLOR */}
             {activeTab === "color" && (
               <div id="a11y-tab-color" role="tabpanel" aria-labelledby="a11y-tab-btn-color">
                 <SectionHeader icon="◉" title="Colour Accessibility" />
@@ -512,6 +636,7 @@ export default function AccessibilityPanel() {
               </div>
             )}
 
+            {/* KEYS */}
             {activeTab === "keys" && (
               <div id="a11y-tab-keys" role="tabpanel" aria-labelledby="a11y-tab-btn-keys">
                 <SectionHeader icon="⌨" title="Keyboard Shortcuts" />
@@ -540,7 +665,7 @@ const S = {
   trigger: { width: 52, height: 52, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #1E40AF, #0e7490)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(14,116,144,0.45)", transition: "transform 0.2s, box-shadow 0.2s", position: "relative", outline: "none" },
   triggerOpen: { background: "linear-gradient(135deg, #1E293B, #1E40AF)", boxShadow: "0 6px 28px rgba(30,64,175,0.5)", transform: "scale(1.06)" },
   badge: { position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: "50%", background: "#f59e0b", color: "#1a1a1a", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", fontFamily: "system-ui, sans-serif" },
-  panel: { position: "fixed", zIndex: 9999, width: 320, maxHeight: "80vh", background: "#ffffff", borderRadius: 20, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", border: "1px solid rgba(30,64,175,0.10)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'DM Sans', system-ui, sans-serif", animation: "a11ySlideIn 0.22s cubic-bezier(0.22,1,0.36,1)" },
+  panel: { position: "fixed", zIndex: 9999, width: 420, maxHeight: "88vh", background: "#ffffff", borderRadius: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", border: "1px solid rgba(30,64,175,0.10)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'DM Sans', system-ui, sans-serif", animation: "a11ySlideIn 0.22s cubic-bezier(0.22,1,0.36,1)" },
   panelHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 12px", borderBottom: "1px solid #f1f5f9", background: "linear-gradient(135deg, #EFF6FF, #F0FDFA)" },
   panelTitle: { margin: 0, fontSize: 15, fontWeight: 700, color: "#1E293B", letterSpacing: "-0.2px", fontFamily: "'DM Sans', system-ui, sans-serif" },
   panelSub: { margin: "2px 0 0", fontSize: 11, color: "#64748B", fontFamily: "'DM Sans', system-ui, sans-serif" },
@@ -548,7 +673,7 @@ const S = {
   resetBtn: { padding: "4px 10px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748B", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif" },
   tabBar: { display: "flex", borderBottom: "1px solid #f1f5f9", overflowX: "auto", scrollbarWidth: "none", padding: "0 4px" },
   tab: { flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 10px 7px", border: "none", background: "transparent", color: "#94A3B8", cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "'DM Sans', system-ui, sans-serif", borderBottomWidth: 2, borderBottomStyle: "solid", borderBottomColor: "transparent", transition: "color 0.15s, border-color 0.15s", minWidth: 44 },
-  tabActive: { color: "#1E40AF", borderBottomWidth: 2, borderBottomStyle: "solid", borderBottomColor: "#1E40AF" },
+  tabActive: { color: "#1E40AF", borderBottomColor: "#1E40AF" },
   tabIcon: { fontSize: 14, lineHeight: 1 },
   tabLabel: { fontSize: 9, letterSpacing: "0.4px" },
   tabContent: { flex: 1, overflowY: "auto", padding: "14px 16px", scrollbarWidth: "thin", scrollbarColor: "#e2e8f0 transparent" },
@@ -557,12 +682,13 @@ const S = {
   sectionTitle: { fontSize: 11, fontWeight: 700, color: "#1E40AF", letterSpacing: "0.8px", textTransform: "uppercase", fontFamily: "'DM Sans', system-ui, sans-serif" },
   toggleRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #f8fafc" },
   toggleInfo: { display: "flex", flexDirection: "column", gap: 2, flex: 1 },
-  toggleLabel: { fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.3 },
+  toggleLabel: { fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.3, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4 },
   toggleDesc: { fontSize: 11, color: "#94A3B8", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 },
-  toggle: { width: 38, height: 22, borderRadius: 11, border: "none", background: "#e2e8f0", cursor: "pointer", position: "relative", flexShrink: 0, transition: "background 0.22s", padding: 0 },
+  // toggle — track 56x34, thumb 28x28, 3px gap each side
+  toggle: { width: 56, height: 34, borderRadius: 17, border: "none", background: "#e2e8f0", cursor: "pointer", position: "relative", flexShrink: 0, transition: "background 0.22s", padding: 0 },
   toggleOn: { background: "linear-gradient(135deg, #1E40AF, #0e7490)" },
-  toggleThumb: { position: "absolute", top: 3, left: 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)", display: "block" },
-  toggleThumbOn: { left: 19 },
+  toggleThumb: { position: "absolute", top: "3px", left: "3px", width: 28, height: 28, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)", display: "block" },
+  toggleThumbOn: { left: "25px" },
   sliderSection: { padding: "12px 0 4px", borderBottom: "1px solid #f8fafc" },
   sliderHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   sliderValue: { fontSize: 12, fontWeight: 700, color: "#1E40AF", fontFamily: "monospace" },
@@ -580,13 +706,11 @@ const S = {
   ttsSection: { padding: "10px 0" },
   ttsBtn: { padding: "8px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #1E40AF, #0e7490)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif" },
   ttsBtnStop: { background: "linear-gradient(135deg, #dc2626, #b91c1c)" },
-  ttsBanner: { position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 10001, background: "#1E293B", color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', system-ui, sans-serif", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", whiteSpace: "nowrap" },
-  ttsBannerClose: { background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", cursor: "pointer", borderRadius: 6, width: 22, height: 22, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" },
   shortcutList: { display: "flex", flexDirection: "column", gap: 2 },
   shortcutRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc" },
   shortcutKeys: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
   kbd: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "2px 7px", borderRadius: 5, background: "#1E293B", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "monospace", border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a", minWidth: 24, lineHeight: 1.4 },
-  kbdInline: { display: "inline-flex", alignItems: "center", padding: "1px 5px", borderRadius: 4, background: "#f1f5f9", color: "#1E293B", fontSize: 10, fontWeight: 700, fontFamily: "monospace", border: "1px solid #e2e8f0", boxShadow: "0 1px 0 #cbd5e1" },
+  kbdInline: { display: "inline-flex", alignItems: "center", padding: "1px 5px", borderRadius: 4, background: "#f1f5f9", color: "#1E293B", fontSize: 9, fontWeight: 700, fontFamily: "monospace", border: "1px solid #e2e8f0", boxShadow: "0 1px 0 #cbd5e1", lineHeight: 1.4 },
   kbdPlus: { fontSize: 10, color: "#94A3B8", margin: "0 2px", fontFamily: "system-ui" },
   shortcutDesc: { fontSize: 11, color: "#64748B", textAlign: "right", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 },
   infoBox: { marginTop: 12, padding: "10px 12px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #e2e8f0" },
