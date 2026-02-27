@@ -48,10 +48,10 @@ export default function EmployerPreview({ bio, headline, sections, onClose }) {
           {/* Stats strip */}
           <div className="ep-stats-strip">
             {[
-              { n: done.length, l: "Challenges Completed" },
-              { n: totalPts.toLocaleString(), l: "Points Earned" },
-              { n: `${SKILLS_DATA.length}`, l: "Skills Assessed" },
-              { n: USER.memberSince.split(" ")[1], l: "Member Since" },
+              { n: done.length,                   l: "Challenges Completed" },
+              { n: totalPts.toLocaleString(),      l: "Points Earned"       },
+              { n: `${SKILLS_DATA.length}`,        l: "Skills Assessed"     },
+              { n: USER.memberSince.split(" ")[1], l: "Member Since"        },
             ].map((s, i) => (
               <div key={i} className="ep-stat">
                 <span className="ep-stat-n">{s.n}</span>
