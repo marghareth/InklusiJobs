@@ -71,7 +71,7 @@ export default function EmailVerification({
           <button
             onClick={handleResend}
             disabled={resendDisabled}
-            className="w-full py-3 px-4 bg-gradient-to-r from-[#3d7b74] to-[#5fa8d3] text-white font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full py-3 px-4 bg-linear-to-r from-[#3d7b74] to-[#5fa8d3] text-white font-medium rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {resendDisabled ? "Email Sent" : "Resend Email"}
           </button>

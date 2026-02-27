@@ -13,6 +13,7 @@ import WelcomeWorker from "./WelcomeWorker";
 import WelcomeEmployer from "./WelcomeEmployer";
 import { createClient } from "@/lib/supabase/client";
 
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAuthModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -622,12 +623,12 @@ export default function AuthModal({
   };
 
   // Called after BasicInformation saves successfully
-  const handleBasicInfoComplete = (savedData) => {
-    setUserData((prev) => ({ ...prev, ...savedData }));
-    setStep("auth"); // reset internal step
-    onClose(); // close the auth modal
-    window.location.href = "/assessment";
-  };
+  // Replace the broken handler with this
+const handleBasicInfoComplete = () => {
+  setStep("auth");
+  onClose();
+  router.push("/assessment");
+};
 
   // Called when user dismisses Welcome
   const handleWelcomeClose = () => {

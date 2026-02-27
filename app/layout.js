@@ -3,6 +3,7 @@ import "./globals.css";
 import SkipLink from "@/components/accessibility/SkipLink";
 import AccessibilityToolbar from "@/components/accessibility/AccessibilityToolbar";
 import { AccessibilityProvider } from "@/components/accessibility/AccessibilityProvider";
+import { AuthModalProvider } from "@/components/landing/AuthModalContext"; // ← ADD THIS
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -28,8 +29,10 @@ export default function RootLayout({ children }) {
       <body className="antialiased bg-white text-[#000000]">
         <SkipLink />
         <AccessibilityProvider>
-          {children}
-          <AccessibilityToolbar />
+          <AuthModalProvider>  {/* ← ADD THIS */}
+            {children}
+            <AccessibilityToolbar />
+          </AuthModalProvider>  {/* ← ADD THIS */}
         </AccessibilityProvider>
       </body>
     </html>

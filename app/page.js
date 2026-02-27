@@ -7,7 +7,6 @@ import VerificationSection from "@/components/landing/VerificationSection";
 import Footer from "@/components/landing/Footer";
 import AccessibilityPanel from "@/components/accessibility/AccessibilityPanel";
 import SkipLink from "@/components/accessibility/SkipLink";
-import { AuthModalProvider } from "@/components/landing/AuthModalContext";
 
 export const metadata = {
   title: "InklusiJobs — Verified. Skilled. Employed.",
@@ -17,34 +16,20 @@ export const metadata = {
 
 export default function LandingPage() {
   return (
-    <AuthModalProvider>
-      {/* Skip to main content — first thing screen readers and keyboard users hit */}
+    <>
       <SkipLink />
-
-      {/* Floating navbar */}
       <Navbar />
 
       <main id="main-content">
-        {/* Section 1: Hero with cloud background */}
         <HeroSection />
-
-        {/* Section 2: Skills headline + profile card + trust bar */}
         <SkillsSection />
-
-        {/* How it works */}
         <HowItWorksSection />
-
-        {/* Section 3: Features */}
         <FeaturesSection />
-
-        {/* Section 4: PWD Verification + CTA */}
         <VerificationSection />
       </main>
 
       <Footer />
-
-      {/* Floating accessibility toolbar - PWD users can toggle font size, contrast, motion */}
       <AccessibilityPanel />
-    </AuthModalProvider>
+    </>
   );
 }
