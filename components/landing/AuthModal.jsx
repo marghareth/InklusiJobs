@@ -1,27 +1,19 @@
 "use client";
 
 /**
- * AuthModal.jsx
+ * AuthModal.jsx  —  DEMO VERSION
+ * Auth backed by localStorage (no Supabase required for hackathon demo).
  * Location: components/landing/AuthModal.jsx
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import EmailVerification from "./EmailVerification";
-import BasicInformation from "./BasicInformation";
-import WelcomeWorker from "./WelcomeWorker";
-import WelcomeEmployer from "./WelcomeEmployer";
-import { createClient } from "@/lib/supabase/client";
-
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAuthModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [tab, setTab] = useState("signin");
-  const open = useCallback((defaultTab = "signin") => {
-    setTab(defaultTab);
-    setIsOpen(true);
-  }, []);
+  const [isOpen, setIsOpen]   = useState(false);
+  const [tab, setTab]         = useState("signin");
+  const open  = useCallback((defaultTab = "signin") => { setTab(defaultTab); setIsOpen(true); }, []);
   const close = useCallback(() => setIsOpen(false), []);
   return { isOpen, tab, open, close };
 }
@@ -198,6 +190,16 @@ const css = `
     color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA;
     border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
   }
+  .am-warning {
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
+  }
+  .am-success {
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: #065F46; background: #ECFDF5; border: 1px solid #A7F3D0;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
+  }
 
   .am-role-badge {
     display: inline-flex; align-items: center; gap: 6px;
@@ -205,7 +207,7 @@ const css = `
     letter-spacing: 1.2px; text-transform: uppercase;
     padding: 5px 12px; border-radius: 100px; margin-bottom: 20px; width: fit-content;
   }
-  .am-role-badge.worker  { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .am-role-badge.worker   { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
   .am-role-badge.employer { background: #F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE; }
   .am-role-badge::before {
     content: ''; width: 6px; height: 6px;
@@ -220,309 +222,191 @@ const css = `
   }
 `;
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
+// ─── Icons ─────────────────────────────────────────────────────────────────────
 const EyeIcon = () => (
-  <svg
-    width="17"
-    height="17"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
   </svg>
 );
 const EyeOffIcon = () => (
-  <svg
-    width="17"
-    height="17"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-    <line x1="1" y1="1" x2="23" y2="23" />
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
   </svg>
 );
 const GoogleIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24">
-    <path
-      fill="#4285F4"
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-    />
+  <svg width="18" height="18" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
   </svg>
 );
 const FacebookIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="#1877F2">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
   </svg>
 );
 
-// ─── Role Badge ───────────────────────────────────────────────────────────────
-function RoleBadge({ role, tab }) {
-  if (!role) return null;
-  const isWorker = role === "worker";
-  const label =
-    tab === "signin"
-      ? isWorker
-        ? "👤 Signing in as Worker"
-        : "💼 Signing in as Employer"
-      : isWorker
-        ? "👤 Creating a Worker account"
-        : "💼 Creating an Employer account";
-  return <span className={`am-role-badge ${role}`}>{label}</span>;
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem("ij_users") || "[]"); } catch { return []; }
+}
+function saveUsers(users) {
+  localStorage.setItem("ij_users", JSON.stringify(users));
+}
+function setCurrentUser(user) {
+  localStorage.setItem("ij_current_user", JSON.stringify(user));
 }
 
-// ─── Sign In Form ─────────────────────────────────────────────────────────────
-function SignInForm({ role, onSignIn }) {
+// ─── SignInForm ───────────────────────────────────────────────────────────────
+function SignInForm({ role, onSignIn, onSwitchTab }) {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]     = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setLoading(true);
 
-    const formData = new FormData(e.target);
-    const supabase = createClient();
+    const data  = new FormData(e.target);
+    const email = data.get("email")?.trim().toLowerCase();
+    const pwd   = data.get("password");
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.get("email"),
-        password: formData.get("password"),
-      });
-      if (error) throw error;
-      onSignIn?.(data.user);
-    } catch (err) {
-      setError(err.message || "Sign in failed. Please try again.");
-    } finally {
+    const users = getUsers();
+    const found = users.find((u) => u.email === email);
+
+    setTimeout(() => {
       setLoading(false);
-    }
+      if (!found) {
+        setError("No account found with that email. Please sign up first.");
+        return;
+      }
+      if (found.password !== pwd) {
+        setError("Incorrect password. Please try again.");
+        return;
+      }
+      // Save session
+      setCurrentUser(found);
+      onSignIn(found);
+    }, 600);
   };
 
   return (
     <>
-      <h2 className="am-heading">Sign in</h2>
+      {role && <div className={`am-role-badge ${role}`}>{role}</div>}
+      <h2 className="am-heading">Welcome back</h2>
       <p className="am-subtext">
-        Welcome back! Enter your credentials to continue.
+        Don&apos;t have an account?{" "}
+        <button type="button" onClick={() => onSwitchTab("signup")}>Sign up free</button>
       </p>
-
       {error && <div className="am-error">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="am-form">
+      <form className="am-form" onSubmit={handleSubmit}>
         <div className="am-field">
-          <label className="am-label" htmlFor="si-email">
-            E-mail
-          </label>
-          <input
-            id="si-email"
-            name="email"
-            type="email"
-            className="am-input"
-            placeholder="example@gmail.com"
-            autoComplete="email"
-            required
-          />
+          <label className="am-label" htmlFor="si-email">Email</label>
+          <input id="si-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
         </div>
         <div className="am-field">
-          <label className="am-label" htmlFor="si-pwd">
-            Password
-          </label>
+          <label className="am-label" htmlFor="si-pwd">Password</label>
           <div className="am-input-wrap">
-            <input
-              id="si-pwd"
-              name="password"
-              type={showPwd ? "text" : "password"}
-              className="am-input with-icon"
-              placeholder="@#*%"
-              autoComplete="current-password"
-              required
-            />
-            <button
-              type="button"
-              className="am-eye"
-              onClick={() => setShowPwd((p) => !p)}
-              aria-label={showPwd ? "Hide" : "Show"}
-            >
+            <input id="si-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Your password" required autoComplete="current-password" />
+            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
         </div>
         <div className="am-row">
-          <label className="am-remember">
-            <input type="checkbox" name="remember" /> Remember me
-          </label>
-          <button type="button" className="am-forgot">
-            Forgot Password?
-          </button>
+          <label className="am-remember"><input type="checkbox" /> Remember me</label>
+          <button type="button" className="am-forgot">Forgot password?</button>
         </div>
         <button type="submit" className="am-submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign in"}
+          {loading ? "Signing in…" : "Sign In"}
         </button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn">
-            <GoogleIcon /> Continue with Google
-          </button>
-          <button type="button" className="am-social-btn">
-            <FacebookIcon /> Continue with Facebook
-          </button>
+          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
+          <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
       </form>
     </>
   );
 }
 
-// ─── Sign Up Form ─────────────────────────────────────────────────────────────
-function SignUpForm({ role, onSignUp }) {
+// ─── SignUpForm ───────────────────────────────────────────────────────────────
+function SignUpForm({ role, onSignUp, onSwitchTab }) {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]     = useState("");
+  const [warning, setWarning] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setWarning("");
+    setLoading(true);
 
-    const formData = new FormData(e.target);
-    const email = formData.get("email");
-    const password = formData.get("password");
-    const firstName = formData.get("firstName");
-    const lastName = formData.get("lastName");
+    const data      = new FormData(e.target);
+    const firstName = data.get("firstName")?.trim();
+    const lastName  = data.get("lastName")?.trim();
+    const email     = data.get("email")?.trim().toLowerCase();
+    const pwd       = data.get("password");
 
-    if (!email || !password || !firstName || !lastName) {
-      setError("Please fill in all fields.");
+    const users = getUsers();
+
+    // ✅ Check for duplicate email
+    if (users.find((u) => u.email === email)) {
       setLoading(false);
+      setWarning("An account with this email already exists. Please log in instead.");
       return;
     }
 
-    const supabase = createClient();
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            role: role || "worker",
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      onSignUp?.(email);
-    } catch (err) {
-      if (err.message?.toLowerCase().includes("email")) {
-        setError(
-          "There was a problem sending the confirmation email. Please wait a moment and try again.",
-        );
-      } else {
-        setError(err.message || "Sign up failed. Please try again.");
-      }
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      const newUser = {
+        id:        `user_${Date.now()}`,
+        email,
+        password:  pwd,
+        firstName,
+        lastName,
+        role:      role || "worker",
+        createdAt: new Date().toISOString(),
+      };
+      saveUsers([...users, newUser]);
+      setCurrentUser(newUser);
+      onSignUp(newUser);
+    }, 600);
   };
 
   return (
     <>
-      <RoleBadge role={role} tab="signup" />
-      <h2 className="am-heading">Create account</h2>
-      <p className="am-subtext">Join InklusiJobs and start your journey.</p>
-
-      {error && <div className="am-error">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="am-form">
+      {role && <div className={`am-role-badge ${role}`}>{role}</div>}
+      <h2 className="am-heading">Create your account</h2>
+      <p className="am-subtext">
+        Already have an account?{" "}
+        <button type="button" onClick={() => onSwitchTab("signin")}>Sign in</button>
+      </p>
+      {error   && <div className="am-error">{error}</div>}
+      {warning && <div className="am-warning">⚠️ {warning}</div>}
+      <form className="am-form" onSubmit={handleSubmit}>
         <div className="am-name-row">
           <div className="am-field">
-            <label className="am-label" htmlFor="su-first">
-              First name
-            </label>
-            <input
-              id="su-first"
-              name="firstName"
-              type="text"
-              className="am-input"
-              placeholder="Maria"
-              autoComplete="given-name"
-              required
-            />
+            <label className="am-label" htmlFor="su-fn">First Name</label>
+            <input id="su-fn" name="firstName" type="text" className="am-input" placeholder="Juan" required />
           </div>
           <div className="am-field">
-            <label className="am-label" htmlFor="su-last">
-              Last name
-            </label>
-            <input
-              id="su-last"
-              name="lastName"
-              type="text"
-              className="am-input"
-              placeholder="Santos"
-              autoComplete="family-name"
-              required
-            />
+            <label className="am-label" htmlFor="su-ln">Last Name</label>
+            <input id="su-ln" name="lastName" type="text" className="am-input" placeholder="Dela Cruz" required />
           </div>
         </div>
         <div className="am-field">
-          <label className="am-label" htmlFor="su-email">
-            E-mail
-          </label>
-          <input
-            id="su-email"
-            name="email"
-            type="email"
-            className="am-input"
-            placeholder="example@gmail.com"
-            autoComplete="email"
-            required
-          />
+          <label className="am-label" htmlFor="su-email">Email</label>
+          <input id="su-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
         </div>
         <div className="am-field">
-          <label className="am-label" htmlFor="su-pwd">
-            Password
-          </label>
+          <label className="am-label" htmlFor="su-pwd">Password</label>
           <div className="am-input-wrap">
-            <input
-              id="su-pwd"
-              name="password"
-              type={showPwd ? "text" : "password"}
-              className="am-input with-icon"
-              placeholder="Min. 8 characters"
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-            <button
-              type="button"
-              className="am-eye"
-              onClick={() => setShowPwd((p) => !p)}
-              aria-label={showPwd ? "Hide" : "Show"}
-            >
+            <input id="su-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} required />
+            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
@@ -532,12 +416,8 @@ function SignUpForm({ role, onSignUp }) {
         </button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn">
-            <GoogleIcon /> Continue with Google
-          </button>
-          <button type="button" className="am-social-btn">
-            <FacebookIcon /> Continue with Facebook
-          </button>
+          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
+          <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
       </form>
     </>
@@ -550,187 +430,64 @@ export default function AuthModal({
   onClose,
   defaultTab = "signin",
   role = null,
+  onSignUpComplete,
+  onSignInComplete,
 }) {
-  const router = useRouter();
-  const [step, setStep] = useState("auth");
-  const [userEmail, setUserEmail] = useState("");
-  const [tab, setTab] = useState(defaultTab);
+  const [tab, setTab]         = useState(defaultTab);
+  const overlayRef            = useRef(null);
+  const modalRef              = useRef(null);
+  const closeRef              = useRef(null);
 
-  const overlayRef = useRef(null);
-  const modalRef = useRef(null);
-  const closeRef = useRef(null);
-
-  // Reset tab when modal opens
-  useEffect(() => {
-    if (isOpen && step === "auth") {
-      setTab(defaultTab);
-    }
-  }, [isOpen, defaultTab]);
-
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  // Escape key
+  useEffect(() => { if (isOpen) setTab(defaultTab); }, [isOpen, defaultTab]);
+  useEffect(() => { document.body.style.overflow = isOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  // Focus trap
-  useEffect(() => {
-    if (!isOpen || !modalRef.current) return;
-    const els = modalRef.current.querySelectorAll(
-      'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])',
-    );
-    const first = els[0];
-    const last = els[els.length - 1];
-    const trap = (e) => {
-      if (e.key !== "Tab") return;
-      if (
-        e.shiftKey
-          ? document.activeElement === first
-          : document.activeElement === last
-      ) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
-      }
-    };
-    document.addEventListener("keydown", trap);
-    closeRef.current?.focus();
-    return () => document.removeEventListener("keydown", trap);
-  }, [isOpen, step]);
+  const handleOverlay = useCallback((e) => { if (e.target === overlayRef.current) onClose(); }, [onClose]);
 
-  const handleOverlay = useCallback(
-    (e) => {
-      if (e.target === overlayRef.current) onClose();
-    },
-    [onClose],
-  );
-
-  // Called after successful signup — show email verification screen
-  const handleSignUp = (email) => {
-    setUserEmail(email);
-    setStep("verify-email");
+  // Sign in complete — go to correct dashboard, NO profile creation
+  const handleSignIn = (user) => {
+    onSignInComplete?.(user.role);
   };
 
-  // Called after BasicInformation saves successfully
-  // Replace the broken handler with this
-const handleBasicInfoComplete = () => {
-  setStep("auth");
-  onClose();
-  router.push("/assessment");
-};
-
-  // Called when user dismisses Welcome
-  const handleWelcomeClose = () => {
-    setWelcome(false);
-    const destination =
-      userData?.role === "employer"
-        ? "/employer/dashboard"
-        : "/worker/dashboard";
-    window.location.href = destination;
+  // Sign up complete — go to correct dashboard, NO profile creation
+  const handleSignUp = (user) => {
+    onSignUpComplete?.(user.role);
   };
 
-  // Called after successful sign-in
-  const handleSignIn = async (user) => {
-    const supabase = createClient();
-
-    // Check if profile is complete
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("current_address")
-      .eq("id", user.id)
-      .single();
-
-    onClose();
-
-    if (!profile?.current_address) {
-      // Profile incomplete — send to onboarding page
-      router.push("/onboarding");
-    } else {
-      const destination =
-        user.user_metadata?.role === "employer"
-          ? "/employer/dashboard"
-          : "/dashboard/worker";
-      router.push(destination);
-    }
-  };
-
-  const renderContent = () => {
-    if (step === "verify-email") {
-      return (
-        <EmailVerification
-          email={userEmail}
-          onResend={async () => {
-            const supabase = createClient();
-            await supabase.auth.resend({ type: "signup", email: userEmail });
-          }}
-          onReturn={() => setStep("auth")}
-        />
-      );
-    }
-
-    return (
-      <>
-        <span className="am-logo">
-          Inklusi<span>Jobs</span>
-        </span>
-        {tab === "signin" ? (
-          <SignInForm role={role} onSignIn={handleSignIn} />
-        ) : (
-          <SignUpForm role={role} onSignUp={handleSignUp} />
-        )}
-      </>
-    );
-  };
+  if (!isOpen) return null;
 
   return (
     <>
       <style>{css}</style>
+      <div className="am-overlay" ref={overlayRef} onClick={handleOverlay} role="dialog" aria-modal="true" aria-label="Authentication">
+        <div className="am-modal" ref={modalRef}>
+          <button className="am-close" onClick={onClose} aria-label="Close modal" ref={closeRef}>✕</button>
 
-      {isOpen && (
-        <div
-          className="am-overlay"
-          ref={overlayRef}
-          onClick={handleOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Authentication"
-        >
-          <div className="am-modal" ref={modalRef}>
-            <button
-              className="am-close"
-              onClick={onClose}
-              aria-label="Close modal"
-              ref={closeRef}
-            >
-              ✕
-            </button>
-
-            <div className="am-left" aria-hidden="true">
-              <div className="am-left-body">
-                <p className="am-left-quote">
-                  &ldquo;Skills that speak louder than credentials.&rdquo;
-                </p>
-                <p className="am-left-sub">
-                  InklusiJobs · Built for PWDs. Powered by AI.
-                </p>
-              </div>
+          <div className="am-left" aria-hidden="true">
+            <div className="am-left-body">
+              <p className="am-left-quote">&ldquo;Skills that speak louder than credentials.&rdquo;</p>
+              <p className="am-left-sub">InklusiJobs · Built for PWDs. Powered by AI.</p>
             </div>
+          </div>
 
-            <div className="am-right">{renderContent()}</div>
+          <div className="am-right">
+            <span className="am-logo">Inklusi<span>Jobs</span></span>
+            <div className="am-tabs">
+              <button className={`am-tab ${tab === "signin"  ? "active" : ""}`} onClick={() => setTab("signin")}>Sign In</button>
+              <button className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign Up</button>
+            </div>
+            {tab === "signin"
+              ? <SignInForm  role={role} onSignIn={handleSignIn}   onSwitchTab={setTab} />
+              : <SignUpForm  role={role} onSignUp={handleSignUp}   onSwitchTab={setTab} />
+            }
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

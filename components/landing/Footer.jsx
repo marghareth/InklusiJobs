@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 const footerStyles = `
@@ -5,11 +7,56 @@ const footerStyles = `
     color: rgba(224,248,250,0.55);
     transition: color 0.15s;
     text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
   }
   .footer-link:hover {
     color: #E0F8FA;
   }
 `;
+
+// Platform links → actual pages; auth-gated items open the modal
+const platformLinks = [
+  { label: "Find Work",        href: "/find-work" },
+  { label: "For Employers",    href: "/for-employers" },
+  { label: "Skill Challenges", authRequired: true },
+  { label: "Portfolio",        authRequired: true },
+  { label: "Roadmap",          authRequired: true },
+];
+
+const companyLinks = [
+  { label: "About",           href: "/about" },
+  { label: "Learn",           href: "/learn" },
+  { label: "Privacy Policy",  href: "/privacy" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Contact",         authRequired: true },
+];
+
+function FooterLink({ item }) {
+  if (item.authRequired) {
+    return (
+      <button
+        className="footer-link text-sm font-['Lexend'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7DDCE8] rounded"
+        onClick={() => window.dispatchEvent(new CustomEvent("inklusijobs:open-modal"))}
+      >
+        {item.label}
+      </button>
+    );
+  }
+  return (
+    <Link
+      href={item.href}
+      className="footer-link text-sm font-['Lexend'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7DDCE8] rounded"
+    >
+      {item.label}
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
@@ -20,8 +67,7 @@ export default function Footer() {
         style={{ background: "#0A2E38" }}
         role="contentinfo"
       >
-        <div className="max-w-340 mx-auto">
-
+        <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
 
             {/* Brand */}
@@ -63,14 +109,9 @@ export default function Footer() {
                 Platform
               </h3>
               <ul className="space-y-2" role="list">
-                {["Find Work", "For Employers", "Skill Challenges", "Portfolio", "Roadmap"].map((item) => (
-                  <li key={item}>
-                    <Link
-                      href="#"
-                      className="footer-link text-sm font-['Lexend'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7DDCE8] rounded"
-                    >
-                      {item}
-                    </Link>
+                {platformLinks.map((item) => (
+                  <li key={item.label}>
+                    <FooterLink item={item} />
                   </li>
                 ))}
               </ul>
@@ -85,14 +126,9 @@ export default function Footer() {
                 Company
               </h3>
               <ul className="space-y-2" role="list">
-                {["About", "Learn", "Privacy Policy", "Terms of Service", "Contact"].map((item) => (
-                  <li key={item}>
-                    <Link
-                      href="#"
-                      className="footer-link text-sm font-['Lexend'] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7DDCE8] rounded"
-                    >
-                      {item}
-                    </Link>
+                {companyLinks.map((item) => (
+                  <li key={item.label}>
+                    <FooterLink item={item} />
                   </li>
                 ))}
               </ul>

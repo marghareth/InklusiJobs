@@ -1,3 +1,5 @@
+//layout.js
+
 import { Lexend, Roboto } from "next/font/google";
 import "./globals.css";
 import SkipLink from "@/components/accessibility/SkipLink";

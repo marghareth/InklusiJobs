@@ -1,3 +1,4 @@
+//jobsData.js
 // Static data for Jobs page
 export const PWD_TYPES = [
   { id: "visual",       label: "Visual Impairment"    },
