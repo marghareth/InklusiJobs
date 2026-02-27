@@ -6,7 +6,7 @@ const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
   .skills-section {
-    background: #F7F6F4;
+    background: #FAF8F5;
     padding: 80px 0;
     font-family: 'DM Sans', sans-serif;
   }
@@ -19,12 +19,11 @@ const styles = `
     box-sizing: border-box;
   }
 
-  /* PILL */
   .skills-pill {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #1E293B;
+    background: #0F5C6E;
     color: #ffffff;
     font-family: 'DM Sans', sans-serif;
     font-size: 11px;
@@ -44,7 +43,6 @@ const styles = `
     border-radius: 50%;
   }
 
-  /* TWO-COLUMN GRID */
   .skills-grid {
     display: grid;
     grid-template-columns: 55% 45%;
@@ -52,7 +50,6 @@ const styles = `
     gap: 48px;
   }
 
-  /* LEFT */
   .skills-left {
     display: flex;
     flex-direction: column;
@@ -65,7 +62,7 @@ const styles = `
     font-weight: 700;
     letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: #2563EB;
+    color: #0F5C6E;
     margin: 0;
   }
 
@@ -73,7 +70,7 @@ const styles = `
     font-family: 'DM Serif Display', serif;
     font-size: clamp(52px, 6vw, 80px);
     line-height: 1.05;
-    color: #0F1C1B;
+    color: #1A1A2E;
     letter-spacing: -1px;
     margin: 0;
   }
@@ -82,7 +79,7 @@ const styles = `
     font-weight: 300;
     font-style: normal;
     text-decoration: underline;
-    text-decoration-color: #2563EB;
+    text-decoration-color: #0F5C6E;
     text-decoration-thickness: 3px;
     text-underline-offset: 7px;
   }
@@ -91,7 +88,7 @@ const styles = `
     font-style: normal;
     font-weight: 800;
     font-size: clamp(58px, 7vw, 90px);
-    background: linear-gradient(100deg, #1E40AF 0%, #2563EB 35%, #0EA5E9 70%, #01322C 100%);
+    background: linear-gradient(100deg, #0F5C6E 0%, #1A8FA5 40%, #34D399 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -100,21 +97,20 @@ const styles = `
     display: block;
     font-style: italic;
     font-weight: 400;
-    color: #1E293B;
-    -webkit-text-fill-color: #1E293B;
+    color: #1A3A5C;
+    -webkit-text-fill-color: #1A3A5C;
   }
 
   .skills-subtext {
     font-family: 'DM Sans', sans-serif;
     font-size: 16px;
-    color: #64748B;
+    color: #4A6070;
     line-height: 1.75;
     max-width: 480px;
     font-weight: 400;
     margin: 0;
   }
 
-  /* CTAs */
   .skills-cta-row {
     display: flex;
     flex-wrap: wrap;
@@ -127,18 +123,18 @@ const styles = `
     font-size: 12px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    background: #1E40AF;
+    background: #0F5C6E;
     color: #ffffff;
     padding: 13px 28px;
     border-radius: 12px;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(30,64,175,0.28);
+    box-shadow: 0 4px 14px rgba(15,92,110,0.28);
     transition: background 0.2s, transform 0.15s;
     text-decoration: none;
     display: inline-block;
   }
-  .btn-primary:hover { background: #1e3a8a; transform: translateY(-1px); }
+  .btn-primary:hover { background: #0A4A5A; transform: translateY(-1px); }
 
   .btn-secondary {
     font-family: 'DM Sans', sans-serif;
@@ -147,18 +143,17 @@ const styles = `
     letter-spacing: 1.5px;
     text-transform: uppercase;
     background: #ffffff;
-    color: #1E293B;
+    color: #1A3A5C;
     padding: 13px 28px;
     border-radius: 12px;
-    border: 1.5px solid #CBD5E1;
+    border: 1.5px solid #C8D8E0;
     cursor: pointer;
     transition: background 0.2s, transform 0.15s;
     text-decoration: none;
     display: inline-block;
   }
-  .btn-secondary:hover { background: #f8fafc; transform: translateY(-1px); }
+  .btn-secondary:hover { background: #F0F7F9; transform: translateY(-1px); }
 
-  /* RIGHT / CARD */
   .skills-right {
     display: flex;
     justify-content: center;
@@ -170,8 +165,8 @@ const styles = `
     padding: 28px;
     width: 100%;
     max-width: 420px;
-    box-shadow: 0 2px 24px rgba(30,41,59,0.10);
-    border: 1px solid #E8EDF3;
+    box-shadow: 0 4px 32px rgba(15,92,110,0.10);
+    border: 1px solid #DDE8EC;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -191,7 +186,7 @@ const styles = `
   .card-avatar {
     width: 44px;
     height: 44px;
-    background: #1E293B;
+    background: #0F5C6E;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -206,13 +201,13 @@ const styles = `
     font-family: 'DM Sans', sans-serif;
     font-weight: 600;
     font-size: 14px;
-    color: #1E293B;
+    color: #1A1A2E;
     margin: 0;
   }
   .card-title {
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
-    color: #94A3B8;
+    color: #7A9AAA;
     margin: 2px 0 0;
   }
   .verified-badge {
@@ -228,7 +223,6 @@ const styles = `
     white-space: nowrap;
   }
 
-  /* SKILLS BARS */
   .skills-bars {
     display: flex;
     flex-direction: column;
@@ -241,15 +235,15 @@ const styles = `
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    color: #1E293B;
+    color: #1A1A2E;
   }
   .skill-pct {
     font-weight: 400;
-    color: #94A3B8;
+    color: #7A9AAA;
   }
   .skill-bar-bg {
     height: 8px;
-    background: #F1F5F9;
+    background: #E8F2F5;
     border-radius: 99px;
     overflow: hidden;
   }
@@ -258,14 +252,12 @@ const styles = `
     border-radius: 99px;
   }
 
-  /* CARD DIVIDER */
   .card-divider {
     border: none;
-    border-top: 1px solid #F1F5F9;
+    border-top: 1px solid #EEF4F6;
     margin: 0;
   }
 
-  /* MILESTONES */
   .card-milestones {
     display: flex;
     flex-direction: column;
@@ -286,11 +278,10 @@ const styles = `
   .milestone-text {
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
-    color: #64748B;
+    color: #4A6070;
     line-height: 1.5;
   }
 
-  /* BADGES */
   .card-badges {
     display: flex;
     flex-wrap: wrap;
@@ -305,11 +296,10 @@ const styles = `
     border: 1px solid;
   }
 
-  /* TRUST BAR */
   .trust-bar {
     margin-top: 52px;
     padding-top: 24px;
-    border-top: 1px solid #E2E8F0;
+    border-top: 1px solid #DDE8EC;
   }
   .trust-list {
     display: flex;
@@ -327,14 +317,14 @@ const styles = `
     font-family: 'DM Sans', sans-serif;
     font-size: 11px;
     font-weight: 600;
-    color: #94A3B8;
+    color: #7A9AAA;
   }
 `;
 
 const skills = [
-  { label: "Figma & Prototyping", pct: 90, from: "#1E40AF", to: "#34D399" },
-  { label: "Accessibility Design",  pct: 75, from: "#1E40AF", to: "#6EE7B7" },
-  { label: "User Research",         pct: 60, from: "#1E40AF", to: "#A7F3D0" },
+  { label: "Figma & Prototyping", pct: 90, from: "#0F5C6E", to: "#34D399" },
+  { label: "Accessibility Design",  pct: 75, from: "#0F5C6E", to: "#6EE7B7" },
+  { label: "User Research",         pct: 60, from: "#0F5C6E", to: "#A7F3D0" },
 ];
 
 const milestones = [
@@ -344,7 +334,7 @@ const milestones = [
 
 const badges = [
   { label: "✓ Portfolio Live",     bg: "#F0FDF4", color: "#15803D", border: "#BBF7D0" },
-  { label: "⚡ 3 Challenges Done", bg: "#EFF6FF", color: "#1D4ED8", border: "#BFDBFE" },
+  { label: "⚡ 3 Challenges Done", bg: "#EFF9FB", color: "#0F5C6E", border: "#B8E4ED" },
   { label: "🏅 Rising Talent",     bg: "#FFF7ED", color: "#C2410C", border: "#FED7AA" },
 ];
 
@@ -359,7 +349,6 @@ const trustItems = [
 function ProfileCard() {
   return (
     <div className="profile-card">
-      {/* Header */}
       <div className="card-header">
         <div className="card-avatar" aria-hidden="true">M</div>
         <div>
@@ -369,7 +358,6 @@ function ProfileCard() {
         <span className="verified-badge">✓ Verified</span>
       </div>
 
-      {/* Skill Bars */}
       <div className="skills-bars">
         {skills.map((skill) => (
           <div key={skill.label} className="skill-row">
@@ -387,10 +375,7 @@ function ProfileCard() {
             >
               <div
                 className="skill-bar-fill"
-                style={{
-                  width: `${skill.pct}%`,
-                  background: `linear-gradient(90deg, ${skill.from}, ${skill.to})`,
-                }}
+                style={{ width: `${skill.pct}%`, background: `linear-gradient(90deg, ${skill.from}, ${skill.to})` }}
               />
             </div>
           </div>
@@ -399,29 +384,18 @@ function ProfileCard() {
 
       <hr className="card-divider" />
 
-      {/* Milestones */}
       <div className="card-milestones" role="log" aria-label="Recent activity">
         {milestones.map((item, i) => (
           <div key={i} className="milestone-item">
-            <span
-              className="milestone-dot"
-              style={{ background: item.dot }}
-              aria-hidden="true"
-            />
+            <span className="milestone-dot" style={{ background: item.dot }} aria-hidden="true" />
             <span className="milestone-text">{item.text}</span>
           </div>
         ))}
       </div>
 
-      {/* Badges */}
       <div className="card-badges" role="list" aria-label="Earned badges">
         {badges.map((b) => (
-          <span
-            key={b.label}
-            role="listitem"
-            className="badge"
-            style={{ background: b.bg, color: b.color, borderColor: b.border }}
-          >
+          <span key={b.label} role="listitem" className="badge" style={{ background: b.bg, color: b.color, borderColor: b.border }}>
             {b.label}
           </span>
         ))}
@@ -438,16 +412,9 @@ export default function SkillsSection() {
       <style>{styles}</style>
       <section className="skills-section" aria-labelledby="skills-heading">
         <div className="skills-container">
+          <div className="skills-pill" aria-hidden="true">♿ Accessibility First Platform</div>
 
-          {/* Pill */}
-          <div className="skills-pill" aria-hidden="true">
-            ♿ Accessibility First Platform
-          </div>
-
-          {/* Two-column grid */}
           <div className="skills-grid">
-
-            {/* LEFT */}
             <div className="skills-left">
               <p className="skills-eyebrow">Built for PWDs. Powered by AI.</p>
 
@@ -466,28 +433,16 @@ export default function SkillsSection() {
               </p>
 
               <div className="skills-cta-row">
-                <button
-                  onClick={openAsWorker}
-                  className="btn-primary"
-                >
-                  Start Your Journey
-                </button>
-                <button
-                  onClick={openAsEmployer}
-                  className="btn-secondary"
-                >
-                  I&apos;m an Employer
-                </button>
+                <button onClick={openAsWorker} className="btn-primary">Start Your Journey</button>
+                <button onClick={openAsEmployer} className="btn-secondary">I&apos;m an Employer</button>
               </div>
             </div>
 
-            {/* RIGHT */}
             <div className="skills-right">
               <ProfileCard />
             </div>
           </div>
 
-          {/* Trust Bar */}
           <div className="trust-bar">
             <ul className="trust-list" aria-label="Platform trust indicators">
               {trustItems.map((item) => (
@@ -498,7 +453,6 @@ export default function SkillsSection() {
               ))}
             </ul>
           </div>
-
         </div>
       </section>
     </>

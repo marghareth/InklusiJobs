@@ -23,22 +23,27 @@ const steps = [
 export default function HowItWorksSection() {
   return (
     <section
-      className="bg-[#F9F8F6] py-16 px-6 md:px-8"
+      className="py-16 px-6 md:px-8"
+      style={{ background: "#F0EDE8" }}
       aria-labelledby="how-it-works-heading"
     >
       <div className="max-w-360 mx-auto">
 
         {/* Header Badge */}
         <div className="mb-8">
-          <div className="inline-block bg-[#1B3D3A] rounded-2xl px-6 py-4 mb-8">
-            <span className="text-[#FAF9F8] text-4xl md:text-5xl font-normal font-['Lexend'] leading-tight">
+          <div
+            className="inline-block rounded-2xl px-6 py-4 mb-8"
+            style={{ background: "#0F5C6E" }}
+          >
+            <span className="text-white text-4xl md:text-5xl font-normal font-['Lexend'] leading-tight">
               HOW IT WORKS
             </span>
           </div>
 
           <h2
             id="how-it-works-heading"
-            className="text-black text-3xl md:text-4xl font-normal font-['Lexend'] leading-tight max-w-5xl"
+            className="text-3xl md:text-4xl font-normal font-['Lexend'] leading-tight max-w-5xl"
+            style={{ color: "#1A1A2E" }}
           >
             Everything you need to know from skilled to employed.
           </h2>
@@ -49,31 +54,35 @@ export default function HowItWorksSection() {
 
           {/* Left: Steps + Verified card */}
           <div className="flex flex-col gap-4">
-
-            {/* Step Cards */}
             {steps.map((step) => (
               <div
                 key={step.title}
-                className="border border-black rounded-[10px] px-4 py-5 bg-[#F9F8F6]"
+                className="rounded-[10px] px-4 py-5"
+                style={{
+                  border: "1.5px solid #C8D8E0",
+                  background: "#FDFCFA",
+                }}
               >
-                <h3 className="text-black text-2xl font-normal font-['Lexend'] leading-10 mb-1">
+                <h3
+                  className="text-2xl font-normal font-['Lexend'] leading-10 mb-1"
+                  style={{ color: "#1A1A2E" }}
+                >
                   {step.title}
                 </h3>
-                <p className="text-black text-sm font-normal font-['Lexend'] leading-5 m-0 max-w-2xl">
+                <p
+                  className="text-sm font-normal font-['Lexend'] leading-5 m-0 max-w-2xl"
+                  style={{ color: "#4A6070" }}
+                >
                   {step.description}
                 </p>
               </div>
             ))}
 
             {/* Verified Card */}
-            <div className="relative bg-[#0A1A2A] rounded-[10px] overflow-hidden min-h-50 flex items-end p-8 mt-1">
-              <Image
-                src="https://placehold.co/1000x500/0A1A2A/FFFFFF/png?text=+"
-                alt=""
-                fill
-                className="object-cover opacity-30"
-                aria-hidden="true"
-              />
+            <div
+              className="relative rounded-[10px] overflow-hidden min-h-50 flex items-end p-8 mt-1"
+              style={{ background: "#0F5C6E" }}
+            >
               <div className="relative z-10">
                 <p className="text-white text-3xl md:text-4xl font-normal font-['Lexend'] leading-snug m-0">
                   Verified.<br />
@@ -85,15 +94,17 @@ export default function HowItWorksSection() {
           </div>
 
           {/* Right: Tall Image */}
-          <div className="relative w-full rounded-[10px] overflow-hidden min-h-125 lg:min-h-0 border border-black">
+          <div
+            className="relative w-full rounded-[10px] overflow-hidden min-h-125 lg:min-h-0"
+            style={{ border: "1.5px solid #C8D8E0" }}
+          >
             <Image
-              src="https://placehold.co/800x1200/E8EDF3/1E293B/png?text=Accessibility+Sign"
+              src="https://placehold.co/800x1200/DDE8EC/0F5C6E/png?text=Accessibility+Sign"
               alt="Accessibility sign indicating inclusive pathways"
               fill
               className="object-cover object-center"
             />
           </div>
-
         </div>
       </div>
     </section>

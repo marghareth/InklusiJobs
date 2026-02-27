@@ -1,4 +1,3 @@
-//VerificationSection.jsx
 "use client";
 
 import Link from "next/link";
@@ -40,32 +39,31 @@ export default function VerificationSection() {
     <>
       {/* ── VERIFICATION SECTION ── */}
       <section
-        className="bg-[#1E293B] py-24 px-6 md:px-16 lg:px-24"
+        className="py-24 px-6 md:px-16 lg:px-24"
+        style={{ background: "#0F3D4A" }}
         aria-labelledby="verification-heading"
       >
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
-          {/* Label */}
           <p style={{
             fontFamily: "Lexend, sans-serif",
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: "0.18em",
             textTransform: "uppercase",
-            color: "#60A5FA",
+            color: "#7DDCE8",
             marginBottom: 14,
           }}>
             PWD Verification System
           </p>
 
-          {/* Heading */}
           <h2
             id="verification-heading"
             style={{
               fontFamily: "Lexend, sans-serif",
               fontWeight: 300,
               fontSize: "clamp(2rem, 3.5vw, 2.8rem)",
-              color: "#F8FAFC",
+              color: "#F0FDFD",
               lineHeight: 1.2,
               marginBottom: 48,
               maxWidth: 480,
@@ -89,15 +87,15 @@ export default function VerificationSection() {
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 16,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(125,220,232,0.15)",
                     borderRadius: 14,
                     padding: "18px 20px",
                   }}
                 >
                   <div style={{
                     width: 30, height: 30, borderRadius: "50%",
-                    background: "#1E40AF",
+                    background: "#1A8FA5",
                     color: "#fff",
                     fontSize: 13, fontWeight: 700,
                     fontFamily: "Lexend, sans-serif",
@@ -107,10 +105,10 @@ export default function VerificationSection() {
                     {step.num}
                   </div>
                   <div>
-                    <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 14, color: "#F1F5F9", marginBottom: 4 }}>
+                    <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 14, color: "#E0F8FA", marginBottom: 4 }}>
                       {step.title}
                     </h3>
-                    <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+                    <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 13, color: "rgba(224,248,250,0.6)", lineHeight: 1.6 }}>
                       {step.desc}
                     </p>
                   </div>
@@ -122,14 +120,14 @@ export default function VerificationSection() {
             <div style={{
               flex: 1,
               background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border: "1px solid rgba(125,220,232,0.15)",
               borderRadius: 20,
               padding: "32px 28px",
             }}>
-              <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 20, color: "#F8FAFC", marginBottom: 12 }}>
+              <h3 style={{ fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 20, color: "#F0FDFD", marginBottom: 12 }}>
                 Verification-as-a-Service
               </h3>
-              <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 14, color: "rgba(255,255,255,0.6)", lineHeight: 1.7, marginBottom: 24 }}>
+              <p style={{ fontFamily: "Lexend, sans-serif", fontSize: 14, color: "rgba(224,248,250,0.65)", lineHeight: 1.7, marginBottom: 24 }}>
                 {`InklusiJobs' verification infrastructure is licensable to any business that offers PWD discounts or must comply with RA 7277 — hospitals, retailers, airlines, and more.`}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="list" aria-label="Partner industries">
@@ -141,11 +139,11 @@ export default function VerificationSection() {
                       fontFamily: "Lexend, sans-serif",
                       fontSize: 12, fontWeight: 500,
                       display: "flex", alignItems: "center", gap: 6,
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(125,220,232,0.10)",
+                      border: "1px solid rgba(125,220,232,0.20)",
                       borderRadius: 999,
                       padding: "6px 14px",
-                      color: "rgba(255,255,255,0.75)",
+                      color: "rgba(224,248,250,0.80)",
                     }}
                   >
                     <span aria-hidden="true">{p.icon}</span> {p.label}
@@ -160,7 +158,7 @@ export default function VerificationSection() {
       {/* ── CTA SECTION ── */}
       <section
         className="py-20 px-6 md:px-16 lg:px-24"
-        style={{ background: "#F7F6F4" }}
+        style={{ background: "#FAF8F5" }}
         aria-labelledby="cta-heading"
       >
         <div
@@ -173,11 +171,10 @@ export default function VerificationSection() {
           }}
           className="grid-cols-1 md:grid-cols-2"
         >
-
-          {/* ── Job Seeker CTA — Navy blue card ── */}
+          {/* Job Seeker CTA */}
           <div
             style={{
-              background: "linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%)",
+              background: "linear-gradient(135deg, #0F5C6E 0%, #0A3D4A 100%)",
               borderRadius: 20,
               padding: "44px 40px",
               display: "flex",
@@ -188,11 +185,10 @@ export default function VerificationSection() {
               overflow: "hidden",
             }}
           >
-            {/* Subtle decorative circle */}
             <div style={{
               position: "absolute", top: -40, right: -40,
               width: 200, height: 200, borderRadius: "50%",
-              background: "rgba(255,255,255,0.05)",
+              background: "rgba(125,220,232,0.08)",
               pointerEvents: "none",
             }} aria-hidden="true" />
 
@@ -213,7 +209,7 @@ export default function VerificationSection() {
               <p style={{
                 fontFamily: "Lexend, sans-serif",
                 fontSize: 14,
-                color: "rgba(255,255,255,0.75)",
+                color: "rgba(224,248,250,0.78)",
                 lineHeight: 1.7,
                 maxWidth: 360,
                 marginBottom: 32,
@@ -228,7 +224,7 @@ export default function VerificationSection() {
                 fontFamily: "Lexend, sans-serif",
                 fontWeight: 600,
                 fontSize: 13,
-                color: "#1E40AF",
+                color: "#0F5C6E",
                 background: "#fff",
                 borderRadius: 10,
                 padding: "12px 24px",
@@ -238,7 +234,6 @@ export default function VerificationSection() {
                 gap: 6,
                 alignSelf: "flex-start",
                 boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-                transition: "background 0.2s",
               }}
               className="hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
             >
@@ -246,11 +241,11 @@ export default function VerificationSection() {
             </Link>
           </div>
 
-          {/* ── Employer CTA — White card ── */}
+          {/* Employer CTA */}
           <div
             style={{
               background: "#fff",
-              border: "1.5px solid #E2E8F0",
+              border: "1.5px solid #DDE8EC",
               borderRadius: 20,
               padding: "44px 40px",
               display: "flex",
@@ -261,11 +256,10 @@ export default function VerificationSection() {
               overflow: "hidden",
             }}
           >
-            {/* Subtle decorative circle */}
             <div style={{
               position: "absolute", bottom: -50, right: -50,
               width: 200, height: 200, borderRadius: "50%",
-              background: "rgba(30,64,175,0.04)",
+              background: "rgba(15,92,110,0.04)",
               pointerEvents: "none",
             }} aria-hidden="true" />
 
@@ -274,7 +268,7 @@ export default function VerificationSection() {
                 fontFamily: "Lexend, sans-serif",
                 fontWeight: 700,
                 fontSize: "clamp(1.4rem, 2.5vw, 1.9rem)",
-                color: "#1E293B",
+                color: "#1A1A2E",
                 lineHeight: 1.25,
                 marginBottom: 14,
               }}>
@@ -283,7 +277,7 @@ export default function VerificationSection() {
               <p style={{
                 fontFamily: "Lexend, sans-serif",
                 fontSize: 14,
-                color: "#64748B",
+                color: "#4A6070",
                 lineHeight: 1.7,
                 maxWidth: 360,
                 marginBottom: 32,
@@ -299,7 +293,7 @@ export default function VerificationSection() {
                 fontWeight: 600,
                 fontSize: 13,
                 color: "#fff",
-                background: "#1E293B",
+                background: "#0F5C6E",
                 borderRadius: 10,
                 padding: "12px 24px",
                 textDecoration: "none",
@@ -307,14 +301,12 @@ export default function VerificationSection() {
                 alignItems: "center",
                 gap: 6,
                 alignSelf: "flex-start",
-                transition: "background 0.2s",
               }}
-              className="hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-700 focus-visible:ring-offset-2"
+              className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E] focus-visible:ring-offset-2"
             >
               Post a Job →
             </Link>
           </div>
-
         </div>
       </section>
     </>
