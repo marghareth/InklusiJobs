@@ -1,3 +1,4 @@
+//SkillsSection.jsx
 "use client";
 
 import { useAuthModalContext } from "@/components/landing/AuthModalContext";
