@@ -5,8 +5,6 @@ import HowItWorksSection from "@/components/landing/HowItWorks";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import VerificationSection from "@/components/landing/VerificationSection";
 import Footer from "@/components/landing/Footer";
-import AccessibilityPanel from "@/components/accessibility/AccessibilityPanel";
-import SkipLink from "@/components/accessibility/SkipLink";
 
 export const metadata = {
   title: "InklusiJobs — Verified. Skilled. Employed.",
@@ -17,7 +15,6 @@ export const metadata = {
 export default function LandingPage() {
   return (
     <>
-      <SkipLink />
       <Navbar />
 
       <main id="main-content">
@@ -29,7 +26,6 @@ export default function LandingPage() {
       </main>
 
       <Footer />
-      <AccessibilityPanel />
     </>
   );
 }
