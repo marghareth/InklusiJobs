@@ -70,13 +70,19 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <ul className="hidden md:flex items-center gap-6" role="list">
+          <ul className="hidden md:flex items-center gap-2" role="list">
             {["Home", "Find Work", "For Employers", "Learn", "About"].map((item) => (
               <li key={item}>
                 <Link
                   href={item === "Home" ? "/" : `/${item.toLowerCase().replace(" ", "-")}`}
-                  className="font-['Lexend'] text-sm font-medium hover:text-[#0F5C6E] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E] rounded-md px-1"
-                  style={{ color: "#1A3A5C" }}
+                  className="hover:text-[#0F5C6E] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E] rounded-md px-3 py-2"
+                  style={{
+                    color: "#1A3A5C",
+                    fontFamily: "Arial, sans-serif",
+                    fontSize: "15px",
+                    fontWeight: "700",
+                    display: "block",
+                  }}
                 >
                   {item}
                 </Link>
@@ -88,15 +94,28 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             <button
               onClick={handleLogIn}
-              className="font-['Lexend'] font-semibold text-sm px-5 py-2.5 rounded-xl border transition-all hover:bg-[#0F5C6E] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E]"
-              style={{ borderColor: "#0F5C6E", color: "#0F5C6E", background: "transparent" }}
+              className="px-5 py-2.5 rounded-xl border transition-all hover:bg-[#0F5C6E] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E]"
+              style={{
+                borderColor: "#0F5C6E",
+                color: "#0F5C6E",
+                background: "transparent",
+                fontFamily: "Arial, sans-serif",
+                fontSize: "15px",
+                fontWeight: "700",
+              }}
             >
               Log In
             </button>
             <button
               onClick={handleGetStarted}
-              className="font-['Lexend'] font-semibold text-sm px-5 py-2.5 rounded-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E]"
-              style={{ background: "#0F5C6E", color: "#FFFFFF" }}
+              className="px-5 py-2.5 rounded-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E]"
+              style={{
+                background: "#0F5C6E",
+                color: "#FFFFFF",
+                fontFamily: "Arial, sans-serif",
+                fontSize: "15px",
+                fontWeight: "700",
+              }}
             >
               Get Started
             </button>
@@ -130,8 +149,13 @@ export default function Navbar() {
               <Link
                 key={item}
                 href={item === "Home" ? "/" : `/${item.toLowerCase().replace(" ", "-")}`}
-                className="font-['Lexend'] text-base font-medium hover:text-[#0F5C6E] transition-colors"
-                style={{ color: "#1A3A5C" }}
+                className="hover:text-[#0F5C6E] transition-colors"
+                style={{
+                  color: "#1A3A5C",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "16px",
+                  fontWeight: "700",
+                }}
                 onClick={() => setMenuOpen(false)}
               >
                 {item}
@@ -140,15 +164,28 @@ export default function Navbar() {
             <div className="flex flex-col gap-2 pt-2" style={{ borderTop: "1px solid #E8EDF3" }}>
               <button
                 onClick={handleLogIn}
-                className="w-full px-4 py-2.5 rounded-xl font-['Lexend'] font-semibold text-sm border"
-                style={{ borderColor: "#0F5C6E", color: "#0F5C6E", background: "transparent" }}
+                className="w-full px-4 py-2.5 rounded-xl border"
+                style={{
+                  borderColor: "#0F5C6E",
+                  color: "#0F5C6E",
+                  background: "transparent",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                }}
               >
                 Log In
               </button>
               <button
                 onClick={handleGetStarted}
-                className="w-full px-4 py-2.5 rounded-xl font-['Lexend'] font-semibold text-sm"
-                style={{ background: "#0F5C6E", color: "#FFFFFF" }}
+                className="w-full px-4 py-2.5 rounded-xl"
+                style={{
+                  background: "#0F5C6E",
+                  color: "#FFFFFF",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                }}
               >
                 Get Started
               </button>
