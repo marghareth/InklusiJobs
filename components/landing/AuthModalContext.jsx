@@ -1,47 +1,58 @@
-    "use client";
+"use client";
 
-    import { createContext, useContext, useState, useCallback } from "react";
-    import { useRouter } from "next/navigation";
-    import RoleSelector from "@/components/landing/RoleSelector";
-    import AuthModal from "@/components/landing/AuthModal";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import RoleSelector from "@/components/landing/RoleSelector";
+import AuthModal from "@/components/landing/AuthModal";
 
-    const AuthModalContext = createContext(null);
+const AuthModalContext = createContext(null);
 
-    export function AuthModalProvider({ children }) {
-    const router = useRouter();
+export function AuthModalProvider({ children }) {
+  const router = useRouter();
 
-    const [roleOpen, setRoleOpen]         = useState(false);
-    const [authOpen, setAuthOpen]         = useState(false);
-    const [authTab, setAuthTab]           = useState("signup");
-    const [selectedRole, setSelectedRole] = useState(null);
+  const [roleOpen, setRoleOpen]         = useState(false);
+  const [authOpen, setAuthOpen]         = useState(false);
+  const [authTab, setAuthTab]           = useState("signup");
+  const [selectedRole, setSelectedRole] = useState(null);
 
-    // SkillsSection "Start Your Journey" → worker signup directly
-    const openAsWorker = useCallback(() => {
-        setSelectedRole("worker");
-        setAuthTab("signup");
-        setAuthOpen(true);
-    }, []);
+  // Listen for footer / external open-modal events
+  useEffect(() => {
+    const handler = () => {
+      setSelectedRole(null);
+      setAuthTab("signin");
+      setAuthOpen(true);
+    };
+    window.addEventListener("inklusijobs:open-modal", handler);
+    return () => window.removeEventListener("inklusijobs:open-modal", handler);
+  }, []);
 
-  // SkillsSection "I'm an Employer" → employer signup directly
+  // "Start Your Journey" (worker signup) 
+  const openAsWorker = useCallback(() => {
+    setSelectedRole("worker");
+    setAuthTab("signup");
+    setAuthOpen(true);
+  }, []);
+
+  // "I'm an Employer" (employer signup)
   const openAsEmployer = useCallback(() => {
     setSelectedRole("employer");
     setAuthTab("signup");
     setAuthOpen(true);
   }, []);
 
-  // Navbar / Hero "Get Started" → show role picker first
+  // Navbar / Hero "Get Started" → role picker first
   const openRoleSelector = useCallback(() => {
     setRoleOpen(true);
   }, []);
 
-  // Navbar "Log In" → straight to sign-in, no role badge
+  // Navbar "Log In"
   const openSignIn = useCallback(() => {
     setSelectedRole(null);
     setAuthTab("signin");
     setAuthOpen(true);
   }, []);
 
-  // RoleSelector card clicked → close selector, open auth
+  // RoleSelector card clicked
   const handleRoleSelect = useCallback((role) => {
     setSelectedRole(role);
     setRoleOpen(false);
@@ -49,17 +60,17 @@
     setAuthOpen(true);
   }, []);
 
-  // Sign UP complete — workers go to assessment, employers go to dashboard
+  // Sign UP complete — skip BasicInformation, go straight to dashboard
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
-    if (role === "worker") {
-      router.push("/job-select");
+    if (role === "employer") {
+      router.push("/employer/dashboard");
     } else {
-      router.push("/employer/dashboard"); // ← fixed from /dashboard/employer
+      router.push("/dashboard/worker");
     }
   }, [router]);
 
-  // Sign IN complete — role-aware redirect
+  // Sign IN complete — role-aware redirect, no profile creation step
   const handleSignInComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "employer") {
