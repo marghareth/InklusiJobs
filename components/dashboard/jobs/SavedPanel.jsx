@@ -10,18 +10,14 @@ export default function SavedPanel({ savedIds, onClose, full, setFull, onUnsave 
     <div className={`sj-panel ${full ? "sj-full" : ""}`}>
       <div className="sj-header">
         <div className="sj-title">
-          <span style={{color:"var(--gold)"}}>
+          <span style={{ color: "var(--teal)" }}>
             <Ic.Bookmark f={true} />
           </span>
           Saved Jobs
           <span className="sj-badge">{jobs.length}</span>
         </div>
         <div className="sj-hdr-btns">
-          <button 
-            className="sj-ibtn" 
-            onClick={() => setFull(!full)} 
-            title={full ? "Collapse" : "Expand"}
-          >
+          <button className="sj-ibtn" onClick={() => setFull(!full)} title={full ? "Collapse" : "Expand"}>
             {full ? <Ic.Minimize /> : <Ic.Maximize />}
           </button>
           <button className="sj-ibtn" onClick={onClose}>
@@ -33,22 +29,17 @@ export default function SavedPanel({ savedIds, onClose, full, setFull, onUnsave 
       <div className="sj-body">
         {jobs.length === 0 ? (
           <div className="sj-empty">
-            <div style={{opacity:.4,marginBottom:".5rem"}}>
+            <div style={{ opacity: .4, marginBottom: ".5rem" }}>
               <Ic.Bookmark f={false} />
             </div>
             <div className="sj-empty-t">No saved jobs yet</div>
-            <div className="sj-empty-s">
-              Click Save on any listing to bookmark it here
-            </div>
+            <div className="sj-empty-s">Click Save on any listing to bookmark it here</div>
           </div>
         ) : (
           <div className="sj-list">
             {jobs.map(job => (
               <div key={job.id} className="sj-item">
-                <div className="sj-logo" style={{
-                  background:`${job.logoColor}20`,
-                  color:job.logoColor
-                }}>
+                <div className="sj-logo" style={{ background: `${job.logoColor}20`, color: job.logoColor }}>
                   {job.logo}
                 </div>
                 <div className="sj-info">
@@ -58,20 +49,15 @@ export default function SavedPanel({ savedIds, onClose, full, setFull, onUnsave 
                     <span className="sj-mtag">{job.setup}</span>
                     <span className="sj-sal">{job.salary}</span>
                   </div>
-                  
+
                   {full && (
                     <>
-                      <div className="sj-loc">
-                        <Ic.Pin />{job.location}
-                      </div>
+                      <div className="sj-loc"><Ic.Pin />{job.location}</div>
                       <div className="sj-pwd-row">
                         {job.pwdFriendly.map(p => {
                           const t = PWD_TYPES.find(x => x.id === p);
                           return (
-                            <span 
-                              key={p} 
-                              className={`sj-pc ${p === USER_PROFILE.disability ? "hl" : ""}`}
-                            >
+                            <span key={p} className={`sj-pc ${p === USER_PROFILE.disability ? "hl" : ""}`}>
                               {t?.label}
                             </span>
                           );
@@ -85,15 +71,10 @@ export default function SavedPanel({ savedIds, onClose, full, setFull, onUnsave 
                       </div>
                     </>
                   )}
-                  
+
                   <div className="sj-actions">
                     <button className="sj-apply">Apply →</button>
-                    <button 
-                      className="sj-remove" 
-                      onClick={() => onUnsave(job.id)}
-                    >
-                      Remove
-                    </button>
+                    <button className="sj-remove" onClick={() => onUnsave(job.id)}>Remove</button>
                   </div>
                 </div>
               </div>

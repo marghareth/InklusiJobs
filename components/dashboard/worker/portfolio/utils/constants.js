@@ -1,4 +1,12 @@
-export const SKILL_COLORS = ["#2D5016", "#3D6B1F", "#4A7C59", "#5C8A45", "#2D5016", "#7B6226"];
+// InklusiJobs brand palette — navy + teal
+export const SKILL_COLORS = [
+  "#2DB8A0", // teal
+  "#1A9E88", // teal dark
+  "#1A2744", // navy
+  "#2D3F6B", // navy mid
+  "#3BB5A0", // teal lighter
+  "#243459", // navy deep
+];
 
 export const TABS = [
   { id: "overview",   label: "Overview"        },

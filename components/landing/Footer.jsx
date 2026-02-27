@@ -72,12 +72,14 @@ export default function Footer() {
 
             {/* Brand */}
             <div className="md:col-span-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/logo.png"
-                alt="InklusiJobs"
-                style={{ height: "72px", width: "auto", marginBottom: "16px", mixBlendMode: "screen" }}
-              />
+              <div style={{ display: "inline-block", background: "#FFFFFF", borderRadius: 12, padding: "8px 14px", marginBottom: 16 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logo.png"
+                  alt="InklusiJobs"
+                  style={{ height: "40px", width: "auto", display: "block" }}
+                />
+              </div>
               <p
                 className="text-sm font-['Lexend'] leading-relaxed max-w-xs mb-4"
                 style={{ color: "rgba(224,248,250,0.65)" }}

@@ -11,10 +11,10 @@ function Toggle({ checked, onChange }) {
       onClick={() => onChange(!checked)}
       style={{
         width: 44, height: 24, borderRadius: 12, border: 'none',
-        background: checked ? 'linear-gradient(135deg,#6B8F71,#4E7055)' : 'rgba(180,160,130,0.28)',
+        background: checked ? 'linear-gradient(135deg,#2DB8A0,#1A9E88)' : 'rgba(26,39,68,0.15)',
         cursor: 'pointer', position: 'relative', flexShrink: 0,
         transition: 'background .25s ease',
-        boxShadow: checked ? '0 2px 8px rgba(107,143,113,0.35)' : 'none',
+        boxShadow: checked ? '0 2px 8px rgba(45,184,160,0.35)' : 'none',
         padding: 0,
       }}
     >
@@ -35,28 +35,28 @@ function Toggle({ checked, onChange }) {
 function Section({ icon, title, children, danger }) {
   return (
     <div style={{
-      background: danger ? 'rgba(196,80,60,0.04)' : 'rgba(255,255,255,0.72)',
+      background: danger ? 'rgba(180,40,40,0.03)' : 'rgba(255,255,255,0.92)',
       backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-      border: danger ? '1.5px solid rgba(196,80,60,0.16)' : '1px solid rgba(180,160,130,0.20)',
+      border: danger ? '1.5px solid rgba(180,40,40,0.14)' : '1px solid rgba(26,39,68,0.12)',
       borderRadius: 18,
-      boxShadow: '0 2px 12px rgba(180,160,130,0.10), 0 1px 3px rgba(180,160,130,0.06)',
+      boxShadow: '0 2px 12px rgba(26,39,68,0.08), 0 1px 3px rgba(26,39,68,0.05)',
       overflow: 'hidden',
     }}>
       {title && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '20px 28px',
-          borderBottom: `1px solid ${danger ? 'rgba(196,80,60,0.10)' : 'rgba(180,160,130,0.12)'}`,
+          borderBottom: `1px solid ${danger ? 'rgba(180,40,40,0.10)' : 'rgba(26,39,68,0.08)'}`,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, fontSize: 17,
-            background: danger ? 'rgba(196,80,60,0.10)' : 'rgba(107,143,113,0.10)',
-            border: danger ? '1px solid rgba(196,80,60,0.18)' : '1px solid rgba(107,143,113,0.18)',
+            background: danger ? 'rgba(180,40,40,0.08)' : 'rgba(45,184,160,0.10)',
+            border: danger ? '1px solid rgba(180,40,40,0.16)' : '1px solid rgba(45,184,160,0.22)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>{icon}</div>
           <h2 style={{
             fontFamily: '"Playfair Display", serif',
-            fontSize: 17, fontWeight: 600, color: danger ? '#A84030' : '#2C2A27',
+            fontSize: 17, fontWeight: 600, color: danger ? '#A83030' : '#1A2744',
             letterSpacing: '-0.2px', margin: 0,
           }}>{title}</h2>
         </div>
@@ -72,7 +72,7 @@ function Label({ children }) {
     <label style={{
       fontFamily: '"Instrument Sans", sans-serif',
       fontSize: 11, fontWeight: 700,
-      color: 'rgba(44,42,39,0.50)',
+      color: 'rgba(26,39,68,0.50)',
       letterSpacing: '0.6px', textTransform: 'uppercase',
       display: 'block', marginBottom: 7,
     }}>{children}</label>
@@ -81,7 +81,7 @@ function Label({ children }) {
 
 // ── Divider ──────────────────────────────────────────────────────────────────
 function Divider() {
-  return <div style={{ height: 1, background: 'rgba(180,160,130,0.12)', margin: '2px 0' }} />;
+  return <div style={{ height: 1, background: 'rgba(26,39,68,0.08)', margin: '2px 0' }} />;
 }
 
 // ── Toggle row ────────────────────────────────────────────────────────────────
@@ -94,8 +94,8 @@ function TRow({ label, sub, checked, onChange }) {
         padding: '15px 0',
       }}>
         <div>
-          <p style={{ margin: 0, fontFamily: '"Instrument Sans", sans-serif', fontSize: 14, fontWeight: 500, color: '#2C2A27' }}>{label}</p>
-          {sub && <p style={{ margin: '3px 0 0', fontFamily: '"Instrument Sans", sans-serif', fontSize: 12, color: 'rgba(44,42,39,0.45)' }}>{sub}</p>}
+          <p style={{ margin: 0, fontFamily: '"Instrument Sans", sans-serif', fontSize: 14, fontWeight: 500, color: '#1A2744' }}>{label}</p>
+          {sub && <p style={{ margin: '3px 0 0', fontFamily: '"Instrument Sans", sans-serif', fontSize: 12, color: 'rgba(26,39,68,0.45)' }}>{sub}</p>}
         </div>
         <Toggle checked={checked} onChange={onChange} />
       </div>
@@ -113,8 +113,8 @@ function ARow({ label, sub, children }) {
         gap: 16, padding: '16px 0',
       }}>
         <div>
-          <p style={{ margin: 0, fontFamily: '"Instrument Sans", sans-serif', fontSize: 14, fontWeight: 600, color: '#2C2A27' }}>{label}</p>
-          {sub && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(44,42,39,0.45)', fontFamily: '"Instrument Sans", sans-serif' }}>{sub}</p>}
+          <p style={{ margin: 0, fontFamily: '"Instrument Sans", sans-serif', fontSize: 14, fontWeight: 600, color: '#1A2744' }}>{label}</p>
+          {sub && <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(26,39,68,0.45)', fontFamily: '"Instrument Sans", sans-serif' }}>{sub}</p>}
         </div>
         <div>{children}</div>
       </div>
@@ -127,10 +127,10 @@ function ARow({ label, sub, children }) {
 const inp = {
   width: '100%', padding: '11px 14px',
   background: '#fff',
-  border: '1.5px solid rgba(180,160,130,0.28)',
+  border: '1.5px solid rgba(26,39,68,0.16)',
   borderRadius: 10, outline: 'none',
   fontFamily: '"Instrument Sans", sans-serif',
-  fontSize: 14, color: '#2C2A27',
+  fontSize: 14, color: '#1A2744',
   boxSizing: 'border-box',
   transition: 'border-color .18s, box-shadow .18s',
 };
@@ -139,46 +139,46 @@ const inp = {
 const Btn = {
   primary: {
     padding: '10px 22px', borderRadius: 10, border: 'none',
-    background: 'linear-gradient(135deg,#6B8F71,#4E7055)',
+    background: 'linear-gradient(135deg,#2DB8A0,#1A9E88)',
     color: '#fff', fontSize: 13, fontWeight: 700,
     fontFamily: '"Instrument Sans", sans-serif',
     cursor: 'pointer', letterSpacing: '0.2px',
-    boxShadow: '0 4px 14px rgba(107,143,113,0.28)',
+    boxShadow: '0 4px 14px rgba(45,184,160,0.28)',
     transition: 'all .2s',
   },
   outline: {
     padding: '10px 22px', borderRadius: 10,
-    border: '1.5px solid rgba(180,160,130,0.35)',
-    color: 'rgba(44,42,39,0.65)', fontSize: 13, fontWeight: 600,
+    border: '1.5px solid rgba(26,39,68,0.18)',
+    color: 'rgba(26,39,68,0.65)', fontSize: 13, fontWeight: 600,
     fontFamily: '"Instrument Sans", sans-serif',
-    cursor: 'pointer', background: 'rgba(255,255,255,0.6)',
+    cursor: 'pointer', background: 'rgba(255,255,255,0.8)',
     transition: 'all .2s', whiteSpace: 'nowrap',
   },
   slate: {
     padding: '10px 22px', borderRadius: 10, border: 'none',
-    background: 'linear-gradient(135deg,#5B6B8A,#3D4F6B)',
+    background: 'linear-gradient(135deg,#1A2744,#2D3F6B)',
     color: '#fff', fontSize: 13, fontWeight: 700,
     fontFamily: '"Instrument Sans", sans-serif',
     cursor: 'pointer', whiteSpace: 'nowrap',
-    boxShadow: '0 4px 14px rgba(91,107,138,0.25)',
+    boxShadow: '0 4px 14px rgba(26,39,68,0.22)',
     transition: 'all .2s',
   },
   danger: {
     padding: '10px 22px', borderRadius: 10,
-    background: 'rgba(196,80,60,0.07)',
-    border: '1.5px solid rgba(196,80,60,0.22)',
-    color: '#A84030', fontSize: 13, fontWeight: 700,
+    background: 'rgba(180,40,40,0.06)',
+    border: '1.5px solid rgba(180,40,40,0.20)',
+    color: '#A83030', fontSize: 13, fontWeight: 700,
     fontFamily: '"Instrument Sans", sans-serif',
     cursor: 'pointer', transition: 'all .2s',
     whiteSpace: 'nowrap',
   },
   logout: {
     width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-    background: 'linear-gradient(135deg,#C4704F,#A85A3C)',
+    background: 'linear-gradient(135deg,#1A2744,#2D3F6B)',
     color: '#fff', fontSize: 14, fontWeight: 700,
     fontFamily: '"Instrument Sans", sans-serif',
     cursor: 'pointer', letterSpacing: '0.3px',
-    boxShadow: '0 4px 16px rgba(196,112,79,0.28)',
+    boxShadow: '0 4px 16px rgba(26,39,68,0.25)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
     transition: 'all .2s',
   },
@@ -228,7 +228,7 @@ export default function SettingsPage() {
   const selectSt = {
     ...inp,
     appearance: 'none', WebkitAppearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A7B6B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231A2744' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
     backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
     paddingRight: 36, cursor: 'pointer',
   };
@@ -237,15 +237,15 @@ export default function SettingsPage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
-        .st-input-el:focus { border-color: rgba(107,143,113,0.6) !important; box-shadow: 0 0 0 3px rgba(107,143,113,0.12) !important; }
-        .st-btn-h:hover  { box-shadow: 0 6px 20px rgba(107,143,113,0.4) !important; transform: translateY(-1px); }
-        .st-btn-ol:hover { border-color: rgba(107,143,113,0.5) !important; color: #3D5C41 !important; background: rgba(107,143,113,0.06) !important; }
-        .st-btn-sl:hover { box-shadow: 0 6px 20px rgba(91,107,138,0.38) !important; transform: translateY(-1px); }
-        .st-btn-dg:hover { background: rgba(196,80,60,0.13) !important; border-color: rgba(196,80,60,0.38) !important; }
-        .st-btn-lo:hover { box-shadow: 0 6px 24px rgba(196,112,79,0.42) !important; transform: translateY(-1px); }
-        .st-overlay { position:fixed;inset:0;z-index:200;background:rgba(44,42,39,0.32);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px; }
-        .st-modal { background:rgba(255,255,255,0.96);border:1px solid rgba(180,160,130,0.22);border-radius:20px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(44,42,39,0.18);text-align:center; }
-        .st-toast { position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#3D6B47,#2E5237);color:#fff;padding:12px 24px;border-radius:12px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(46,82,55,0.35);display:flex;align-items:center;gap:8px;z-index:300;white-space:nowrap;animation:toastin .3s cubic-bezier(0.4,0,.2,1); }
+        .st-input-el:focus { border-color: rgba(45,184,160,0.60) !important; box-shadow: 0 0 0 3px rgba(45,184,160,0.10) !important; }
+        .st-btn-h:hover   { box-shadow: 0 6px 20px rgba(45,184,160,0.40) !important; transform: translateY(-1px); }
+        .st-btn-ol:hover  { border-color: rgba(45,184,160,0.45) !important; color: #1A7A6E !important; background: rgba(45,184,160,0.06) !important; }
+        .st-btn-sl:hover  { box-shadow: 0 6px 20px rgba(26,39,68,0.35) !important; transform: translateY(-1px); }
+        .st-btn-dg:hover  { background: rgba(180,40,40,0.10) !important; border-color: rgba(180,40,40,0.32) !important; }
+        .st-btn-lo:hover  { box-shadow: 0 6px 24px rgba(26,39,68,0.40) !important; transform: translateY(-1px); }
+        .st-overlay { position:fixed;inset:0;z-index:200;background:rgba(26,39,68,0.28);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px; }
+        .st-modal { background:rgba(255,255,255,0.98);border:1px solid rgba(26,39,68,0.12);border-radius:20px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(26,39,68,0.18);text-align:center; }
+        .st-toast { position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1A2744,#2D3F6B);color:#fff;padding:12px 24px;border-radius:12px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(26,39,68,0.30);display:flex;align-items:center;gap:8px;z-index:300;white-space:nowrap;animation:toastin .3s cubic-bezier(0.4,0,.2,1); }
         @keyframes toastin { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         .st-two { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
         @media(max-width:620px){.st-two{grid-template-columns:1fr;}}
@@ -253,14 +253,14 @@ export default function SettingsPage() {
 
       <div style={{
          padding: '36px', display: 'flex', flexDirection: 'column', gap: 24,
-         maxWidth: 860, fontFamily: '"Instrument Sans", sans-serif', color: '#2C2A27',
+         maxWidth: 860, fontFamily: '"Instrument Sans", sans-serif', color: '#1A2744',
          margin: '0 auto', width: '100%',
       }}>
 
         {/* ── Page header ── */}
         <div>
-          <h1 style={{ fontFamily: '"Playfair Display",serif', fontSize: 27, fontWeight: 700, color: '#2C2A27', letterSpacing: '-0.3px', margin: '0 0 6px' }}>Settings</h1>
-          <p style={{ fontSize: 13, color: 'rgba(44,42,39,0.5)', margin: 0 }}>Manage your account settings and preferences</p>
+          <h1 style={{ fontFamily: '"Playfair Display",serif', fontSize: 27, fontWeight: 700, color: '#1A2744', letterSpacing: '-0.3px', margin: '0 0 6px' }}>Settings</h1>
+          <p style={{ fontSize: 13, color: 'rgba(26,39,68,0.50)', margin: 0 }}>Manage your account settings and preferences</p>
         </div>
 
         {/* ══ 1. PROFILE INFORMATION ══ */}
@@ -282,7 +282,7 @@ export default function SettingsPage() {
                 value={bio} onChange={e=>setBio(e.target.value)} />
             </div>
             <div>
-              <button className="st-btn-h" style={{ ...Btn.primary, ...(saved ? { background:'linear-gradient(135deg,#4E7055,#3D6B47)' } : {}) }} onClick={handleSave}>
+              <button className="st-btn-h" style={{ ...Btn.primary, ...(saved ? { background:'linear-gradient(135deg,#1A9E88,#157C6E)' } : {}) }} onClick={handleSave}>
                 {saved ? '✓  Changes Saved' : 'Save Changes'}
               </button>
             </div>
@@ -297,8 +297,8 @@ export default function SettingsPage() {
           <TRow label="Large text"                 sub="Increase base font size across the dashboard"     checked={largeText}     onChange={setLargeText}     />
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:15 }}>
             <div>
-              <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#2C2A27', fontFamily:'"Instrument Sans",sans-serif' }}>Keyboard navigation hints</p>
-              <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(44,42,39,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Show shortcut hints for keyboard users</p>
+              <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Keyboard navigation hints</p>
+              <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(26,39,68,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Show shortcut hints for keyboard users</p>
             </div>
             <Toggle checked={keyboardHints} onChange={setKeyboardHints} />
           </div>
@@ -336,8 +336,8 @@ export default function SettingsPage() {
             <TRow label="Show profile to employers" sub="Employers can discover your profile in search"    checked={showProfile} onChange={setShowProfile} />
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:4 }}>
               <div>
-                <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#2C2A27', fontFamily:'"Instrument Sans",sans-serif' }}>Public portfolio</p>
-                <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(44,42,39,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Anyone with the link can view your portfolio</p>
+                <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Public portfolio</p>
+                <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(26,39,68,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Anyone with the link can view your portfolio</p>
               </div>
               <Toggle checked={publicPort} onChange={setPublicPort} />
             </div>
@@ -351,7 +351,7 @@ export default function SettingsPage() {
           <TRow label="Weekly progress summary"                   checked={nProgress}  onChange={setNProgress}  />
           <TRow label="Feedback and review notifications"         checked={nFeedback}  onChange={setNFeedback}  />
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:15 }}>
-            <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#2C2A27', fontFamily:'"Instrument Sans",sans-serif' }}>Marketing and promotional emails</p>
+            <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Marketing and promotional emails</p>
             <Toggle checked={nMarketing} onChange={setNMarketing} />
           </div>
         </Section>
@@ -372,8 +372,8 @@ export default function SettingsPage() {
           </ARow>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:16 }}>
             <div>
-              <p style={{ margin:0, fontSize:14, fontWeight:600, color:'#2C2A27', fontFamily:'"Instrument Sans",sans-serif' }}>Download My Data</p>
-              <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(44,42,39,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Export a full copy of your account data</p>
+              <p style={{ margin:0, fontSize:14, fontWeight:600, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Download My Data</p>
+              <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(26,39,68,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Export a full copy of your account data</p>
             </div>
             <button className="st-btn-ol" style={Btn.outline}>Request Export</button>
           </div>
@@ -381,12 +381,12 @@ export default function SettingsPage() {
 
         {/* ══ 6. DANGER ZONE ══ */}
         <Section icon="⚠️" title="Danger Zone" danger>
-          <p style={{ margin:'0 0 18px', fontSize:13, color:'rgba(44,42,39,0.55)', lineHeight:1.65, fontFamily:'"Instrument Sans",sans-serif' }}>
+          <p style={{ margin:'0 0 18px', fontSize:13, color:'rgba(26,39,68,0.55)', lineHeight:1.65, fontFamily:'"Instrument Sans",sans-serif' }}>
             These actions are permanent and cannot be undone. Please read carefully before proceeding.
           </p>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
             <button className="st-btn-dg" style={Btn.danger}>Deactivate Account</button>
-            <button className="st-btn-dg" style={{ ...Btn.danger, background:'rgba(196,80,60,0.12)', borderColor:'rgba(196,80,60,0.32)' }}>
+            <button className="st-btn-dg" style={{ ...Btn.danger, background:'rgba(180,40,40,0.10)', borderColor:'rgba(180,40,40,0.28)' }}>
               Delete Account Permanently
             </button>
           </div>
@@ -394,12 +394,12 @@ export default function SettingsPage() {
 
         {/* ══ 7. SIGN OUT ══ */}
         <div style={{
-          background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          border: '1px solid rgba(196,112,79,0.20)', borderRadius: 18,
-          boxShadow: '0 2px 12px rgba(180,160,130,0.10)', padding: '24px 28px',
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+          border: '1px solid rgba(26,39,68,0.12)', borderRadius: 18,
+          boxShadow: '0 2px 12px rgba(26,39,68,0.08)', padding: '24px 28px',
         }}>
-          <h2 style={{ fontFamily:'"Playfair Display",serif', fontSize:17, fontWeight:600, color:'#2C2A27', margin:'0 0 6px' }}>Sign Out</h2>
-          <p style={{ fontSize:13, color:'rgba(44,42,39,0.50)', margin:'0 0 20px', lineHeight:1.65, fontFamily:'"Instrument Sans",sans-serif' }}>
+          <h2 style={{ fontFamily:'"Playfair Display",serif', fontSize:17, fontWeight:600, color:'#1A2744', margin:'0 0 6px' }}>Sign Out</h2>
+          <p style={{ fontSize:13, color:'rgba(26,39,68,0.50)', margin:'0 0 20px', lineHeight:1.65, fontFamily:'"Instrument Sans",sans-serif' }}>
             You'll be signed out on this device. Your progress and data are always saved automatically.
           </p>
           <button className="st-btn-lo" style={Btn.logout} onClick={() => setShowLogout(true)}>
@@ -407,7 +407,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* bottom breathing room */}
         <div style={{ height: 16 }} />
       </div>
 
@@ -416,8 +415,8 @@ export default function SettingsPage() {
         <div className="st-overlay" onClick={() => setShowLogout(false)}>
           <div className="st-modal" onClick={e => e.stopPropagation()}>
             <div style={{ fontSize:44, marginBottom:14 }}>👋</div>
-            <h3 style={{ fontFamily:'"Playfair Display",serif', fontSize:22, fontWeight:700, color:'#2C2A27', margin:'0 0 10px' }}>Sign out?</h3>
-            <p style={{ fontSize:13.5, color:'rgba(44,42,39,0.55)', lineHeight:1.65, margin:'0 0 28px', fontFamily:'"Instrument Sans",sans-serif' }}>
+            <h3 style={{ fontFamily:'"Playfair Display",serif', fontSize:22, fontWeight:700, color:'#1A2744', margin:'0 0 10px' }}>Sign out?</h3>
+            <p style={{ fontSize:13.5, color:'rgba(26,39,68,0.55)', lineHeight:1.65, margin:'0 0 28px', fontFamily:'"Instrument Sans",sans-serif' }}>
               You'll be returned to the home page. Your progress and all data are always saved automatically.
             </p>
             <div style={{ display:'flex', gap:10 }}>

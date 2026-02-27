@@ -3,7 +3,7 @@ import { IcCheck, IcClock, IcTrophy } from "./Icons";
 
 export default function ChallengeCard({ ch, compact }) {
   const done = ch.status === "completed";
-  
+
   return (
     <div className={`ch-card ${done ? "ch-done" : "ch-going"}`}>
       <div className="ch-stripe" />
@@ -27,7 +27,11 @@ export default function ChallengeCard({ ch, compact }) {
         </div>
         <div className="ch-prog-row">
           <div className="ch-prog-track">
-            <AnimBar pct={ch.pct} color={done ? "#2D5016" : "#7B6226"} height={6} />
+            <AnimBar
+              pct={ch.pct}
+              color={done ? "#2DB8A0" : "#2D3F6B"}
+              height={6}
+            />
           </div>
           <span className="ch-prog-num">{ch.pct}%</span>
         </div>
