@@ -18,16 +18,6 @@ const NAV_ITEMS = [
   { id: 'settings',   label: 'Settings',   icon: Settings,        group: 'support' },
 ];
 
-// ─── Sage palette (all sidebar colours live here) ────────────────────────────
-// Base        : #3D6B47  deep muted sage
-// Mid         : #4E7A55  warm mid sage
-// Light       : #6B8F71  soft sage (same as accent in content area)
-// Text on bg  : rgba(255,255,255,0.85) primary  /  0.45 muted
-// Border      : rgba(255,255,255,0.10)
-// Glass hover : rgba(255,255,255,0.10)
-// Glass active: rgba(255,255,255,0.15)
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function Sidebar({ activeTab, onTabChange }) {
   const [collapsed, setCollapsed] = useState(false);
   const w = collapsed ? '72px' : '240px';
@@ -35,21 +25,13 @@ export default function Sidebar({ activeTab, onTabChange }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap');
 
-        /* ── Shell ── */
         .sb {
           width: ${w};
           min-height: 100vh;
-          /* Gradient: dark sage at top, slightly lighter in the middle, back deep at foot */
-          background:
-            linear-gradient(175deg,
-              #2E5237 0%,
-              #3D6B47 35%,
-              #4A7554 65%,
-              #365F40 100%
-            );
-          border-right: 1px solid rgba(255,255,255,0.08);
+          background: linear-gradient(175deg, #0D1829 0%, #1A2744 40%, #1E3055 70%, #111D38 100%);
+          border-right: 1px solid rgba(255,255,255,0.06);
           display: flex;
           flex-direction: column;
           transition: width 0.32s cubic-bezier(0.4,0,0.2,1);
@@ -58,53 +40,38 @@ export default function Sidebar({ activeTab, onTabChange }) {
           overflow: hidden;
         }
 
-        /* Soft radial glows — warm sage, not harsh */
         .sb::before {
           content: '';
           position: absolute; inset: 0; pointer-events: none;
           background:
-            radial-gradient(ellipse 90% 40% at 50% 0%,   rgba(180,220,185,0.10) 0%, transparent 70%),
-            radial-gradient(ellipse 60% 30% at 80% 100%, rgba(107,143,113,0.12) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 40% at 10% 50%,  rgba(255,255,255,0.03) 0%, transparent 60%);
+            radial-gradient(ellipse 100% 35% at 50% 0%, rgba(45,184,160,0.18) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 25% at 80% 100%, rgba(45,184,160,0.10) 0%, transparent 70%);
         }
 
-        /* Hairline top accent */
         .sb::after {
           content: '';
-          position: absolute; top: 0; left: 0; right: 0; height: 2px;
-          background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(180,220,185,0.45) 30%,
-            rgba(220,240,210,0.60) 50%,
-            rgba(180,220,185,0.45) 70%,
-            transparent 100%
-          );
+          position: absolute; top: 0; left: 0; right: 0; height: 2.5px;
+          background: linear-gradient(90deg, transparent 0%, rgba(45,184,160,0.55) 25%, #2DB8A0 50%, rgba(45,184,160,0.55) 75%, transparent 100%);
           pointer-events: none;
         }
 
-        /* ── Header ── */
         .sb-head {
           padding: ${collapsed ? '20px 16px' : '22px 20px'};
           display: flex; align-items: center; gap: 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.08);
+          border-bottom: 1px solid rgba(255,255,255,0.07);
           min-height: 76px;
           transition: padding .3s;
         }
 
         .sb-logo {
           width: 36px; height: 36px; flex-shrink: 0;
-          /* Glass logo tile */
-          background: rgba(255,255,255,0.18);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.25);
+          background: rgba(45,184,160,0.22);
+          border: 1.5px solid rgba(45,184,160,0.45);
           border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: 'Lexend', sans-serif;
           font-weight: 700; font-size: 13px; color: #fff;
-          letter-spacing: -.5px;
-          box-shadow:
-            0 2px 8px rgba(0,0,0,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.30);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.20);
         }
 
         .sb-brand {
@@ -115,44 +82,42 @@ export default function Sidebar({ activeTab, onTabChange }) {
           white-space: nowrap;
         }
         .sb-brand-name {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Lexend', sans-serif;
           font-weight: 700; font-size: 15px;
-          color: rgba(255,255,255,0.95);
-          letter-spacing: -.2px; line-height: 1.2;
+          color: #FFFFFF;
+          letter-spacing: -.3px; line-height: 1.2;
         }
         .sb-brand-sub {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 9.5px; font-weight: 600;
-          color: rgba(200,230,205,0.65);
-          letter-spacing: 1.2px; text-transform: uppercase;
-          margin-top: 1px;
+          font-family: 'Lexend', sans-serif;
+          font-size: 9.5px; font-weight: 500;
+          color: rgba(45,184,160,0.80);
+          letter-spacing: 1.4px; text-transform: uppercase;
+          margin-top: 2px;
         }
 
-        /* ── User ── */
         .sb-user {
           padding: ${collapsed ? '14px 12px' : '14px 20px'};
-          border-bottom: 1px solid rgba(255,255,255,0.08);
+          border-bottom: 1px solid rgba(255,255,255,0.07);
           display: flex; align-items: center; gap: 12px;
           transition: padding .3s;
         }
         .sb-avatar {
           width: 38px; height: 38px; flex-shrink: 0;
-          background: rgba(255,255,255,0.18);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(255,255,255,0.25);
+          background: rgba(45,184,160,0.25);
+          border: 1.5px solid rgba(45,184,160,0.45);
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: 'Lexend', sans-serif;
           font-weight: 700; font-size: 12px; color: #fff;
           position: relative;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
         }
         .sb-dot {
           position: absolute; bottom: 1px; right: 1px;
           width: 9px; height: 9px;
-          background: #A8D5A2;
+          background: #2DB8A0;
           border-radius: 50%;
-          border: 2px solid #3D6B47;
+          border: 2px solid #1A2744;
+          box-shadow: 0 0 0 1.5px rgba(45,184,160,0.4);
         }
         .sb-uinfo {
           overflow: hidden;
@@ -160,20 +125,19 @@ export default function Sidebar({ activeTab, onTabChange }) {
           transition: opacity .2s;
         }
         .sb-uname {
-          font-family: 'Instrument Sans', sans-serif;
-          font-weight: 600; font-size: 12.5px;
-          color: rgba(255,255,255,0.92);
+          font-family: 'Lexend', sans-serif;
+          font-weight: 600; font-size: 13px;
+          color: #FFFFFF;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .sb-uemail {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 10.5px; font-weight: 400;
-          color: rgba(200,230,205,0.55);
+          font-family: 'Lexend', sans-serif;
+          font-size: 10.5px; font-weight: 300;
+          color: rgba(45,184,160,0.70);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
           margin-top: 1px;
         }
 
-        /* ── Nav ── */
         .sb-nav {
           flex: 1; padding: 10px 8px;
           display: flex; flex-direction: column; gap: 1px;
@@ -182,10 +146,10 @@ export default function Sidebar({ activeTab, onTabChange }) {
         .sb-nav::-webkit-scrollbar { display: none; }
 
         .sb-section-label {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 9px; font-weight: 700;
-          letter-spacing: 1.6px; text-transform: uppercase;
-          color: rgba(200,230,205,0.45);
+          font-family: 'Lexend', sans-serif;
+          font-size: 9px; font-weight: 600;
+          letter-spacing: 1.8px; text-transform: uppercase;
+          color: rgba(45,184,160,0.60);
           padding: 10px 10px 4px;
           white-space: nowrap;
           opacity: ${collapsed ? 0 : 1};
@@ -197,148 +161,149 @@ export default function Sidebar({ activeTab, onTabChange }) {
           gap: 12px;
           padding: ${collapsed ? '11px' : '10px 12px'};
           border-radius: 10px; cursor: pointer;
-          transition: all .2s ease; position: relative;
+          transition: all .18s ease; position: relative;
           border: 1px solid transparent;
           justify-content: ${collapsed ? 'center' : 'flex-start'};
         }
         .sb-item:hover {
-          background: rgba(255,255,255,0.10);
-          border-color: rgba(255,255,255,0.12);
+          background: rgba(255,255,255,0.08);
+          border-color: rgba(255,255,255,0.10);
         }
-        .sb-item:hover .sb-icon   { color: rgba(255,255,255,0.85); }
-        .sb-item:hover .sb-ilabel { color: rgba(255,255,255,0.90); }
+        .sb-item:hover .sb-icon   { color: #FFFFFF; }
+        .sb-item:hover .sb-ilabel { color: #FFFFFF; font-weight: 500; }
 
-        /* Active — frosted glass tile */
         .sb-item.active {
-          background: rgba(255,255,255,0.16);
-          backdrop-filter: blur(8px);
-          border-color: rgba(255,255,255,0.20);
-          box-shadow:
-            0 2px 12px rgba(0,0,0,0.10),
-            inset 0 1px 0 rgba(255,255,255,0.22);
+          background: rgba(45,184,160,0.15);
+          border-color: rgba(45,184,160,0.25);
+          box-shadow: 0 2px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(45,184,160,0.18);
         }
         .sb-item.active::before {
-          content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
+          content: ''; position: absolute; left: 0; top: 16%; bottom: 16%;
           width: 3px;
-          background: rgba(220,245,215,0.85);
+          background: #2DB8A0;
           border-radius: 0 3px 3px 0;
+          box-shadow: 0 0 8px rgba(45,184,160,0.6);
         }
-        .sb-item.active .sb-icon   { color: rgba(255,255,255,0.95); }
-        .sb-item.active .sb-ilabel { color: rgba(255,255,255,0.95); font-weight: 600; }
+        .sb-item.active .sb-icon   { color: #2DB8A0; }
+        .sb-item.active .sb-ilabel { color: #FFFFFF; font-weight: 600; }
 
         .sb-icon {
           width: 17px; height: 17px; flex-shrink: 0;
-          color: rgba(255,255,255,0.45);
-          transition: color .2s;
+          color: rgba(255,255,255,0.60);
+          transition: color .18s;
         }
         .sb-ilabel {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.55);
+          font-family: 'Lexend', sans-serif;
+          font-size: 13px; font-weight: 400;
+          color: rgba(255,255,255,0.82);
           white-space: nowrap;
           opacity: ${collapsed ? 0 : 1};
-          transition: opacity .2s, color .2s;
+          transition: opacity .2s, color .18s, font-weight .18s;
+          letter-spacing: -0.1px;
         }
         .sb-badge {
           margin-left: auto; padding: 2px 7px;
-          background: rgba(255,255,255,0.18);
-          border: 1px solid rgba(255,255,255,0.22);
-          color: rgba(255,255,255,0.90);
+          background: rgba(45,184,160,0.22);
+          border: 1px solid rgba(45,184,160,0.40);
+          color: #2DB8A0;
           font-size: 9px; font-weight: 700;
-          font-family: 'Instrument Sans', sans-serif;
+          font-family: 'Lexend', sans-serif;
           border-radius: 20px;
           opacity: ${collapsed ? 0 : 1};
           transition: opacity .2s;
         }
 
-        /* Collapsed tooltip */
         .sb-tip {
           display: ${collapsed ? 'block' : 'none'};
           position: absolute; left: 62px;
-          background: rgba(46,82,55,0.96);
+          background: rgba(13,24,41,0.97);
           backdrop-filter: blur(10px);
-          color: rgba(255,255,255,0.90);
-          font-size: 11.5px;
-          font-family: 'Instrument Sans', sans-serif;
-          padding: 5px 10px; border-radius: 7px; white-space: nowrap;
-          border: 1px solid rgba(255,255,255,0.12);
+          color: #FFFFFF;
+          font-size: 12px;
+          font-family: 'Lexend', sans-serif;
+          font-weight: 500;
+          padding: 5px 11px; border-radius: 7px; white-space: nowrap;
+          border: 1px solid rgba(45,184,160,0.22);
           pointer-events: none; opacity: 0; transition: opacity .15s;
           z-index: 100;
-          box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.30);
         }
         .sb-item:hover .sb-tip { opacity: 1; }
 
-        /* ── Footer ── */
         .sb-foot {
           padding: 10px 8px;
-          border-top: 1px solid rgba(255,255,255,0.08);
+          border-top: 1px solid rgba(255,255,255,0.07);
           display: flex; flex-direction: column; gap: 1px;
         }
         .sb-fitem {
           display: flex; align-items: center; gap: 12px;
           padding: ${collapsed ? '10px' : '9px 12px'};
           border-radius: 10px; cursor: pointer;
-          color: rgba(255,255,255,0.38);
-          transition: all .2s;
+          color: rgba(255,255,255,0.50);
+          transition: all .18s;
           border: 1px solid transparent;
           justify-content: ${collapsed ? 'center' : 'flex-start'};
           position: relative;
         }
         .sb-fitem:hover {
-          background: rgba(255,255,255,0.08);
-          color: rgba(255,255,255,0.70);
+          background: rgba(255,255,255,0.07);
+          color: rgba(255,255,255,0.90);
         }
         .sb-fitem.danger:hover {
-          background: rgba(220,100,80,0.12);
-          color: rgba(240,160,140,0.90);
-          border-color: rgba(220,100,80,0.15);
+          background: rgba(220,70,70,0.10);
+          color: rgba(255,140,130,0.95);
+          border-color: rgba(220,70,70,0.15);
         }
         .sb-fitem svg { width: 15px; height: 15px; flex-shrink: 0; }
         .sb-fitem span {
-          font-size: 12.5px;
-          font-family: 'Instrument Sans', sans-serif;
+          font-size: 13px;
+          font-family: 'Lexend', sans-serif;
+          font-weight: 400;
+          color: rgba(255,255,255,0.65);
           white-space: nowrap;
           opacity: ${collapsed ? 0 : 1};
-          transition: opacity .2s;
+          transition: opacity .2s, color .18s;
         }
+        .sb-fitem:hover span { color: rgba(255,255,255,0.92); }
+        .sb-fitem.danger:hover span { color: rgba(255,140,130,0.95); }
+
         .sb-ftip {
           display: ${collapsed ? 'block' : 'none'};
           position: absolute; left: 62px;
-          background: rgba(46,82,55,0.96);
+          background: rgba(13,24,41,0.97);
           backdrop-filter: blur(10px);
-          color: rgba(255,255,255,0.90);
-          font-size: 11.5px;
-          font-family: 'Instrument Sans', sans-serif;
-          padding: 5px 10px; border-radius: 7px; white-space: nowrap;
-          border: 1px solid rgba(255,255,255,0.12);
+          color: #FFFFFF;
+          font-size: 12px;
+          font-family: 'Lexend', sans-serif;
+          font-weight: 500;
+          padding: 5px 11px; border-radius: 7px; white-space: nowrap;
+          border: 1px solid rgba(45,184,160,0.22);
           pointer-events: none; opacity: 0; transition: opacity .15s;
-          z-index: 100; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+          z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.30);
         }
         .sb-fitem:hover .sb-ftip { opacity: 1; }
 
-        /* ── Collapse toggle ── */
         .sb-toggle {
           position: absolute; right: -13px; top: 50%; transform: translateY(-50%);
           width: 26px; height: 26px;
-          background: #3D6B47;
-          border: 1px solid rgba(255,255,255,0.20);
+          background: #1A2744;
+          border: 1.5px solid rgba(45,184,160,0.35);
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; color: rgba(255,255,255,0.60);
+          cursor: pointer; color: rgba(255,255,255,0.70);
           transition: all .2s;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.30);
           z-index: 20;
         }
         .sb-toggle:hover {
-          background: rgba(255,255,255,0.22);
+          background: rgba(45,184,160,0.22);
           color: #fff;
-          border-color: rgba(255,255,255,0.35);
-          box-shadow: 0 0 12px rgba(180,220,185,0.25);
+          border-color: rgba(45,184,160,0.60);
+          box-shadow: 0 0 14px rgba(45,184,160,0.25);
         }
       `}</style>
 
       <aside className="sb">
-        {/* Header */}
         <div className="sb-head">
           <div className="sb-logo">IJ</div>
           <div className="sb-brand">
@@ -347,7 +312,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
           </div>
         </div>
 
-        {/* User */}
         <div className="sb-user">
           <div className="sb-avatar">
             SJ<div className="sb-dot" />
@@ -358,7 +322,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="sb-nav">
           <div className="sb-section-label">Main Menu</div>
           {NAV_ITEMS.filter(i => i.group === 'main').map(({ id, label, icon: Icon, badge }) => (
@@ -388,7 +351,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
           ))}
         </nav>
 
-        {/* Footer */}
         <div className="sb-foot">
           <div className="sb-fitem">
             <Bell /><span>Notifications</span>
@@ -400,7 +362,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
           </div>
         </div>
 
-        {/* Collapse toggle */}
         <div className="sb-toggle" onClick={() => setCollapsed(!collapsed)}>
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </div>
