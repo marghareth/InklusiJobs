@@ -1,12 +1,10 @@
+"use client";
+
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import AccessibilityPanel from "@/components/accessibility/AccessibilityPanel";
 import SkipLink from "@/components/accessibility/SkipLink";
-
-export const metadata = {
-  title: "About InklusiJobs — Our Philosophy & Mission",
-  description: "Why InklusiJobs exists, what we stand for, and why inclusive employment matters for the Philippines.",
-};
+import OpenModalButton from "@/components/landing/OpenModalButton";
 
 const painPoints = [
   { icon: "🔄", title: "The Experience Trap", desc: "Employers require prior experience for entry-level roles. PWDs can't get experience because they aren't hired. They aren't hired because they lack experience. It's a cycle that traps capable people — and we're breaking it." },
@@ -133,16 +131,18 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* Vision */}
+          {/* Vision — CTA uses OpenModalButton instead of broken <a href="/"> */}
           <div style={{ background: "#F0EDE8", border: "1.5px solid #C8D8E0", borderRadius: 20, padding: "56px 44px", textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 20 }}>🌏</div>
             <h2 style={{ fontFamily: "Arial, sans-serif", fontWeight: 800, fontSize: 26, color: "#1A1A2E", marginBottom: 16 }}>Our Vision</h2>
             <p style={{ fontFamily: "Arial, sans-serif", fontSize: 16, color: "#4A6070", maxWidth: 620, margin: "0 auto 36px", lineHeight: 1.85 }}>
               A Philippines where disability is never a barrier to economic participation — where every Person with a Disability has access to the tools, verification, and opportunities they deserve to build a career that reflects their true capability.
             </p>
-            <a href="/" style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 14, background: "#0F5C6E", color: "#fff", padding: "14px 36px", borderRadius: 12, textDecoration: "none", display: "inline-block" }}>
+            <OpenModalButton
+              style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: 14, background: "#0F5C6E", color: "#fff", padding: "14px 36px", borderRadius: 12, border: "none", cursor: "pointer" }}
+            >
               Join InklusiJobs →
-            </a>
+            </OpenModalButton>
           </div>
         </div>
       </main>
