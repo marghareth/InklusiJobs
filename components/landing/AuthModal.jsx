@@ -1,18 +1,31 @@
 "use client";
 
 /**
- * AuthModal.jsx  —  DEMO VERSION
- * Auth backed by localStorage (no Supabase required for hackathon demo).
+ * AuthModal.jsx — Firebase Auth Version
+ * Replaces localStorage auth with Firebase Email/Password auth.
  * Location: components/landing/AuthModal.jsx
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import EmailVerification from "./EmailVerification";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
+
+// ─── Google Provider (singleton) ─────────────────────────────────────────────
+const googleProvider = new GoogleAuthProvider();
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAuthModal() {
-  const [isOpen, setIsOpen]   = useState(false);
-  const [tab, setTab]         = useState("signin");
+  const [isOpen, setIsOpen] = useState(false);
+  const [tab, setTab]       = useState("signin");
   const open  = useCallback((defaultTab = "signin") => { setTab(defaultTab); setIsOpen(true); }, []);
   const close = useCallback(() => setIsOpen(false), []);
   return { isOpen, tab, open, close };
@@ -222,7 +235,7 @@ const css = `
   }
 `;
 
-// ─── Icons ─────────────────────────────────────────────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const EyeIcon = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -247,15 +260,39 @@ const FacebookIcon = () => (
   </svg>
 );
 
-// ─── localStorage helpers ─────────────────────────────────────────────────────
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem("ij_users") || "[]"); } catch { return []; }
+// ─── Firebase error messages → human-friendly ─────────────────────────────────
+function friendlyError(code) {
+  switch (code) {
+    case "auth/email-already-in-use":    return "An account with this email already exists. Please sign in instead.";
+    case "auth/invalid-email":           return "Please enter a valid email address.";
+    case "auth/weak-password":           return "Password must be at least 6 characters.";
+    case "auth/user-not-found":          return "No account found with that email. Please sign up first.";
+    case "auth/wrong-password":          return "Incorrect password. Please try again.";
+    case "auth/invalid-credential":      return "Incorrect email or password. Please try again.";
+    case "auth/too-many-requests":       return "Too many attempts. Please wait a moment and try again.";
+    case "auth/network-request-failed":  return "Network error. Please check your connection.";
+    default:                             return "Something went wrong. Please try again.";
+  }
 }
-function saveUsers(users) {
-  localStorage.setItem("ij_users", JSON.stringify(users));
-}
-function setCurrentUser(user) {
-  localStorage.setItem("ij_current_user", JSON.stringify(user));
+
+// ─── Google Sign-In (shared by both forms) ───────────────────────────────────
+async function handleGoogleSignIn() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return { user: result.user, error: null };
+  } catch (err) {
+    // User closed the popup — not a real error, just ignore it
+    if (err.code === "auth/user-cancelled" || err.code === "auth/popup-closed-by-user") {
+      return { user: null, error: null };
+    }
+    // Popup was blocked by browser — fall back to redirect
+    if (err.code === "auth/popup-blocked") {
+      await signInWithRedirect(auth, googleProvider);
+      return { user: null, error: null }; // page will redirect, result handled on return
+    }
+    console.error("Google sign-in error:", err.code, err.message);
+    return { user: null, error: friendlyError(err.code) };
+  }
 }
 
 // ─── SignInForm ───────────────────────────────────────────────────────────────
@@ -264,7 +301,7 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -273,23 +310,14 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
     const email = data.get("email")?.trim().toLowerCase();
     const pwd   = data.get("password");
 
-    const users = getUsers();
-    const found = users.find((u) => u.email === email);
-
-    setTimeout(() => {
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, pwd);
+      onSignIn(credential.user);
+    } catch (err) {
+      setError(friendlyError(err.code));
+    } finally {
       setLoading(false);
-      if (!found) {
-        setError("No account found with that email. Please sign up first.");
-        return;
-      }
-      if (found.password !== pwd) {
-        setError("Incorrect password. Please try again.");
-        return;
-      }
-      // Save session
-      setCurrentUser(found);
-      onSignIn(found);
-    }, 600);
+    }
   };
 
   return (
@@ -324,7 +352,13 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
         </button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
+          <button type="button" className="am-social-btn" disabled={loading} onClick={async () => {
+            setLoading(true); setError("");
+            const { user, error: err } = await handleGoogleSignIn();
+            setLoading(false);
+            if (err) { setError(err); return; }
+            if (user) onSignIn(user);
+          }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
       </form>
@@ -337,12 +371,10 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
-  const [warning, setWarning] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setWarning("");
     setLoading(true);
 
     const data      = new FormData(e.target);
@@ -351,30 +383,19 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
     const email     = data.get("email")?.trim().toLowerCase();
     const pwd       = data.get("password");
 
-    const users = getUsers();
-
-    // ✅ Check for duplicate email
-    if (users.find((u) => u.email === email)) {
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, pwd);
+      // Save display name to Firebase profile
+      await updateProfile(credential.user, {
+        displayName: `${firstName} ${lastName}`,
+      });
+      onSignUp(credential.user);
+    } catch (err) {
+      console.error("Firebase signup error:", err.code, err.message);
+      setError(friendlyError(err.code));
+    } finally {
       setLoading(false);
-      setWarning("An account with this email already exists. Please log in instead.");
-      return;
     }
-
-    setTimeout(() => {
-      setLoading(false);
-      const newUser = {
-        id:        `user_${Date.now()}`,
-        email,
-        password:  pwd,
-        firstName,
-        lastName,
-        role:      role || "worker",
-        createdAt: new Date().toISOString(),
-      };
-      saveUsers([...users, newUser]);
-      setCurrentUser(newUser);
-      onSignUp(newUser);
-    }, 600);
   };
 
   return (
@@ -385,8 +406,7 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
         Already have an account?{" "}
         <button type="button" onClick={() => onSwitchTab("signin")}>Sign in</button>
       </p>
-      {error   && <div className="am-error">{error}</div>}
-      {warning && <div className="am-warning">⚠️ {warning}</div>}
+      {error && <div className="am-error">{error}</div>}
       <form className="am-form" onSubmit={handleSubmit}>
         <div className="am-name-row">
           <div className="am-field">
@@ -416,7 +436,15 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
         </button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
+          <button type="button" className="am-social-btn" disabled={loading} onClick={async () => {
+            setLoading(true); setError("");
+            // Save role BEFORE redirect so we know where to send them after Google auth
+            localStorage.setItem("ij_role", role || "worker");
+            const { user, error: err } = await handleGoogleSignIn();
+            setLoading(false);
+            if (err) { setError(err); return; }
+            if (user) onSignUp(user);
+          }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
       </form>
@@ -433,10 +461,10 @@ export default function AuthModal({
   onSignUpComplete,
   onSignInComplete,
 }) {
-  const [tab, setTab]         = useState(defaultTab);
-  const overlayRef            = useRef(null);
-  const modalRef              = useRef(null);
-  const closeRef              = useRef(null);
+  const [tab, setTab] = useState(defaultTab);
+  const overlayRef    = useRef(null);
+  const modalRef      = useRef(null);
+  const closeRef      = useRef(null);
 
   useEffect(() => { if (isOpen) setTab(defaultTab); }, [isOpen, defaultTab]);
   useEffect(() => { document.body.style.overflow = isOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [isOpen]);
@@ -449,14 +477,31 @@ export default function AuthModal({
 
   const handleOverlay = useCallback((e) => { if (e.target === overlayRef.current) onClose(); }, [onClose]);
 
-  // Sign in complete — go to correct dashboard, NO profile creation
-  const handleSignIn = (user) => {
-    onSignInComplete?.(user.role);
+  const router = useRouter();
+
+  // Save role to localStorage so we can read it after Google redirect too
+  const redirectByRole = (userRole) => {
+    const resolvedRole = userRole || role || "worker";
+    localStorage.setItem("ij_role", resolvedRole);
+    onClose?.();
+    if (resolvedRole === "employer") {
+      router.push("/employer/dashboard");
+    } else {
+      router.push("/dashboard/worker");
+    }
   };
 
-  // Sign up complete — go to correct dashboard, NO profile creation
-  const handleSignUp = (user) => {
-    onSignUpComplete?.(user.role);
+  const handleSignIn = (firebaseUser) => {
+    // On sign in, read saved role (set during signup)
+    const savedRole = localStorage.getItem("ij_role") || role || "worker";
+    onSignInComplete?.(savedRole);
+    redirectByRole(savedRole);
+  };
+
+  const handleSignUp = (firebaseUser) => {
+    // On sign up, role comes from the modal prop (set by RoleSelector)
+    onSignUpComplete?.(role || "worker");
+    redirectByRole(role || "worker");
   };
 
   if (!isOpen) return null;
@@ -482,8 +527,8 @@ export default function AuthModal({
               <button className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign Up</button>
             </div>
             {tab === "signin"
-              ? <SignInForm  role={role} onSignIn={handleSignIn}   onSwitchTab={setTab} />
-              : <SignUpForm  role={role} onSignUp={handleSignUp}   onSwitchTab={setTab} />
+              ? <SignInForm  role={role} onSignIn={handleSignIn}  onSwitchTab={setTab} />
+              : <SignUpForm  role={role} onSignUp={handleSignUp}  onSwitchTab={setTab} />
             }
           </div>
         </div>
