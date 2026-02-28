@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 const steps = [
   {
     number: "01",
@@ -130,8 +132,23 @@ function MatchMock() {
 const visuals = { roadmap: RoadmapMock, portfolio: PortfolioMock, match: MatchMock };
 
 export default function HowItWorksSection() {
+  const [arrowPos, setArrowPos] = useState(0);
+
+  useEffect(() => {
+    let frame;
+    let start;
+    const animate = (ts) => {
+      if (!start) start = ts;
+      const t = (ts - start) / 1000;
+      setArrowPos(Math.sin(t * Math.PI * 2 / 1.1) * 5 + 5);
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   return (
-    <section style={{ background: "#F0EDE8", padding: "100px 0" }} aria-labelledby="how-it-works-heading">
+    <section id="how-it-works" style={{ background: "#F0EDE8", padding: "100px 0" }} aria-labelledby="how-it-works-heading">
 
       {/* Section header */}
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 60px", marginBottom: 80 }}>
@@ -200,8 +217,20 @@ export default function HowItWorksSection() {
               Join 500+ PWD professionals already on the platform.
             </p>
           </div>
-          <button style={{ padding: "14px 32px", borderRadius: 14, background: "#34D399", border: "none", color: "#0A3D2E", fontFamily: "Arial, Helvetica, sans-serif", fontSize: 15, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(52,211,153,0.35)" }}>
-            Start Your Journey →
+          <button
+            style={{
+              padding: "14px 32px", borderRadius: 14, background: "#34D399", border: "none",
+              color: "#0A3D2E", fontFamily: "Arial, Helvetica, sans-serif", fontSize: 15,
+              fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+              boxShadow: "0 4px 20px rgba(52,211,153,0.35)",
+              display: "inline-flex", alignItems: "center", gap: 10,
+              transition: "transform 0.2s, box-shadow 0.2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(52,211,153,0.5)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(52,211,153,0.35)"; }}
+          >
+            Start Your Journey
+            <span aria-hidden="true" style={{ display: "inline-block", fontSize: 18, transform: `translateX(${arrowPos}px)` }}>→</span>
           </button>
         </div>
       </div>

@@ -16,21 +16,7 @@ const DEFAULT_SETTINGS = {
   colorFilter:    "none",
 };
 
-const SVG_FILTERS = `
-  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
-    <defs>
-      <filter id="a11y-protanopia">
-        <feColorMatrix type="matrix" values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/>
-      </filter>
-      <filter id="a11y-deuteranopia">
-        <feColorMatrix type="matrix" values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/>
-      </filter>
-      <filter id="a11y-tritanopia">
-        <feColorMatrix type="matrix" values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/>
-      </filter>
-    </defs>
-  </svg>
-`;
+const SVG_FILTERS = ""; // No longer using SVG filters — using CSS classes instead
 
 function settingsReducer(state, action) {
   switch (action.type) {
@@ -75,8 +61,15 @@ function useApplySettings(settings) {
     root.classList.toggle("a11y-large-cursor",    settings.largeCursor);
     root.classList.toggle("a11y-reduce-motion",   settings.reduceMotion);
     root.classList.toggle("a11y-reading-mode",    settings.readingMode);
-    const mainEl = document.getElementById("a11y-filter-target") || document.body;
-    mainEl.style.filter = settings.colorFilter !== "none" ? `url(#a11y-${settings.colorFilter})` : "";
+    // Apply color filter via CSS class on html, targets #a11y-cf-wrap (not body)
+    document.documentElement.classList.remove("a11y-cf-protanopia", "a11y-cf-deuteranopia", "a11y-cf-tritanopia");
+    if (settings.colorFilter !== "none") {
+      document.documentElement.classList.add(`a11y-cf-${settings.colorFilter}`);
+    } else {
+      // Explicitly clear any leftover filter on main content
+      const wrap = document.getElementById("a11y-cf-wrap");
+      if (wrap) wrap.style.filter = "";
+    }
   }, [settings]);
 }
 
@@ -89,7 +82,7 @@ function useGlobalStyles() {
       .a11y-dyslexia *, .a11y-dyslexia *::before, .a11y-dyslexia *::after {
         font-family: 'Lexend', sans-serif !important;
       }
-      .a11y-high-contrast body { background: #000 !important; color: #fff !important; }
+      .a11y-high-contrast body { background: #000 !important; color: #fff !important; overflow: auto !important; }
       .a11y-high-contrast *:not([class*="a11y-panel"]):not(nav):not(nav *) {
         background-color: #000 !important; color: #fff !important; border-color: #fff !important;
       }
@@ -109,11 +102,32 @@ function useGlobalStyles() {
       }
       .a11y-tts-highlight { background: #fef08a !important; color: #1a1a1a !important; border-radius: 3px; }
       @keyframes a11ySlideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+      /* Color vision — applied via class on a wrapper div, not body */
+      .a11y-cf-protanopia   #a11y-cf-wrap { filter: url(#a11y-p) !important; }
+      .a11y-cf-deuteranopia #a11y-cf-wrap { filter: url(#a11y-d) !important; }
+      .a11y-cf-tritanopia   #a11y-cf-wrap { filter: url(#a11y-t) !important; }
+      #a11y-cf-wrap { min-height: 100%; }
     `;
     document.head.appendChild(style);
-    const svgWrap = document.createElement("div");
-    svgWrap.innerHTML = SVG_FILTERS;
-    document.body.prepend(svgWrap.firstElementChild);
+    // Inject SVG filters into a fixed, invisible element (not body prepend)
+    if (!document.getElementById("a11y-svg-filters")) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.id = "a11y-svg-filters";
+      svg.setAttribute("style", "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none");
+      svg.setAttribute("aria-hidden", "true");
+      svg.innerHTML = `<defs>
+        <filter id="a11y-p"><feColorMatrix type="matrix" values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/></filter>
+        <filter id="a11y-d"><feColorMatrix type="matrix" values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/></filter>
+        <filter id="a11y-t"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/></filter>
+      </defs>`;
+      document.body.appendChild(svg);
+    }
+    // Wrap page content in a div we can safely filter
+    if (!document.getElementById("a11y-cf-wrap")) {
+      const main = document.getElementById("main-content");
+      if (main) { main.id = "a11y-cf-wrap"; }
+    }
     return () => { document.getElementById("a11y-global-styles")?.remove(); };
   }, []);
 }
@@ -130,10 +144,19 @@ function useDrag() {
 
   const onMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
-    dragging.current = true;
     const rect = btnRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
     startOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    e.preventDefault();
+    // Don't set dragging=true yet — only start drag on actual movement
+    const onFirstMove = () => {
+      dragging.current = true;
+      window.removeEventListener("mousemove", onFirstMove);
+    };
+    const onCancel = () => {
+      window.removeEventListener("mousemove", onFirstMove);
+      window.removeEventListener("mouseup", onCancel);
+    };
+    window.addEventListener("mousemove", onFirstMove);
+    window.addEventListener("mouseup", onCancel);
   }, []);
 
   const onTouchStart = useCallback((e) => {
@@ -317,14 +340,22 @@ export default function AccessibilityPanel() {
     return () => window.removeEventListener("keydown", handler);
   }, [settings.fontSize, tts, dispatch]);
 
-  // Close on outside click
+  // Close on outside click + ensure body scroll is never locked
   useEffect(() => {
+    // Always ensure body can scroll
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
     if (!open) return;
     const handler = (e) => {
       if (!panelRef.current?.contains(e.target) && !triggerRef.current?.contains(e.target)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      // Ensure scroll is restored when panel closes
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
   }, [open]);
 
   if (!mounted) return null;
