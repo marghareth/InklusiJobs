@@ -1,6 +1,9 @@
-'use client';
+// components/dashboard/worker/Sidebar.jsx
+"use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Map, Zap, Briefcase, Search,
   MessageSquare, Settings, ChevronLeft, ChevronRight,
@@ -8,19 +11,23 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, group: 'main' },
-  { id: 'roadmap',    label: 'Roadmap',    icon: Map,             group: 'main' },
-  { id: 'challenges', label: 'Challenges', icon: Zap,             group: 'main' },
-  { id: 'portfolio',  label: 'Portfolio',  icon: Briefcase,       group: 'main' },
-  { id: 'tracker',    label: 'Tracker',    icon: BarChart2,       group: 'main' },
-  { id: 'jobs',       label: 'Jobs',       icon: Search,          group: 'main', badge: '3' },
-  { id: 'feedback',   label: 'Feedback',   icon: MessageSquare,   group: 'support' },
-  { id: 'settings',   label: 'Settings',   icon: Settings,        group: 'support' },
+  { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard/worker', group: 'main' },
+  { id: 'roadmap',    label: 'Roadmap',    icon: Map,             path: '/roadmap', group: 'main' },
+  { id: 'challenges', label: 'Challenges', icon: Zap,             path: '/challenges', group: 'main' },
+  { id: 'portfolio',  label: 'Portfolio',  icon: Briefcase,       path: '/dashboard/worker/portfolio', group: 'main' },
+  { id: 'tracker',    label: 'Tracker',    icon: BarChart2,       path: '/dashboard/worker/tracker', group: 'main' },
+  { id: 'jobs',       label: 'Jobs',       icon: Search,          path: '/jobs', group: 'main', badge: '3' },
+  { id: 'feedback',   label: 'Feedback',   icon: MessageSquare,   path: '/feedback', group: 'support' },
+  { id: 'settings',   label: 'Settings',   icon: Settings,        path: '/dashboard/worker/settings', group: 'support' },
 ];
 
-export default function Sidebar({ activeTab, onTabChange }) {
+export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
   const w = collapsed ? '72px' : '240px';
+
+  // Check if current path matches item path
+  const isActive = (path) => pathname === path;
 
   return (
     <>
@@ -164,6 +171,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
           transition: all .18s ease; position: relative;
           border: 1px solid transparent;
           justify-content: ${collapsed ? 'center' : 'flex-start'};
+          text-decoration: none;
         }
         .sb-item:hover {
           background: rgba(255,255,255,0.08);
@@ -244,6 +252,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
           border: 1px solid transparent;
           justify-content: ${collapsed ? 'center' : 'flex-start'};
           position: relative;
+          text-decoration: none;
         }
         .sb-fitem:hover {
           background: rgba(255,255,255,0.07);
@@ -304,13 +313,13 @@ export default function Sidebar({ activeTab, onTabChange }) {
       `}</style>
 
       <aside className="sb">
-        <div className="sb-head">
+        <Link href="/dashboard/worker" className="sb-head" style={{ textDecoration: 'none' }}>
           <div className="sb-logo">IJ</div>
           <div className="sb-brand">
             <div className="sb-brand-name">InklusiJobs</div>
             <div className="sb-brand-sub">AI Platform</div>
           </div>
-        </div>
+        </Link>
 
         <div className="sb-user">
           <div className="sb-avatar">
@@ -324,42 +333,42 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
         <nav className="sb-nav">
           <div className="sb-section-label">Main Menu</div>
-          {NAV_ITEMS.filter(i => i.group === 'main').map(({ id, label, icon: Icon, badge }) => (
-            <div
+          {NAV_ITEMS.filter(i => i.group === 'main').map(({ id, label, icon: Icon, path, badge }) => (
+            <Link
               key={id}
-              className={`sb-item${activeTab === id ? ' active' : ''}`}
-              onClick={() => onTabChange(id)}
+              href={path}
+              className={`sb-item${isActive(path) ? ' active' : ''}`}
             >
               <Icon className="sb-icon" />
               <span className="sb-ilabel">{label}</span>
               {badge && <span className="sb-badge">{badge}</span>}
               <div className="sb-tip">{label}</div>
-            </div>
+            </Link>
           ))}
 
           <div className="sb-section-label" style={{ marginTop: 8 }}>Support</div>
-          {NAV_ITEMS.filter(i => i.group === 'support').map(({ id, label, icon: Icon }) => (
-            <div
+          {NAV_ITEMS.filter(i => i.group === 'support').map(({ id, label, icon: Icon, path }) => (
+            <Link
               key={id}
-              className={`sb-item${activeTab === id ? ' active' : ''}`}
-              onClick={() => onTabChange(id)}
+              href={path}
+              className={`sb-item${isActive(path) ? ' active' : ''}`}
             >
               <Icon className="sb-icon" />
               <span className="sb-ilabel">{label}</span>
               <div className="sb-tip">{label}</div>
-            </div>
+            </Link>
           ))}
         </nav>
 
         <div className="sb-foot">
-          <div className="sb-fitem">
+          <Link href="/notifications" className="sb-fitem">
             <Bell /><span>Notifications</span>
             <div className="sb-ftip">Notifications</div>
-          </div>
-          <div className="sb-fitem danger">
+          </Link>
+          <Link href="/api/auth/signout" className="sb-fitem danger">
             <LogOut /><span>Sign Out</span>
             <div className="sb-ftip">Sign Out</div>
-          </div>
+          </Link>
         </div>
 
         <div className="sb-toggle" onClick={() => setCollapsed(!collapsed)}>

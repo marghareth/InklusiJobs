@@ -1,922 +1,935 @@
-//app/employer/dashboard/page.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
-// ── Theme definitions (matches onboarding Step 5 picker) ─────────────────────
-const THEMES = {
-  navy:  { sidebar: "#1A2744", sidebarEnd: "#1E2F55", accent: "#7286D3", accentLight: "#EEF1FF" },
-  slate: { sidebar: "#334155", sidebarEnd: "#1E293B", accent: "#94A3B8", accentLight: "#F1F5F9" },
-  teal:  { sidebar: "#0F4C4C", sidebarEnd: "#063232", accent: "#2DD4BF", accentLight: "#F0FDFA" },
-  rose:  { sidebar: "#881337", sidebarEnd: "#500724", accent: "#FB7185", accentLight: "#FFF1F2" },
+/* ─── THEME ──────────────────────────────────────────────────────────────── */
+const T = {
+  teal:       "#0F5C6E",
+  tealMid:    "#1A8FA5",
+  tealLight:  "#E6F4F6",
+  tealGlow:   "rgba(15,92,110,0.12)",
+  navy:       "#0A2A35",
+  navyLight:  "#122F3D",
+  bodyText:   "#1E3A45",
+  muted:      "#6B8A95",
+  border:     "#D0E4E8",
+  bg:         "#F0F6F8",
+  white:      "#FFFFFF",
+  success:    "#059669",
+  successBg:  "#ECFDF5",
+  warning:    "#D97706",
+  warningBg:  "#FFFBEB",
+  danger:     "#DC2626",
+  accent:     "#2D6A8F",
 };
 
-const BASE = {
-  bg: "#F9F8F6", card: "#FFFFFF",
-  success: "#16A34A", successBg: "#DCFCE7",
-  warning: "#D97706", warningBg: "#FEF3C7",
-  error: "#DC2626", errorBg: "#FEE2E2",
-  navy: "#1A2744", muted: "#6B7280", border: "#E5E7EB",
-};
-
-// ── Load employer profile from localStorage ──────────────────────────────────
-const loadProfile = () => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("inklusijobs_employer");
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-};
-
-// ── Icons ────────────────────────────────────────────────────────────────────
-const PATHS = {
-  overview:  <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
-  jobs:      <><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></>,
-  candidates:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
-  portfolio: <><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></>,
-  messages:  <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
-  analytics: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
-  feedback:  <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
-  profile:   <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
-  settings:  <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
-  bell:      <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
-  chevLeft:  <><polyline points="15 18 9 12 15 6"/></>,
-  chevRight: <><polyline points="9 18 15 12 9 6"/></>,
-  chevDown:  <><polyline points="6 9 12 15 18 9"/></>,
-  plus:      <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
-  search:    <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
-  filter:    <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
-  star:      <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
-  check:     <><polyline points="20 6 9 17 4 12"/></>,
-  clock:     <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-  send:      <><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></>,
-  eye:       <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>,
-  trending:  <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
-  award:     <><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></>,
-  arrowUp:   <><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></>,
-};
-
-const Icon = ({ name, size = 18, color = "currentColor" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {PATHS[name]}
-  </svg>
-);
-
-const NAV = [
-  { id: "overview",   label: "Overview",         icon: "overview"   },
-  { id: "jobs",       label: "Job Listings",      icon: "jobs"       },
-  { id: "candidates", label: "Candidate Matches", icon: "candidates" },
-  { id: "portfolio",  label: "Portfolio Reviews", icon: "portfolio"  },
-  { id: "messages",   label: "Messages",          icon: "messages"   },
-  { id: "analytics",  label: "Analytics",         icon: "analytics"  },
-  { id: "feedback",   label: "Feedback",          icon: "feedback"   },
-  { id: "profile",    label: "Company Profile",   icon: "profile"    },
-  { id: "settings",   label: "Settings",          icon: "settings"   },
+/* ─── MOCK DATA (filtered by onboarding answers) ─────────────────────────── */
+const ALL_CANDIDATES = [
+  { id:1,  name:"Maria Santos",    initials:"MS", role:"Software Developer",    match:97, skills:["JavaScript","React","Accessibility"], disability:"Visual Impairment",    exp:"3 yrs",  status:"New",         budget:"₱80k–₱150k" },
+  { id:2,  name:"Juan dela Cruz",  initials:"JD", role:"Data Analyst",          match:93, skills:["Python","SQL","Excel"],              disability:"Hearing Impairment",   exp:"2 yrs",  status:"Reviewed",    budget:"₱40k–₱80k"  },
+  { id:3,  name:"Ana Reyes",       initials:"AR", role:"Content Writer",        match:89, skills:["Content Writing","SEO","Canva"],     disability:"Mobility Disability",  exp:"4 yrs",  status:"New",         budget:"₱20k–₱40k"  },
+  { id:4,  name:"Pedro Lim",       initials:"PL", role:"Customer Support",      match:85, skills:["Customer Service","Communication"],  disability:"Speech Impairment",    exp:"1 yr",   status:"Shortlisted", budget:"₱20k–₱40k"  },
+  { id:5,  name:"Rosa Gomez",      initials:"RG", role:"HR Manager",            match:83, skills:["HR Management","Project Management"],disability:"Chronic Illness",      exp:"5 yrs",  status:"New",         budget:"₱80k–₱150k" },
+  { id:6,  name:"Carlo Mendoza",   initials:"CM", role:"Designer",              match:80, skills:["Figma","Canva","Social Media"],      disability:"Autism Spectrum",      exp:"2 yrs",  status:"Reviewed",    budget:"₱40k–₱80k"  },
+  { id:7,  name:"Liza Castillo",   initials:"LC", role:"DevOps Engineer",       match:76, skills:["AWS","Node.js","TypeScript"],        disability:"ADHD",                 exp:"3 yrs",  status:"New",         budget:"₱80k–₱150k" },
+  { id:8,  name:"Ben Torres",      initials:"BT", role:"Product Manager",       match:74, skills:["Project Management","Communication"],"disability":"Physical Disability", exp:"6 yrs",  status:"Shortlisted", budget:"₱150k+"     },
 ];
 
-// ── Shared components ────────────────────────────────────────────────────────
-const Badge = ({ label, type = "default", accent, accentLight }) => {
-  const map = {
-    default: { bg: accentLight || "#EFF6FF", color: accent || BASE.navy, border: "#BFDBFE" },
-    success: { bg: BASE.successBg, color: BASE.success, border: "#86EFAC" },
-    warning: { bg: BASE.warningBg, color: BASE.warning, border: "#FCD34D" },
-    error:   { bg: BASE.errorBg,   color: BASE.error,   border: "#FCA5A5" },
-    navy:    { bg: accentLight || "#EEF1FF", color: BASE.navy, border: accent || "#7286D3" },
-  };
-  const s = map[type] || map.default;
-  return (
-    <span style={{ background:s.bg, color:s.color, border:`1px solid ${s.border}`, borderRadius:20, padding:"2px 10px", fontSize:11, fontWeight:700, letterSpacing:"0.03em", display:"inline-flex", alignItems:"center" }}>
-      {label}
-    </span>
-  );
-};
+const MOCK_JOBS = [
+  { id:1, title:"Senior React Developer",  type:"Full-time",   applicants:14, posted:"2 days ago",  status:"Active",  urgent:true  },
+  { id:2, title:"Data Analyst",            type:"Part-time",   applicants:9,  posted:"5 days ago",  status:"Active",  urgent:false },
+  { id:3, title:"Customer Support Agent",  type:"Contract",    applicants:22, posted:"1 day ago",   status:"Active",  urgent:true  },
+  { id:4, title:"UX/UI Designer",          type:"Freelance",   applicants:6,  posted:"1 week ago",  status:"Draft",   urgent:false },
+  { id:5, title:"HR Coordinator",          type:"Full-time",   applicants:11, posted:"3 days ago",  status:"Active",  urgent:false },
+];
 
-const Avatar = ({ name, size = 38, accent }) => (
-  <div style={{ width:size, height:size, borderRadius:"50%", background:`linear-gradient(135deg, ${accent||"#7286D3"}, ${BASE.navy})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:size*0.38, flexShrink:0 }}>
-    {(name||"?")[0].toUpperCase()}
+/* ─── PRIMITIVES ─────────────────────────────────────────────────────────── */
+const Card = ({ children, style={}, onClick }) => (
+  <div onClick={onClick} style={{ background:T.white, borderRadius:16, border:`1px solid ${T.border}`, padding:"24px", boxShadow:"0 2px 12px rgba(10,42,53,0.06)", ...style }}>
+    {children}
   </div>
 );
 
-const FunnelBar = ({ label, count, max, color }) => {
-  const [w, setW] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setW((count/max)*100), 200); return () => clearTimeout(t); }, [count, max]);
+const Badge = ({ children, color=T.teal, style={} }) => (
+  <span style={{ display:"inline-flex", alignItems:"center", padding:"3px 10px", borderRadius:99, background:`${color}18`, color, fontSize:12, fontWeight:700, border:`1px solid ${color}30`, ...style }}>
+    {children}
+  </span>
+);
+
+const Avatar = ({ initials, size=44, color=T.teal }) => (
+  <div style={{ width:size, height:size, borderRadius:"50%", background:`linear-gradient(135deg, ${color}, ${T.tealMid})`, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.32, fontWeight:800, flexShrink:0 }}>
+    {initials}
+  </div>
+);
+
+const SectionHead = ({ children, action }) => (
+  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+    <h3 style={{ margin:0, fontSize:16, fontWeight:800, color:T.navy }}>{children}</h3>
+    {action && <button onClick={action.fn} style={{ fontSize:13, color:T.teal, fontWeight:700, background:"none", border:"none", cursor:"pointer", padding:0 }}>{action.label}</button>}
+  </div>
+);
+
+const ProgressBar = ({ value, max=100, color=T.teal, height=8 }) => (
+  <div style={{ height, borderRadius:99, background:T.border, overflow:"hidden" }}>
+    <div style={{ height:"100%", width:`${(value/max)*100}%`, background:`linear-gradient(90deg,${color},${T.tealMid})`, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
+  </div>
+);
+
+/* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
+const TABS = [
+  { id:"overview",    label:"Overview",          icon:"⬡",  emoji:"🏠" },
+  { id:"candidates",  label:"Candidate Matches", icon:"◎",  emoji:"👥" },
+  { id:"jobs",        label:"Job Listings",      icon:"▣",  emoji:"💼" },
+  { id:"profile",     label:"Company Profile",   icon:"◈",  emoji:"🏢" },
+  { id:"analytics",   label:"Analytics",         icon:"◉",  emoji:"📊" },
+  { id:"messages",    label:"Messages",          icon:"◻",  emoji:"💬" },
+  { id:"settings",    label:"Settings",          icon:"✦",  emoji:"⚙️" },
+];
+
+const Sidebar = ({ active, onTab, profile, open, onToggle }) => {
+  const s1 = profile?.s1 || {};
   return (
-    <div style={{ marginBottom:12 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-        <span style={{ fontSize:13, fontWeight:600, color:BASE.navy }}>{label}</span>
-        <span style={{ fontSize:13, fontWeight:700, color:BASE.navy }}>{count}</span>
+    <aside style={{ width:open?256:68, background:T.navy, display:"flex", flexDirection:"column", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1)", flexShrink:0, overflow:"hidden", position:"relative" }}>
+      {/* Logo */}
+      <div style={{ padding:"22px 16px 18px", borderBottom:`1px solid rgba(255,255,255,0.07)`, display:"flex", alignItems:"center", justifyContent: open ? "flex-start" : "center" }}>
+        {open ? (
+          <div style={{ background:"#fff", borderRadius:10, padding:"7px 14px" }}>
+            <Image src="/images/logo.png" alt="InklusiJobs" width={110} height={30} style={{ objectFit:"contain", display:"block" }} />
+          </div>
+        ) : (
+          <div style={{ width:36, height:36, borderRadius:10, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>♿</div>
+        )}
       </div>
-      <div style={{ height:7, borderRadius:99, background:"#EEF1FF", overflow:"hidden" }}>
-        <div style={{ height:"100%", width:`${w}%`, borderRadius:99, background:color, transition:"width 0.9s cubic-bezier(0.4,0,0.2,1)" }} />
+
+      {/* Company mini card */}
+      {open && (
+        <div style={{ padding:"14px 16px", borderBottom:`1px solid rgba(255,255,255,0.07)` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {s1.logoPreview
+              ? <img src={s1.logoPreview} alt="" style={{ width:38, height:38, borderRadius:9, objectFit:"contain", background:"#fff", padding:4, flexShrink:0 }} />
+              : <div style={{ width:38, height:38, borderRadius:9, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>🏢</div>
+            }
+            <div style={{ overflow:"hidden" }}>
+              <div style={{ color:"#fff", fontWeight:800, fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s1.company || "Your Company"}</div>
+              <div style={{ color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:1 }}>{s1.industry || "Company"}</div>
+            </div>
+          </div>
+          <div style={{ marginTop:10, display:"inline-flex", alignItems:"center", gap:5, background:"rgba(5,150,105,0.18)", padding:"3px 10px", borderRadius:99 }}>
+            <span style={{ width:6, height:6, borderRadius:"50%", background:"#34D399", display:"inline-block" }} />
+            <span style={{ color:"#6EE7B7", fontSize:11, fontWeight:700 }}>Active</span>
+          </div>
+        </div>
+      )}
+
+      {/* Nav */}
+      <nav style={{ flex:1, padding:"10px 0", overflowY:"auto" }}>
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => onTab(tab.id)} title={!open ? tab.label : undefined}
+            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", padding: open ? "12px 18px" : "12px", justifyContent: open ? "flex-start" : "center", background: active===tab.id ? "rgba(15,92,110,0.4)" : "transparent", border:"none", borderLeft:`3px solid ${active===tab.id ? T.tealMid : "transparent"}`, cursor:"pointer", color: active===tab.id ? "#fff" : "rgba(255,255,255,0.48)", fontSize:14, fontWeight: active===tab.id ? 700 : 500, fontFamily:"Arial, sans-serif", transition:"all 0.15s", whiteSpace:"nowrap" }}>
+            <span style={{ fontSize:18, flexShrink:0 }}>{tab.emoji}</span>
+            {open && tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Collapse btn */}
+      <button onClick={onToggle}
+        style={{ background:"rgba(255,255,255,0.05)", border:"none", borderTop:`1px solid rgba(255,255,255,0.07)`, color:"rgba(255,255,255,0.38)", padding:"13px", cursor:"pointer", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent: open ? "flex-end" : "center", gap:6, fontFamily:"Arial, sans-serif" }}>
+        {open ? <>Collapse ◀</> : "▶"}
+      </button>
+    </aside>
+  );
+};
+
+/* ─── TOPBAR ─────────────────────────────────────────────────────────────── */
+const Topbar = ({ profile, activeTab, onReset }) => {
+  const s1 = profile?.s1 || {};
+  const tabInfo = TABS.find(t => t.id === activeTab);
+  const initials = (s1.company || "E")[0].toUpperCase();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <header style={{ background:T.white, borderBottom:`1px solid ${T.border}`, padding:"14px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, zIndex:10 }}>
+      <div>
+        <h1 style={{ margin:0, fontSize:21, fontWeight:900, color:T.navy, fontFamily:"Arial, sans-serif" }}>
+          {tabInfo?.emoji} {tabInfo?.label}
+        </h1>
+        <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{new Date().toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
       </div>
-    </div>
+      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+        {/* Notifications bell */}
+        <button style={{ width:38, height:38, borderRadius:10, border:`1px solid ${T.border}`, background:T.white, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, position:"relative" }}>
+          🔔
+          <span style={{ position:"absolute", top:6, right:6, width:8, height:8, borderRadius:"50%", background:"#EF4444", border:"2px solid #fff" }} />
+        </button>
+        {/* Avatar menu */}
+        <div style={{ position:"relative" }} ref={menuRef}>
+          <button onClick={() => setMenuOpen(m => !m)}
+            style={{ display:"flex", alignItems:"center", gap:10, background:T.bg, border:`1px solid ${T.border}`, borderRadius:12, padding:"6px 12px 6px 6px", cursor:"pointer" }}>
+            {s1.logoPreview
+              ? <img src={s1.logoPreview} alt="" style={{ width:30, height:30, borderRadius:8, objectFit:"contain", background:T.white, padding:2 }} />
+              : <div style={{ width:30, height:30, borderRadius:8, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:900 }}>{initials}</div>
+            }
+            <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{s1.company || "Employer"}</span>
+            <span style={{ fontSize:11, color:T.muted }}>▾</span>
+          </button>
+          {menuOpen && (
+            <div style={{ position:"absolute", right:0, top:"110%", background:T.white, border:`1px solid ${T.border}`, borderRadius:12, boxShadow:"0 8px 24px rgba(0,0,0,0.1)", zIndex:100, minWidth:180, overflow:"hidden" }}>
+              <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}` }}>
+                <div style={{ fontSize:13, fontWeight:700, color:T.navy }}>{s1.company || "Your Company"}</div>
+                <div style={{ fontSize:12, color:T.muted }}>{s1.industry || ""}</div>
+              </div>
+              <button onClick={onReset}
+                style={{ display:"block", width:"100%", textAlign:"left", padding:"11px 16px", border:"none", background:"none", fontSize:13, color:T.danger, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
+                🔄 Redo Onboarding
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 };
 
-const MatchRing = ({ pct, size = 52, accent }) => {
-  const r = (size-8)/2, circ = 2*Math.PI*r;
-  const [offset, setOffset] = useState(circ);
-  useEffect(() => { const t = setTimeout(() => setOffset(circ-(pct/100)*circ), 300); return () => clearTimeout(t); }, [pct, circ]);
-  const color = pct >= 85 ? BASE.success : pct >= 70 ? (accent||"#7286D3") : BASE.warning;
-  return (
-    <div style={{ position:"relative", width:size, height:size, flexShrink:0 }}>
-      <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#EEF1FF" strokeWidth={5} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={5} strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition:"stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1)" }} />
-      </svg>
-      <span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, color:BASE.navy }}>{pct}%</span>
-    </div>
-  );
-};
-
-const Bar = ({ val, maxVal, label, delay, accent }) => {
-  const [h, setH] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setH((val/maxVal)*100), delay); return () => clearTimeout(t); }, [val, maxVal, delay]);
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
-      <span style={{ fontSize:11, fontWeight:700, color:BASE.navy }}>{val}</span>
-      <div style={{ width:"100%", height:`${h}%`, minHeight:4, borderRadius:"4px 4px 0 0", background:`linear-gradient(180deg, ${accent||"#7286D3"}, ${BASE.navy})`, transition:"height 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
-      <span style={{ fontSize:11, color:BASE.muted, fontWeight:600 }}>{label}</span>
-    </div>
-  );
-};
-const BarChart = ({ data, maxVal, accent }) => (
-  <div style={{ display:"flex", alignItems:"flex-end", gap:8, height:120 }}>
-    {data.map((d,i) => <Bar key={i} val={d.val} maxVal={maxVal} label={d.label} delay={i*80} accent={accent} />)}
-  </div>
-);
-
-// ── Stat card ────────────────────────────────────────────────────────────────
-const StatCard = ({ label, value, delta, icon, color }) => (
-  <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)", transition:"box-shadow 0.2s, transform 0.2s" }}
-    onMouseEnter={e => { e.currentTarget.style.boxShadow="0 8px 24px rgba(26,39,68,0.12)"; e.currentTarget.style.transform="translateY(-2px)"; }}
-    onMouseLeave={e => { e.currentTarget.style.boxShadow="0 1px 4px rgba(26,39,68,0.06)"; e.currentTarget.style.transform="translateY(0)"; }}>
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
-      <span style={{ fontSize:12, fontWeight:600, color:BASE.muted, letterSpacing:"0.05em" }}>{label}</span>
-      <span style={{ width:36, height:36, borderRadius:10, background:color+"18", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <Icon name={icon} size={18} color={color} />
-      </span>
-    </div>
-    <div style={{ fontSize:30, fontWeight:800, color:BASE.navy, lineHeight:1, marginBottom:8 }}>{value}</div>
-    {delta && <div style={{ display:"flex", alignItems:"center", gap:4, fontSize:12, color:BASE.success, fontWeight:600 }}><Icon name="arrowUp" size={12} color={BASE.success} /> {delta}</div>}
-  </div>
-);
-
-// ════════════════════════════════════════════════════════════════════════════
-//  PAGES — each receives `profile` and `T` (theme colors)
-// ════════════════════════════════════════════════════════════════════════════
-
-const PageOverview = ({ profile, T }) => {
+/* ─── OVERVIEW TAB ───────────────────────────────────────────────────────── */
+const OverviewTab = ({ profile, onTab }) => {
   const s1 = profile?.s1 || {};
   const s2 = profile?.s2 || {};
   const s3 = profile?.s3 || {};
-  const s5 = profile?.s5 || {};
-  const activeWidgets = s5.widgets || ["Hiring Funnel","AI Match Preview","Recent Applications"];
+  const s4 = profile?.s4 || {};
 
-  const displayName = s2.company || "Your Company";
-  const userName    = s1.firstName ? `${s1.firstName} ${s1.lastName||""}`.trim() : null;
-  const greeting    = userName ? `Welcome back, ${userName} 👋` : `Welcome back, ${displayName} 👋`;
-
-  // Build a dynamic first job card from onboarding data
-  const firstJob = s3.jobTitle ? {
-    title: s3.jobTitle,
-    dept: s3.dept || "—",
-    workType: s3.workType || "Remote",
-    skills: s3.skills?.slice(0,3) || [],
-  } : null;
+  const topCandidates = ALL_CANDIDATES.slice(0, 4);
+  const activeJobs    = MOCK_JOBS.filter(j => j.status === "Active");
 
   return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>{greeting}</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>
-        Here's what's happening with your hiring pipeline today.
-        {s3.jobTitle && <span style={{ color:T.accent, fontWeight:600 }}> Hiring for: {s3.jobTitle}{s3.location ? ` · ${s3.location}` : ""}</span>}
-      </p>
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16, marginBottom:24 }}>
-        <StatCard label="ACTIVE JOBS"       value={firstJob?"1":"0"}   delta={firstJob?"+1 from onboarding":null} icon="jobs"       color={T.accent}       />
-        <StatCard label="TOTAL CANDIDATES"  value="348"  delta="+24 this week"     icon="candidates" color={BASE.success}  />
-        <StatCard label="INTERVIEWS SET"    value="19"   delta="+5 this week"      icon="clock"      color={BASE.warning}  />
-        <StatCard label="HIRING RATE"       value="34%"  delta="+3% vs last month" icon="trending"   color={BASE.navy}     />
+      {/* Welcome hero */}
+      <div style={{ background:`linear-gradient(130deg, ${T.navy} 0%, ${T.teal} 100%)`, borderRadius:20, padding:"32px 36px", color:"#fff", display:"flex", alignItems:"center", justifyContent:"space-between", gap:20, overflow:"hidden", position:"relative" }}>
+        <div style={{ position:"absolute", right:-40, top:-40, width:220, height:220, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }} />
+        <div style={{ position:"absolute", right:60, bottom:-60, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }} />
+        <div style={{ position:"relative" }}>
+          <div style={{ fontSize:13, fontWeight:600, color:"rgba(255,255,255,0.55)", marginBottom:8, letterSpacing:"0.06em", textTransform:"uppercase" }}>Welcome back</div>
+          <h2 style={{ fontSize:30, fontWeight:900, margin:"0 0 8px", fontFamily:"Arial, sans-serif", letterSpacing:"-0.5px" }}>
+            {s1.company || "Your Company"}
+          </h2>
+          <div style={{ fontSize:14, color:"rgba(255,255,255,0.65)", marginBottom:16 }}>
+            {[s1.industry, s1.size && `${s1.size} employees`, s2.workSetup].filter(Boolean).join("  ·  ")}
+          </div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>♿ Inclusive Employer</span>
+            {s3.aiSuggest !== false && <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>✨ AI Matching Active</span>}
+            {s3.inclusiveGuidance !== false && <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>🎯 Inclusive Guidance On</span>}
+          </div>
+        </div>
+        <div style={{ position:"relative", flexShrink:0 }}>
+          {s1.logoPreview
+            ? <img src={s1.logoPreview} alt="" style={{ width:90, height:90, objectFit:"contain", borderRadius:16, background:"rgba(255,255,255,0.9)", padding:10 }} />
+            : <div style={{ width:90, height:90, borderRadius:16, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:44, border:"1px solid rgba(255,255,255,0.2)" }}>🏢</div>
+          }
+        </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:20, marginBottom:20 }}>
-        {/* Funnel — only if widget selected */}
-        {activeWidgets.includes("Hiring Funnel") && (
-          <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-            <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:20 }}>Hiring Funnel</h2>
-            <FunnelBar label="Applied"     count={348} max={348} color={T.accent}      />
-            <FunnelBar label="Screened"    count={214} max={348} color={T.accent+"99"} />
-            <FunnelBar label="Interviewed" count={89}  max={348} color={BASE.navy}     />
-            <FunnelBar label="Offered"     count={31}  max={348} color={BASE.success}  />
-            <FunnelBar label="Hired"       count={19}  max={348} color="#0D9488"       />
-          </div>
-        )}
-
-        {/* Recent Applications */}
-        {activeWidgets.includes("Recent Applications") && (
-          <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy }}>Recent Applications</h2>
-              <button style={{ fontSize:12, color:T.accent, fontWeight:600, background:"none", border:"none", cursor:"pointer" }}>View all →</button>
-            </div>
-            {[
-              { name:"Maria Santos",    role: s3.jobTitle||"UX Designer",    match:92, status:"New",       type:"success" },
-              { name:"Juan dela Cruz",  role: s3.jobTitle||"React Developer", match:87, status:"Reviewing", type:"warning" },
-              { name:"Ana Reyes",       role: s3.jobTitle||"Data Analyst",   match:78, status:"Interview", type:"navy"    },
-              { name:"Carlos Bautista", role: s3.jobTitle||"QA Engineer",    match:85, status:"New",       type:"success" },
-            ].map((a,i) => (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:i<3?`1px solid ${BASE.border}`:"none" }}>
-                <Avatar name={a.name} size={36} accent={T.accent} />
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:BASE.navy }}>{a.name}</div>
-                  <div style={{ fontSize:12, color:BASE.muted }}>{a.role}</div>
-                </div>
-                <MatchRing pct={a.match} size={44} accent={T.accent} />
-                <Badge label={a.status} type={a.type} accent={T.accent} accentLight={T.accentLight} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* If funnel not selected but recent apps is, show full width */}
-        {!activeWidgets.includes("Hiring Funnel") && !activeWidgets.includes("Recent Applications") && (
-          <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, gridColumn:"1/-1", textAlign:"center", color:BASE.muted, fontSize:14 }}>
-            No widgets selected — go to Settings to customize your dashboard.
-          </div>
-        )}
-      </div>
-
-      {/* AI Match Preview */}
-      {activeWidgets.includes("AI Match Preview") && (
-        <div style={{ background:`linear-gradient(135deg, ${T.sidebar} 0%, ${T.sidebarEnd} 100%)`, borderRadius:16, padding:24, color:"#fff" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+      {/* Stats row */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
+        {[
+          { icon:"👥", label:"Candidate Matches", value:ALL_CANDIDATES.length, sub:`${ALL_CANDIDATES.filter(c=>c.status==="New").length} new this week`, color:T.teal },
+          { icon:"💼", label:"Active Job Posts",  value:activeJobs.length, sub:"2 expiring soon", color:T.accent },
+          { icon:"📨", label:"Total Applications",value:40, sub:"12 unreviewed", color:T.warning },
+          { icon:"✅", label:"Hires This Month",  value:3,  sub:"↑ 1 from last month", color:T.success },
+        ].map(stat => (
+          <Card key={stat.label} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"20px" }}>
+            <div style={{ width:46, height:46, borderRadius:12, background:`${stat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{stat.icon}</div>
             <div>
-              <h2 style={{ fontSize:15, fontWeight:700, marginBottom:4 }}>⚡ AI Match Preview</h2>
-              <p style={{ fontSize:13, color:"rgba(255,255,255,0.6)", margin:0 }}>
-                Top verified candidates ready for {s3.jobTitle ? `your ${s3.jobTitle} role` : "your open roles"}
-                {s3.skills?.length ? ` · Skills: ${s3.skills.slice(0,3).join(", ")}` : ""}
-              </p>
+              <div style={{ fontSize:28, fontWeight:900, color:T.navy, lineHeight:1 }}>{stat.value}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginTop:4 }}>{stat.label}</div>
+              <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{stat.sub}</div>
             </div>
-            <button style={{ background:T.accent, color:"#fff", border:"none", borderRadius:10, padding:"8px 18px", fontSize:13, fontWeight:700, cursor:"pointer" }}>View All Matches</button>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
-            {[
-              { name:"Liza Flores",  role: s3.jobTitle||"Frontend Dev",   match:94, verified:true  },
-              { name:"Paolo Mendez", role: s3.jobTitle||"Data Scientist",  match:88, verified:true  },
-              { name:"Grace Tan",    role: s3.jobTitle||"UX Researcher",   match:82, verified:false },
-            ].map((c,i) => (
-              <div key={i} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.12)" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                  <div style={{ width:36,height:36,borderRadius:"50%",background:`linear-gradient(135deg,${T.accent},rgba(255,255,255,0.3))`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:14,color:"#fff" }}>{c.name[0]}</div>
-                  <div><div style={{ fontSize:13, fontWeight:700 }}>{c.name}</div><div style={{ fontSize:11, color:"rgba(255,255,255,0.55)" }}>{c.role}</div></div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Two column */}
+      <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:20 }}>
+
+        {/* Top matches */}
+        <Card>
+          <SectionHead action={{ label:"View all →", fn:() => onTab("candidates") }}>🌟 Top Candidate Matches</SectionHead>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {topCandidates.map(c => (
+              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:12, background:T.bg, border:`1px solid ${T.border}` }}>
+                <Avatar initials={c.initials} size={40} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, fontWeight:700, color:T.navy }}>{c.name}</div>
+                  <div style={{ fontSize:12, color:T.muted }}>{c.role} · {c.exp}</div>
                 </div>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:22, fontWeight:800 }}>{c.match}%</span>
-                  {c.verified && <span style={{ background:BASE.successBg, color:BASE.success, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:99 }}>✓ Verified</span>}
+                <div style={{ textAlign:"right", flexShrink:0 }}>
+                  <div style={{ fontSize:18, fontWeight:900, color:T.teal }}>{c.match}%</div>
+                  <div style={{ fontSize:10, color:T.muted }}>match</div>
                 </div>
+                <Badge color={c.status==="New" ? T.teal : c.status==="Shortlisted" ? T.success : T.muted}>{c.status}</Badge>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        </Card>
 
-      {/* Quick Actions widget */}
-      {activeWidgets.includes("Quick Actions") && (
-        <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, marginTop:20 }}>
-          <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:16 }}>Quick Actions</h2>
-          <div style={{ display:"flex", gap:12 }}>
-            {[
-              { label:"Post a Job", icon:"plus" },
-              { label:"View Matches", icon:"candidates" },
-              { label:"Schedule Interview", icon:"clock" },
-              { label:"View Analytics", icon:"analytics" },
-            ].map((a,i) => (
-              <button key={i} style={{ flex:1, padding:"14px 10px", borderRadius:12, border:`1.5px solid ${BASE.border}`, background:"#F8F9FD", cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
-                <Icon name={a.icon} size={20} color={T.accent} />
-                <span style={{ fontSize:12, fontWeight:600, color:BASE.navy }}>{a.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ── Job Listings — shows onboarding job first ────────────────────────────────
-const PageJobs = ({ profile, T }) => {
-  const [filter, setFilter] = useState("All Jobs");
-  const s3 = profile?.s3 || {};
-
-  const jobs = [
-    // If onboarding data exists, make it the first "real" job
-    ...(s3.jobTitle ? [{
-      title: s3.jobTitle,
-      dept: s3.dept || "General",
-      applicants: 0,
-      status: "Active",
-      posted: "Just posted",
-      skills: s3.skills?.slice(0,3) || [],
-      remote: s3.workType === "Remote",
-      salary: s3.salaryMin && s3.salaryMax ? `${s3.salaryMin}–${s3.salaryMax}` : null,
-      fromOnboarding: true,
-    }] : []),
-    { title:"Senior Frontend Developer", dept:"Engineering", applicants:47, status:"Active",  posted:"3 days ago",  skills:["React","TypeScript","Accessibility"], remote:true  },
-    { title:"UX/UI Designer",            dept:"Product",     applicants:62, status:"Active",  posted:"1 week ago",  skills:["Figma","User Research","Prototyping"], remote:false },
-    { title:"Data Analyst",              dept:"Analytics",   applicants:31, status:"Paused",  posted:"2 weeks ago", skills:["Python","SQL","Tableau"],             remote:true  },
-  ];
-
-  const visible = filter === "All Jobs" ? jobs : jobs.filter(j => j.status === filter);
-
-  return (
-    <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:28 }}>
-        <div>
-          <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Job Listings</h1>
-          <p style={{ color:BASE.muted, fontSize:14 }}>Manage your open positions and track applicants.</p>
-        </div>
-        <button style={{ background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", border:"none", borderRadius:12, padding:"12px 22px", fontSize:14, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", gap:8, boxShadow:`0 4px 14px ${T.accent}44` }}>
-          <Icon name="plus" size={16} color="#fff" /> Post New Job
-        </button>
-      </div>
-      <div style={{ display:"flex", gap:10, marginBottom:24 }}>
-        {["All Jobs","Active","Paused","Closed"].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{ padding:"8px 18px", borderRadius:99, border:`1.5px solid ${filter===f?T.sidebar:BASE.border}`, background:filter===f?T.sidebar:BASE.card, color:filter===f?"#fff":BASE.muted, fontSize:13, fontWeight:600, cursor:"pointer", transition:"all 0.15s" }}>{f}</button>
-        ))}
-      </div>
-      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-        {visible.map((j,i) => (
-          <div key={i} style={{ background:BASE.card, borderRadius:16, padding:24, border:`1.5px solid ${j.fromOnboarding?T.accent:BASE.border}`, display:"flex", alignItems:"center", gap:20, boxShadow:j.fromOnboarding?`0 4px 16px ${T.accent}22`:"0 1px 4px rgba(26,39,68,0.06)", transition:"box-shadow 0.2s" }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow=`0 6px 20px ${T.accent}22`}
-            onMouseLeave={e => e.currentTarget.style.boxShadow=j.fromOnboarding?`0 4px 16px ${T.accent}22`:"0 1px 4px rgba(26,39,68,0.06)"}>
-            <div style={{ flex:1 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
-                <h3 style={{ fontSize:16, fontWeight:700, color:BASE.navy, margin:0 }}>{j.title}</h3>
-                <Badge label={j.status} type={j.status==="Active"?"success":j.status==="Paused"?"warning":"default"} accent={T.accent} accentLight={T.accentLight} />
-                {j.remote && <Badge label="Remote" type="navy" accent={T.accent} accentLight={T.accentLight} />}
-                {j.fromOnboarding && <Badge label="From Setup" type="default" accent={T.accent} accentLight={T.accentLight} />}
-              </div>
-              <p style={{ fontSize:13, color:BASE.muted, margin:"0 0 12px" }}>
-                {j.dept} · Posted {j.posted}
-                {j.salary && <span style={{ color:T.accent, fontWeight:600 }}> · {j.salary}</span>}
-              </p>
-              <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-                {j.skills.map(s => <span key={s} style={{ background:T.accentLight, color:T.accent, fontSize:11, fontWeight:600, padding:"3px 10px", borderRadius:99 }}>{s}</span>)}
-              </div>
-            </div>
-            <div style={{ textAlign:"center", minWidth:72 }}>
-              <div style={{ fontSize:28, fontWeight:800, color:BASE.navy }}>{j.applicants}</div>
-              <div style={{ fontSize:11, color:BASE.muted, fontWeight:600 }}>Applicants</div>
-            </div>
-            <div style={{ display:"flex", gap:8 }}>
-              <button style={{ padding:"8px 16px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, color:BASE.navy, fontSize:13, fontWeight:600, cursor:"pointer" }}>Edit</button>
-              <button style={{ padding:"8px 16px", borderRadius:10, border:"none", background:T.sidebar, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer" }}>View</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ── Candidate Matches — skills from onboarding ───────────────────────────────
-const PageCandidates = ({ profile, T }) => {
-  const s3 = profile?.s3 || {};
-  const roleSkills = s3.skills?.slice(0,3) || [];
-
-  const candidates = [
-    { name:"Maria Santos",    role:s3.jobTitle||"UX Designer",    match:94, skills:88, portfolio:91, tags:roleSkills.length?roleSkills:["Figma","Research","Accessibility"], verified:true  },
-    { name:"Juan dela Cruz",  role:s3.jobTitle||"React Developer", match:87, skills:84, portfolio:80, tags:roleSkills.length?roleSkills:["React","TypeScript","Node.js"],    verified:true  },
-    { name:"Ana Reyes",       role:s3.jobTitle||"Data Analyst",   match:82, skills:78, portfolio:85, tags:roleSkills.length?roleSkills:["Python","SQL","Power BI"],         verified:false },
-    { name:"Carlos Bautista", role:s3.jobTitle||"QA Engineer",    match:79, skills:82, portfolio:70, tags:roleSkills.length?roleSkills:["Selenium","Jest","Agile"],         verified:true  },
-    { name:"Liza Flores",     role:s3.jobTitle||"Frontend Dev",   match:91, skills:90, portfolio:87, tags:roleSkills.length?roleSkills:["Vue.js","CSS","A11y"],             verified:true  },
-    { name:"Paolo Mendez",    role:s3.jobTitle||"Data Scientist",  match:76, skills:74, portfolio:79, tags:roleSkills.length?roleSkills:["ML","Python","TensorFlow"],       verified:false },
-  ];
-
-  return (
-    <div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-        <div>
-          <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Candidate Matches</h1>
-          <p style={{ color:BASE.muted, fontSize:14 }}>
-            AI-verified PWD professionals matched to your roles.
-            {s3.jobTitle && <span style={{ color:T.accent, fontWeight:600 }}> Showing matches for: {s3.jobTitle}</span>}
-          </p>
-        </div>
-        <div style={{ display:"flex", gap:10 }}>
-          <button style={{ display:"flex", alignItems:"center", gap:6, padding:"10px 16px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, color:BASE.navy, fontSize:13, fontWeight:600, cursor:"pointer" }}>
-            <Icon name="filter" size={14} /> Filters
-          </button>
-          <select style={{ padding:"10px 14px", borderRadius:10, border:`1.5px solid ${BASE.border}`, fontSize:13, color:BASE.navy, fontWeight:600, background:BASE.card, cursor:"pointer" }}>
-            <option>Sort by: Match %</option><option>Sort by: Skills Score</option><option>Sort by: Portfolio</option>
-          </select>
-        </div>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
-        {candidates.map((c,i) => (
-          <div key={i} style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)", transition:"box-shadow 0.2s, transform 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow=`0 8px 28px ${T.accent}22`; e.currentTarget.style.transform="translateY(-3px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow="0 1px 4px rgba(26,39,68,0.06)"; e.currentTarget.style.transform="translateY(0)"; }}>
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <Avatar name={c.name} size={44} accent={T.accent} />
-                <div><div style={{ fontSize:14, fontWeight:700, color:BASE.navy }}>{c.name}</div><div style={{ fontSize:12, color:BASE.muted }}>{c.role}</div></div>
-              </div>
-              <MatchRing pct={c.match} size={52} accent={T.accent} />
-            </div>
-            {c.verified && (
-              <div style={{ display:"flex", alignItems:"center", gap:5, background:BASE.successBg, borderRadius:8, padding:"5px 10px", marginBottom:14, width:"fit-content" }}>
-                <Icon name="check" size={12} color={BASE.success} /><span style={{ fontSize:11, fontWeight:700, color:BASE.success }}>AI-Verified PWD Professional</span>
-              </div>
-            )}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-              {[{label:"Skills Score",val:c.skills},{label:"Portfolio",val:c.portfolio}].map(m => (
-                <div key={m.label} style={{ background:"#F8F9FD", borderRadius:10, padding:"10px 12px" }}>
-                  <div style={{ fontSize:10, color:BASE.muted, fontWeight:600, marginBottom:4 }}>{m.label.toUpperCase()}</div>
-                  <div style={{ fontSize:18, fontWeight:800, color:BASE.navy }}>{m.val}<span style={{ fontSize:11, color:BASE.muted }}>/100</span></div>
+        {/* Right column */}
+        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+          {/* Job posts */}
+          <Card>
+            <SectionHead action={{ label:"View all →", fn:() => onTab("jobs") }}>💼 Active Jobs</SectionHead>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {activeJobs.slice(0,3).map(j => (
+                <div key={j.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", borderRadius:10, background:T.bg, border:`1px solid ${T.border}` }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:T.navy }}>{j.title}</div>
+                    <div style={{ fontSize:11, color:T.muted }}>{j.type}</div>
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:16, fontWeight:800, color:T.navy }}>{j.applicants}</div>
+                    <div style={{ fontSize:10, color:T.muted }}>applicants</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:16 }}>
-              {c.tags.map(t => <span key={t} style={{ background:T.accentLight, color:T.accent, fontSize:10, fontWeight:700, padding:"3px 9px", borderRadius:99 }}>{t}</span>)}
+          </Card>
+
+          {/* Preferences quick glance */}
+          <Card>
+            <SectionHead>📋 Preferences</SectionHead>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {[
+                { label:"Work Setup",  value: s2.workSetup || "Not set"  },
+                { label:"Budget",      value: s2.budget    || "Not set"  },
+                { label:"Experience",  value: s2.expLevel  || "Not set"  },
+                { label:"Urgency",     value: s2.urgency   || "Not set"  },
+                { label:"Frequency",   value: s2.frequency || "Not set"  },
+              ].map(row => (
+                <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>{row.label}</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{row.value}</span>
+                </div>
+              ))}
             </div>
-            <button style={{ width:"100%", padding:"10px", borderRadius:10, border:"none", background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-              <Icon name="eye" size={14} color="#fff" /> View Profile
-            </button>
+          </Card>
+        </div>
+      </div>
+
+      {/* Accommodations & skills */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+        <Card>
+          <SectionHead>♿ Workplace Accommodations</SectionHead>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {(s3.accommodations||[]).length > 0
+              ? (s3.accommodations).map(a => <Badge key={a} color={T.success}>{a}</Badge>)
+              : <span style={{ fontSize:13, color:T.muted }}>No accommodations listed yet</span>}
           </div>
+        </Card>
+        <Card>
+          <SectionHead>🛠 Required Skills</SectionHead>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {(s2.skills||[]).length > 0
+              ? (s2.skills).map(s => <Badge key={s} color={T.accent}>{s}</Badge>)
+              : <span style={{ fontSize:13, color:T.muted }}>No skills specified yet</span>}
+          </div>
+        </Card>
+      </div>
+
+      {/* Mission statement */}
+      {s4.mission && (
+        <Card style={{ borderLeft:`4px solid ${T.teal}` }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.teal, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Company Mission</div>
+          <p style={{ fontSize:15, color:T.bodyText, lineHeight:1.75, margin:0, fontStyle:"italic" }}>"{s4.mission}"</p>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+/* ─── CANDIDATES TAB ─────────────────────────────────────────────────────── */
+const CandidatesTab = ({ profile }) => {
+  const s2 = profile?.s2 || {};
+  const s3 = profile?.s3 || {};
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+
+  const statuses = ["All","New","Reviewed","Shortlisted"];
+
+  const filtered = ALL_CANDIDATES.filter(c => {
+    if (statusFilter !== "All" && c.status !== statusFilter) return false;
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.role.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div style={{ display:"flex", gap:20, height:"100%" }}>
+      {/* List */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16 }}>
+        {/* Filters */}
+        <Card style={{ padding:"14px 18px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+            <div style={{ position:"relative", flex:1, minWidth:200 }}>
+              <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:14 }}>🔍</span>
+              <input placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)}
+                style={{ width:"100%", boxSizing:"border-box", padding:"9px 14px 9px 34px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", background:T.bg }}
+                onFocus={e => e.target.style.borderColor=T.teal}
+                onBlur={e => e.target.style.borderColor=T.border} />
+            </div>
+            <div style={{ display:"flex", gap:6 }}>
+              {statuses.map(s => (
+                <button key={s} onClick={() => setStatusFilter(s)}
+                  style={{ padding:"8px 16px", borderRadius:99, border:`2px solid ${statusFilter===s ? T.teal : T.border}`, background:statusFilter===s ? T.tealLight : T.white, color:statusFilter===s ? T.teal : T.bodyText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize:13, color:T.muted, fontWeight:600 }}>{filtered.length} results</span>
+          </div>
+        </Card>
+
+        {/* Candidate cards */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          {filtered.map(c => (
+            <Card key={c.id} onClick={() => setSelected(c.id === selected ? null : c.id)}
+              style={{ cursor:"pointer", border:`1.5px solid ${selected===c.id ? T.teal : T.border}`, background: selected===c.id ? T.tealLight : T.white, transition:"all 0.15s" }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
+                <Avatar initials={c.initials} size={50} />
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:800, color:T.navy }}>{c.name}</div>
+                      <div style={{ fontSize:12, color:T.muted, marginTop:2 }}>{c.role} · {c.exp}</div>
+                    </div>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:22, fontWeight:900, color:T.teal, lineHeight:1 }}>{c.match}%</div>
+                      <div style={{ fontSize:10, color:T.muted }}>match</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop:10 }}>
+                    <ProgressBar value={c.match} color={c.match>=90 ? T.success : c.match>=80 ? T.teal : T.warning} />
+                  </div>
+                  <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
+                    {c.skills.map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
+                  </div>
+                  <div style={{ marginTop:10, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <Badge color={T.success}>♿ {c.disability}</Badge>
+                    <Badge color={c.status==="New" ? T.teal : c.status==="Shortlisted" ? T.success : T.muted}>{c.status}</Badge>
+                  </div>
+                  {selected === c.id && (
+                    <div style={{ marginTop:12, display:"flex", gap:8 }}>
+                      <button style={{ flex:1, padding:"9px", borderRadius:9, border:"none", background:T.teal, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>View Profile</button>
+                      <button style={{ flex:1, padding:"9px", borderRadius:9, border:`1.5px solid ${T.border}`, background:T.white, color:T.bodyText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Message</button>
+                      <button style={{ padding:"9px 12px", borderRadius:9, border:`1.5px solid ${T.success}`, background:T.successBg, color:T.success, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>⭐ Shortlist</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* AI insight sidebar */}
+      {profile?.s3?.aiSuggest !== false && (
+        <div style={{ width:260, flexShrink:0, display:"flex", flexDirection:"column", gap:14 }}>
+          <Card style={{ background:`linear-gradient(135deg,${T.navy},${T.teal})`, color:"#fff", border:"none" }}>
+            <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", color:"rgba(255,255,255,0.55)", marginBottom:8 }}>✨ AI Insight</div>
+            <div style={{ fontSize:14, lineHeight:1.6, color:"rgba(255,255,255,0.85)" }}>
+              Based on your preference for <strong style={{ color:"#fff" }}>{profile?.s2?.expLevel || "Mid-Level"}</strong> candidates with <strong style={{ color:"#fff" }}>{profile?.s2?.workSetup || "Remote"}</strong> work, top matches are in the <strong style={{ color:"#fff" }}>{profile?.s1?.industry || "tech"}</strong> sector.
+            </div>
+          </Card>
+          <Card>
+            <SectionHead>📊 Match Breakdown</SectionHead>
+            {[
+              { label:"95–100% match", count:1,  color:T.success },
+              { label:"85–94% match",  count:3,  color:T.teal   },
+              { label:"75–84% match",  count:3,  color:T.warning },
+              { label:"Below 75%",     count:1,  color:T.muted  },
+            ].map(row => (
+              <div key={row.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{ width:10, height:10, borderRadius:"50%", background:row.color, display:"inline-block" }} />
+                  <span style={{ fontSize:12, color:T.bodyText }}>{row.label}</span>
+                </div>
+                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.count}</span>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── JOBS TAB ───────────────────────────────────────────────────────────── */
+const JobsTab = ({ profile }) => {
+  const s1 = profile?.s1 || {};
+  const s2 = profile?.s2 || {};
+  const [showForm, setShowForm] = useState(false);
+  const [newJob, setNewJob] = useState({ title:"", type:"Full-time", salary:"", desc:"" });
+
+  const types = (s1.posTypes||[]).length > 0 ? s1.posTypes : ["Full-time","Part-time","Contract","Freelance"];
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ fontSize:14, color:T.muted }}>
+          Managing <strong style={{ color:T.navy }}>{MOCK_JOBS.length} job posts</strong> · {MOCK_JOBS.filter(j=>j.status==="Active").length} active
+        </div>
+        <button onClick={() => setShowForm(s => !s)}
+          style={{ padding:"11px 22px", borderRadius:11, border:"none", background:`linear-gradient(135deg,${T.teal},${T.tealMid})`, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif", boxShadow:`0 4px 14px ${T.teal}44` }}>
+          {showForm ? "✕ Cancel" : "+ Post New Job"}
+        </button>
+      </div>
+
+      {/* New job form */}
+      {showForm && (
+        <Card style={{ border:`2px solid ${T.teal}` }}>
+          <SectionHead>📝 New Job Post</SectionHead>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+            <div>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Job Title *</label>
+              <input value={newJob.title} onChange={e=>setNewJob({...newJob,title:e.target.value})} placeholder="e.g. Senior React Developer"
+                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
+                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
+            </div>
+            <div>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Position Type</label>
+              <select value={newJob.type} onChange={e=>setNewJob({...newJob,type:e.target.value})}
+                style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", background:T.white }}>
+                {types.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Salary Range</label>
+              <input value={newJob.salary} onChange={e=>setNewJob({...newJob,salary:e.target.value})} placeholder={s2.budget || "e.g. ₱40k–₱80k"}
+                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
+                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
+            </div>
+            <div>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Work Setup</label>
+              <input value={s2.workSetup || ""} readOnly placeholder="From your preferences"
+                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", background:T.bg, color:T.muted }} />
+            </div>
+            <div style={{ gridColumn:"1/-1" }}>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Job Description</label>
+              <textarea rows={4} value={newJob.desc} onChange={e=>setNewJob({...newJob,desc:e.target.value})} placeholder="Describe responsibilities, requirements, and accommodations offered..."
+                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", resize:"vertical" }}
+                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
+            </div>
+          </div>
+          {/* Auto-populated skills from onboarding */}
+          {(s2.skills||[]).length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginBottom:8 }}>Required skills (from your preferences):</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {(s2.skills).map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
+              </div>
+            </div>
+          )}
+          {(profile?.s3?.accommodations||[]).length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginBottom:8 }}>Accommodations offered:</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {(profile?.s3?.accommodations||[]).map(a => <Badge key={a} color={T.success}>{a}</Badge>)}
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop:16, display:"flex", gap:10 }}>
+            <button style={{ padding:"11px 24px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Publish Job</button>
+            <button style={{ padding:"11px 24px", borderRadius:10, border:`1.5px solid ${T.border}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Save as Draft</button>
+          </div>
+        </Card>
+      )}
+
+      {/* Existing jobs */}
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {MOCK_JOBS.map(j => (
+          <Card key={j.id} style={{ display:"flex", alignItems:"center", gap:20 }}>
+            <div style={{ width:50, height:50, borderRadius:12, background:j.status==="Active" ? T.tealLight : T.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>💼</div>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                <span style={{ fontSize:16, fontWeight:800, color:T.navy }}>{j.title}</span>
+                {j.urgent && <Badge color={T.danger}>🔥 Urgent</Badge>}
+              </div>
+              <div style={{ fontSize:13, color:T.muted }}>{j.type} · Posted {j.posted} · {s1.company || "Your Company"} · {s2.workSetup || "Remote"}</div>
+              {(s2.skills||[]).length > 0 && (
+                <div style={{ marginTop:6, display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {(s2.skills).slice(0,3).map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign:"right", flexShrink:0 }}>
+              <Badge color={j.status==="Active" ? T.success : T.muted}>{j.status}</Badge>
+              <div style={{ fontSize:22, fontWeight:900, color:T.navy, marginTop:8 }}>{j.applicants}</div>
+              <div style={{ fontSize:11, color:T.muted }}>applicants</div>
+            </div>
+          </Card>
         ))}
       </div>
     </div>
   );
 };
 
-// ── Portfolio, Analytics, Messages, Feedback — theme-aware ──────────────────
-const PagePortfolio = ({ profile, T }) => {
+/* ─── PROFILE TAB ────────────────────────────────────────────────────────── */
+const ProfileTab = ({ profile }) => {
+  const s1 = profile?.s1 || {};
+  const s2 = profile?.s2 || {};
   const s3 = profile?.s3 || {};
-  const items = [
-    { name:"Maria Santos",   challenge: s3.jobTitle ? `${s3.jobTitle} Challenge` : "E-commerce Accessibility Audit", ai:94, submitted:"2 days ago",  status:"Pending Review" },
-    { name:"Juan dela Cruz", challenge:"React Component Library",        ai:88, submitted:"4 days ago",  status:"Reviewed"       },
-    { name:"Ana Reyes",      challenge:"Sales Dashboard Design",         ai:81, submitted:"1 week ago",  status:"Pending Review" },
-  ];
-  return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Portfolio Reviews</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>Evaluate candidate project submissions with AI verification scores.</p>
-      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        {items.map((p,i) => (
-          <div key={i} style={{ background:BASE.card, borderRadius:16, border:`1px solid ${BASE.border}`, overflow:"hidden", boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"20px 24px", borderBottom:`1px solid ${BASE.border}` }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <Avatar name={p.name} size={40} accent={T.accent} />
-                <div><div style={{ fontSize:14, fontWeight:700, color:BASE.navy }}>{p.name}</div><div style={{ fontSize:12, color:BASE.muted }}>{p.challenge}</div></div>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:10, color:BASE.muted, fontWeight:600, marginBottom:2 }}>AI SCORE</div>
-                  <div style={{ fontSize:24, fontWeight:800, color:p.ai>=90?BASE.success:p.ai>=80?T.accent:BASE.warning }}>{p.ai}</div>
-                </div>
-                <Badge label={p.status} type={p.status==="Reviewed"?"success":"warning"} />
-                <div style={{ display:"flex", gap:8 }}>
-                  <button style={{ padding:"8px 16px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, color:BASE.navy, fontSize:13, fontWeight:600, cursor:"pointer" }}>Preview</button>
-                  <button style={{ padding:"8px 16px", borderRadius:10, border:"none", background:T.sidebar, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer" }}>Compare</button>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding:"14px 24px", background:"#F8F9FD", display:"flex", gap:24 }}>
-              <div style={{ display:"flex", gap:6, alignItems:"center" }}><Icon name="clock" size={13} color={BASE.muted}/><span style={{ fontSize:12, color:BASE.muted }}>Submitted {p.submitted}</span></div>
-              <div style={{ display:"flex", gap:6, alignItems:"center" }}><Icon name="award" size={13} color={T.accent}/><span style={{ fontSize:12, color:T.accent, fontWeight:600 }}>AI verification score available</span></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+  const s4 = profile?.s4 || {};
 
-const PageAnalytics = ({ profile, T }) => {
-  const s3 = profile?.s3 || {};
   return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Analytics</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>Track hiring performance and AI match improvement insights.</p>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:24 }}>
-        {[
-          {label:"Conversion Rate",   value:"34%",     sub:"+3% vs last month",    color:BASE.success},
-          {label:"Avg. Time-to-Hire", value:"18 days", sub:"−4 days vs last month", color:T.accent    },
-          {label:"AI Match Accuracy", value:"91%",     sub:"Based on 120 hires",   color:BASE.navy   },
-        ].map((s,i) => (
-          <div key={i} style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-            <div style={{ fontSize:13, fontWeight:600, color:BASE.muted, marginBottom:8 }}>{s.label}</div>
-            <div style={{ fontSize:32, fontWeight:800, color:s.color, marginBottom:6 }}>{s.value}</div>
-            <div style={{ fontSize:12, color:BASE.muted }}>{s.sub}</div>
+    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+      {/* Header card */}
+      <Card style={{ display:"flex", alignItems:"center", gap:24 }}>
+        {s1.logoPreview
+          ? <img src={s1.logoPreview} alt="" style={{ width:88, height:88, objectFit:"contain", borderRadius:16, border:`1px solid ${T.border}`, padding:8 }} />
+          : <div style={{ width:88, height:88, borderRadius:16, background:T.tealLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:44 }}>🏢</div>
+        }
+        <div style={{ flex:1 }}>
+          <h2 style={{ fontSize:26, fontWeight:900, color:T.navy, margin:"0 0 8px", fontFamily:"Arial, sans-serif" }}>{s1.company || "Your Company"}</h2>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+            {s1.industry    && <Badge color={T.teal}>{s1.industry}</Badge>}
+            {(s1.sizeCustom||s1.size) && <Badge color={T.muted}>{s1.sizeCustom||s1.size} employees</Badge>}
+            <Badge color={T.success}>♿ Inclusive Employer</Badge>
+            {s4.visible !== false && <Badge color={T.accent}>👁 Profile Visible</Badge>}
           </div>
-        ))}
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }}>
-        {[
-          {title:"Monthly Applications", data:[{label:"Aug",val:42},{label:"Sep",val:67},{label:"Oct",val:58},{label:"Nov",val:89},{label:"Dec",val:71},{label:"Jan",val:94}], max:100},
-          {title:"Hires by Department",  data:[{label:"Eng",val:8},{label:"Design",val:5},{label:"Data",val:4},{label:"QA",val:3},{label:"PM",val:2},{label:"Ops",val:1}], max:10},
-        ].map((ch,i) => (
-          <div key={i} style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-            <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:20 }}>{ch.title}</h2>
-            <BarChart data={ch.data} maxVal={ch.max} accent={T.accent} />
-          </div>
-        ))}
-      </div>
-      <div style={{ background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, borderRadius:16, padding:24, color:"#fff" }}>
-        <h2 style={{ fontSize:15, fontWeight:700, marginBottom:16 }}>💡 AI Match Improvement Insights</h2>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+        </div>
+        <div style={{ textAlign:"center", padding:"16px 24px", background:T.tealLight, borderRadius:14, border:`1px solid ${T.teal}33` }}>
+          <div style={{ fontSize:32, fontWeight:900, color:T.teal }}>96%</div>
+          <div style={{ fontSize:12, fontWeight:700, color:T.teal }}>Profile Complete</div>
+        </div>
+      </Card>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
+        {/* Company details */}
+        <Card>
+          <SectionHead>🏢 Company Details</SectionHead>
           {[
-            {insight:`Candidates with ${s3.skills?.[0]||"key skill"} expertise matched ${s3.jobTitle||"your role"} at 96% accuracy.`, tag:s3.skills?.[0]||"Skills"},
-            {insight:"Candidates with Portfolio scores ≥ 85 had a 2.4× higher offer acceptance rate.", tag:"Portfolio"},
-            {insight:"Adding accessibility requirements to job posts increased qualified PWD applicants by 38%.", tag:"Inclusion"},
-          ].map((ins,i) => (
-            <div key={i} style={{ background:"rgba(255,255,255,0.08)", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.12)" }}>
-              <span style={{ background:T.accent, color:"#fff", fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:99, marginBottom:10, display:"inline-block" }}>{ins.tag}</span>
-              <p style={{ fontSize:13, color:"rgba(255,255,255,0.8)", lineHeight:1.6, margin:0 }}>{ins.insight}</p>
+            ["Company Name",     s1.company],
+            ["Industry",         s1.industry],
+            ["Company Size",     s1.sizeCustom || s1.size],
+            ["Position Types",   (s1.posTypes||[]).join(", ")],
+            ["Work Setup",       s2.workSetup],
+            ["Budget Range",     s2.budget],
+            ["Hiring Frequency", s2.frequency],
+            ["Urgency Level",    s2.urgency],
+            ["Experience Level", s2.expLevel],
+          ].filter((row) => row[1]).map(([label, value], i, arr) => (
+            <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"11px 0", borderBottom: i<arr.length-1 ? `1px solid ${T.border}` : "none" }}>
+              <span style={{ fontSize:13, color:T.muted, fontWeight:600, flexShrink:0 }}>{label}</span>
+              <span style={{ fontSize:13, color:T.navy, fontWeight:700, textAlign:"right", maxWidth:"58%" }}>{value}</span>
             </div>
           ))}
+        </Card>
+
+        {/* Roles, skills, accommodations */}
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <Card>
+            <SectionHead>🎯 Roles Hiring For</SectionHead>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+              {(s2.roles||[]).length > 0 ? (s2.roles).map(r => <Badge key={r} color={T.teal}>{r}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>Not specified</span>}
+            </div>
+          </Card>
+          <Card>
+            <SectionHead>🛠 Required Skills</SectionHead>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+              {(s2.skills||[]).length > 0 ? (s2.skills).map(s => <Badge key={s} color={T.accent}>{s}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>Not specified</span>}
+            </div>
+          </Card>
+          <Card>
+            <SectionHead>♿ Accommodations Provided</SectionHead>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
+              {(s3.accommodations||[]).length > 0 ? (s3.accommodations).map(a => <Badge key={a} color={T.success}>{a}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>None listed</span>}
+            </div>
+          </Card>
         </div>
       </div>
-    </div>
-  );
-};
 
-const PageMessages = ({ T }) => {
-  const [active, setActive] = useState(0);
-  const [msg, setMsg] = useState("");
-  const convos = [
-    {name:"Maria Santos",   role:"UX Designer",    last:"Thank you for the opportunity!", time:"2m ago",  unread:2},
-    {name:"Juan dela Cruz", role:"React Developer", last:"I'm available for an interview.", time:"1h ago",  unread:0},
-    {name:"Ana Reyes",      role:"Data Analyst",   last:"Looking forward to hearing from you.", time:"3h ago", unread:1},
-  ];
-  const messages = [
-    {from:"them", text:"Hello! I saw your job listing and I'm very interested.", time:"10:00 AM"},
-    {from:"me",   text:"Hi! Thanks for reaching out. We reviewed your portfolio — it's impressive.", time:"10:15 AM"},
-    {from:"them", text:"Thank you so much! I'm particularly proud of my accessibility audit project.", time:"10:18 AM"},
-    {from:"me",   text:"That's exactly what we're looking for. Would you be available for an interview this week?", time:"10:22 AM"},
-    {from:"them", text:"Thank you for the opportunity!", time:"10:25 AM"},
-  ];
-  return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Messages</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:20 }}>Communicate directly with candidates.</p>
-      <div style={{ display:"grid", gridTemplateColumns:"280px 1fr", gap:20, height:520 }}>
-        <div style={{ background:BASE.card, borderRadius:16, border:`1px solid ${BASE.border}`, overflow:"hidden" }}>
-          {convos.map((cv,i) => (
-            <div key={i} onClick={() => setActive(i)} style={{ padding:"16px 20px", borderBottom:`1px solid ${BASE.border}`, cursor:"pointer", background:active===i?T.accentLight:"transparent", borderLeft:`3px solid ${active===i?T.accent:"transparent"}`, transition:"background 0.15s" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                <span style={{ fontSize:14, fontWeight:700, color:BASE.navy }}>{cv.name}</span>
-                <span style={{ fontSize:11, color:BASE.muted }}>{cv.time}</span>
-              </div>
-              <div style={{ fontSize:12, color:BASE.muted, marginBottom:4 }}>{cv.role}</div>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontSize:12, color:BASE.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:150 }}>{cv.last}</span>
-                {cv.unread>0 && <span style={{ background:T.accent, color:"#fff", borderRadius:99, fontSize:10, fontWeight:800, width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center" }}>{cv.unread}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ background:BASE.card, borderRadius:16, border:`1px solid ${BASE.border}`, display:"flex", flexDirection:"column" }}>
-          <div style={{ padding:"16px 24px", borderBottom:`1px solid ${BASE.border}`, display:"flex", alignItems:"center", gap:12 }}>
-            <Avatar name={convos[active].name} size={36} accent={T.accent} />
-            <div><div style={{ fontSize:14, fontWeight:700, color:BASE.navy }}>{convos[active].name}</div><div style={{ fontSize:12, color:BASE.success, fontWeight:600 }}>● Online</div></div>
-          </div>
-          <div style={{ flex:1, overflowY:"auto", padding:"20px 24px", display:"flex", flexDirection:"column", gap:12 }}>
-            {messages.map((m,i) => (
-              <div key={i} style={{ display:"flex", justifyContent:m.from==="me"?"flex-end":"flex-start" }}>
-                <div style={{ maxWidth:"70%", background:m.from==="me"?`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`:"#F0F2FA", borderRadius:m.from==="me"?"16px 16px 4px 16px":"16px 16px 16px 4px", padding:"10px 14px" }}>
-                  <p style={{ margin:0, fontSize:13, color:m.from==="me"?"#fff":BASE.navy, lineHeight:1.5 }}>{m.text}</p>
-                  <div style={{ fontSize:10, color:m.from==="me"?"rgba(255,255,255,0.5)":BASE.muted, marginTop:4, textAlign:"right" }}>{m.time}</div>
-                </div>
+      {/* Mission */}
+      {s4.mission && (
+        <Card style={{ borderLeft:`4px solid ${T.teal}` }}>
+          <div style={{ fontSize:12, fontWeight:700, color:T.teal, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Company Mission Statement</div>
+          <p style={{ fontSize:15, color:T.bodyText, lineHeight:1.8, margin:0, fontStyle:"italic" }}>"{s4.mission}"</p>
+        </Card>
+      )}
+
+      {/* Hiring priority ranking */}
+      {(s3.rankItems||[]).length > 0 && (
+        <Card>
+          <SectionHead>📊 Hiring Priority Ranking</SectionHead>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
+            {(s3.rankItems).map((item, i) => (
+              <div key={item} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", borderRadius:11, border:`1.5px solid ${T.border}`, background:T.bg }}>
+                <div style={{ width:28, height:28, borderRadius:"50%", background: i===0 ? "#F59E0B" : i===1 ? T.muted : T.border, color: i<2 ? "#fff" : T.bodyText, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, flexShrink:0 }}>{i+1}</div>
+                <span style={{ fontSize:13, fontWeight:700, color:T.bodyText }}>{item}</span>
               </div>
             ))}
           </div>
-          <div style={{ padding:"16px 24px", borderTop:`1px solid ${BASE.border}`, display:"flex", gap:10 }}>
-            <input value={msg} onChange={e => setMsg(e.target.value)} placeholder="Type a message…"
-              style={{ flex:1, padding:"10px 16px", borderRadius:10, border:`1.5px solid ${BASE.border}`, fontSize:13, outline:"none", fontFamily:"inherit" }} />
-            <button onClick={() => setMsg("")} style={{ padding:"10px 18px", borderRadius:10, border:"none", background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", cursor:"pointer", display:"flex", alignItems:"center", gap:6, fontSize:13, fontWeight:700 }}>
-              <Icon name="send" size={14} color="#fff" /> Send
-            </button>
-          </div>
-        </div>
-      </div>
+        </Card>
+      )}
     </div>
   );
 };
 
-const StarRating = ({ label }) => {
-  const [rating, setRating] = useState(0), [hover, setHover] = useState(0);
-  return (
-    <div style={{ marginBottom:20 }}>
-      <div style={{ fontSize:13, fontWeight:600, color:BASE.navy, marginBottom:8 }}>{label}</div>
-      <div style={{ display:"flex", gap:4 }}>
-        {[1,2,3,4,5].map(s => (
-          <button key={s} onClick={() => setRating(s)} onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
-            style={{ background:"none", border:"none", cursor:"pointer", padding:2 }}>
-            <Icon name="star" size={24} color={(hover||rating)>=s?"#D97706":BASE.border} />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const PageFeedback = ({ T }) => (
-  <div>
-    <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Feedback</h1>
-    <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>Rate candidates and provide structured hiring feedback.</p>
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
-      <div style={{ background:BASE.card, borderRadius:16, padding:28, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-        <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:20 }}>Rate a Candidate</h2>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24, padding:16, background:"#F8F9FD", borderRadius:12 }}>
-          <Avatar name="Maria" size={44} accent={T.accent} />
-          <div><div style={{ fontSize:14, fontWeight:700, color:BASE.navy }}>Maria Santos</div><div style={{ fontSize:12, color:BASE.muted }}>UX Designer · Applied for Senior UX Role</div></div>
-        </div>
-        <StarRating label="Technical Skills" /><StarRating label="Communication" /><StarRating label="Culture Fit" /><StarRating label="Portfolio Quality" />
-        <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:BASE.navy, marginBottom:8 }}>Overall Recommendation</div>
-          <div style={{ display:"flex", gap:8 }}>
-            {["Strong Hire","Hire","No Hire"].map(opt => <button key={opt} style={{ padding:"8px 16px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, color:BASE.navy, fontSize:13, fontWeight:600, cursor:"pointer" }}>{opt}</button>)}
-          </div>
-        </div>
-        <div style={{ marginBottom:20 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:BASE.navy, marginBottom:8 }}>Notes</div>
-          <textarea rows={3} placeholder="Add your hiring notes here…" style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:`1.5px solid ${BASE.border}`, fontSize:13, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box" }} />
-        </div>
-        <button style={{ width:"100%", padding:"12px", borderRadius:10, border:"none", background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>Submit Feedback</button>
-      </div>
-      <div style={{ background:BASE.card, borderRadius:16, padding:28, border:`1px solid ${BASE.border}`, boxShadow:"0 1px 4px rgba(26,39,68,0.06)" }}>
-        <h2 style={{ fontSize:15, fontWeight:700, color:BASE.navy, marginBottom:20 }}>Recent Feedback Submitted</h2>
-        {[{name:"Juan dela Cruz",rec:"Strong Hire",score:4.8,date:"Yesterday"},{name:"Ana Reyes",rec:"Hire",score:4.2,date:"2 days ago"},{name:"Carlos Bautista",rec:"Hire",score:3.9,date:"3 days ago"}].map((f,i) => (
-          <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 0", borderBottom:i<2?`1px solid ${BASE.border}`:"none" }}>
-            <Avatar name={f.name} size={40} accent={T.accent} />
-            <div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:700, color:BASE.navy }}>{f.name}</div><div style={{ fontSize:12, color:BASE.muted }}>{f.date}</div></div>
-            <div style={{ textAlign:"right" }}><Badge label={f.rec} type="success" /><div style={{ fontSize:12, color:BASE.muted, marginTop:4 }}>★ {f.score}</div></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-// ── Company Profile — populated from onboarding ──────────────────────────────
-const PageProfile = ({ profile, T }) => {
-  const s1 = profile?.s1 || {};
-  const s2 = profile?.s2 || {};
-  if (!s2.company) {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:400, textAlign:"center" }}>
-        <div style={{ fontSize:56, marginBottom:16 }}>🏢</div>
-        <h2 style={{ fontSize:22, fontWeight:800, color:BASE.navy, marginBottom:8 }}>Company Profile</h2>
-        <p style={{ color:BASE.muted, maxWidth:340 }}>Complete onboarding to populate your company profile.</p>
-        <a href="/employer/onboarding" style={{ marginTop:20, padding:"10px 24px", borderRadius:10, background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", fontSize:14, fontWeight:700, textDecoration:"none" }}>Go to Onboarding →</a>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Company Profile</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>Your public employer page on InklusiJobs.</p>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:24 }}>
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}`, textAlign:"center" }}>
-            <div style={{ width:72, height:72, borderRadius:16, background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, fontWeight:900, color:"#fff", margin:"0 auto 16px" }}>{(s2.company||"?")[0]}</div>
-            <h2 style={{ fontSize:18, fontWeight:800, color:BASE.navy, marginBottom:4 }}>{s2.company}</h2>
-            <p style={{ fontSize:13, color:BASE.muted, marginBottom:12 }}>{s2.industry}{s2.size ? ` · ${s2.size} employees` : ""}</p>
-            {s2.website && <a href={s2.website} target="_blank" rel="noreferrer" style={{ fontSize:13, color:T.accent, fontWeight:600 }}>{s2.website}</a>}
-          </div>
-          <div style={{ background:BASE.card, borderRadius:16, padding:20, border:`1px solid ${BASE.border}` }}>
-            <div style={{ fontSize:13, fontWeight:700, color:BASE.navy, marginBottom:12 }}>HR Contact</div>
-            <div style={{ fontSize:13, color:BASE.muted }}>{s1.firstName} {s1.lastName}</div>
-            <div style={{ fontSize:13, color:BASE.muted }}>{s1.title}</div>
-            <div style={{ fontSize:13, color:T.accent, marginTop:4 }}>{s1.email}</div>
-          </div>
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          {s2.culture && (
-            <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}` }}>
-              <div style={{ fontSize:13, fontWeight:700, color:BASE.navy, marginBottom:10 }}>Mission & Culture</div>
-              <p style={{ fontSize:14, color:BASE.muted, lineHeight:1.7, margin:0 }}>{s2.culture}</p>
-            </div>
-          )}
-          {s2.benefits?.length > 0 && (
-            <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}` }}>
-              <div style={{ fontSize:13, fontWeight:700, color:BASE.navy, marginBottom:12 }}>Benefits & Perks</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                {s2.benefits.map(b => <span key={b} style={{ background:T.accentLight, color:T.accent, fontSize:12, fontWeight:600, padding:"4px 12px", borderRadius:99 }}>{b}</span>)}
-              </div>
-            </div>
-          )}
-          {s2.accommodations?.length > 0 && (
-            <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}` }}>
-              <div style={{ fontSize:13, fontWeight:700, color:BASE.navy, marginBottom:12 }}>Disability Accommodations</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                {s2.accommodations.map(a => <span key={a} style={{ background:BASE.successBg, color:BASE.success, fontSize:12, fontWeight:600, padding:"4px 12px", borderRadius:99 }}>✓ {a}</span>)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PageSettings = ({ profile, T }) => {
-  const s5 = profile?.s5 || {};
+/* ─── ANALYTICS TAB ──────────────────────────────────────────────────────── */
+const AnalyticsTab = ({ profile }) => {
   const s1 = profile?.s1 || {};
   return (
-    <div>
-      <h1 style={{ fontSize:26, fontWeight:800, color:BASE.navy, marginBottom:4 }}>Settings</h1>
-      <p style={{ color:BASE.muted, fontSize:14, marginBottom:28 }}>Your preferences from onboarding. Edit anytime.</p>
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
+        {[
+          { icon:"👁️", label:"Profile Views",       value:"128", sub:"↑ 23% this week",   color:T.teal   },
+          { icon:"📨", label:"Total Applications",  value:"40",  sub:"↑ 8 this week",     color:T.accent },
+          { icon:"✅", label:"Acceptance Rate",     value:"42%", sub:"Industry avg: 35%", color:T.success},
+        ].map(stat => (
+          <Card key={stat.label} style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
+            <div style={{ width:46, height:46, borderRadius:12, background:`${stat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{stat.icon}</div>
+            <div>
+              <div style={{ fontSize:28, fontWeight:900, color:T.navy, lineHeight:1 }}>{stat.value}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginTop:4 }}>{stat.label}</div>
+              <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{stat.sub}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
-        <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}` }}>
-          <div style={{ fontSize:14, fontWeight:700, color:BASE.navy, marginBottom:16 }}>Dashboard Preferences</div>
-          <div style={{ fontSize:13, color:BASE.muted, marginBottom:8 }}>Theme: <strong style={{ color:BASE.navy }}>{s5.theme||"navy"}</strong></div>
-          <div style={{ fontSize:13, color:BASE.muted, marginBottom:8 }}>Layout: <strong style={{ color:BASE.navy }}>{s5.layout||"Comfortable"}</strong></div>
-          <div style={{ fontSize:13, color:BASE.muted, marginBottom:16 }}>Active widgets: <strong style={{ color:BASE.navy }}>{(s5.widgets||[]).join(", ")||"None"}</strong></div>
-          <a href="/employer/onboarding" style={{ display:"inline-block", padding:"10px 20px", borderRadius:10, background:`linear-gradient(135deg, ${T.sidebar}, ${T.sidebarEnd})`, color:"#fff", fontSize:13, fontWeight:700, textDecoration:"none" }}>Edit in Onboarding →</a>
-        </div>
-        <div style={{ background:BASE.card, borderRadius:16, padding:24, border:`1px solid ${BASE.border}` }}>
-          <div style={{ fontSize:14, fontWeight:700, color:BASE.navy, marginBottom:16 }}>Team Members</div>
-          {(s5.teammates||[]).filter(t => t.trim()).length > 0 ? (
-            (s5.teammates||[]).filter(t => t.trim()).map((t,i) => (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:`1px solid ${BASE.border}` }}>
-                <Avatar name={t} size={32} accent={T.accent} />
-                <span style={{ fontSize:13, color:BASE.navy }}>{t}</span>
+        <Card>
+          <SectionHead>📊 Application Funnel</SectionHead>
+          {[
+            { label:"Profile Views",    value:128, pct:100 },
+            { label:"Applications",     value:40,  pct:31  },
+            { label:"Reviewed",         value:22,  pct:17  },
+            { label:"Shortlisted",      value:10,  pct:8   },
+            { label:"Hired",            value:3,   pct:2   },
+          ].map(row => (
+            <div key={row.label} style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                <span style={{ fontSize:13, color:T.bodyText, fontWeight:600 }}>{row.label}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.value}</span>
               </div>
-            ))
-          ) : <p style={{ fontSize:13, color:BASE.muted }}>No team members invited yet.</p>}
+              <ProgressBar value={row.pct} />
+            </div>
+          ))}
+        </Card>
+
+        <Card>
+          <SectionHead>♿ Diversity Metrics</SectionHead>
+          {[
+            { label:"Visual Impairment",    pct:33, color:T.teal    },
+            { label:"Hearing Impairment",   pct:25, color:T.tealMid },
+            { label:"Mobility Disability",  pct:22, color:T.accent  },
+            { label:"Other Disabilities",   pct:20, color:T.muted   },
+          ].map(row => (
+            <div key={row.label} style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                <span style={{ fontSize:13, color:T.bodyText, fontWeight:600 }}>{row.label}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.pct}%</span>
+              </div>
+              <ProgressBar value={row.pct} color={row.color} />
+            </div>
+          ))}
+        </Card>
+      </div>
+
+      {/* Industry-specific insight */}
+      {s1.industry && (
+        <Card style={{ background:`linear-gradient(130deg,${T.navy},${T.teal})`, border:"none" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>✨ AI Industry Insight — {s1.industry}</div>
+          <p style={{ fontSize:14, color:"rgba(255,255,255,0.85)", lineHeight:1.7, margin:0 }}>
+            In the <strong style={{ color:"#fff" }}>{s1.industry}</strong> sector, inclusive employers report <strong style={{ color:"#fff" }}>34% higher retention rates</strong> among PWD hires compared to the industry average. Your current accommodation offering is above average — consider adding <strong style={{ color:"#fff" }}>Assistive Technology</strong> support to increase match quality by an estimated 18%.
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+/* ─── MESSAGES TAB ───────────────────────────────────────────────────────── */
+const MessagesTab = () => {
+  const [selected, setSelected] = useState(0);
+  const [msg, setMsg] = useState("");
+  const convos = ALL_CANDIDATES.map((c, i) => ({
+    ...c,
+    lastMsg: ["Hi! I'm very interested in the role.", "Thank you for reviewing my application.", "Looking forward to hearing from you.", "I have relevant experience in accessibility tools.", "When can we schedule an interview?", "I attached my portfolio for your review.", "Happy to provide more references.","Available for a call anytime this week."][i] || "Hello!",
+    time: `${i+1}h ago`,
+    unread: i < 3,
+  }));
+
+  return (
+    <div style={{ display:"flex", gap:0, background:T.white, borderRadius:16, border:`1px solid ${T.border}`, overflow:"hidden", height:620 }}>
+      {/* Convo list */}
+      <div style={{ width:290, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
+        <div style={{ padding:"16px 18px", borderBottom:`1px solid ${T.border}`, fontSize:15, fontWeight:800, color:T.navy }}>Messages</div>
+        <div style={{ flex:1, overflowY:"auto" }}>
+          {convos.map((c, i) => (
+            <div key={c.id} onClick={() => setSelected(i)}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 16px", cursor:"pointer", background:selected===i ? T.tealLight : "transparent", borderBottom:`1px solid ${T.border}`, transition:"background 0.12s" }}>
+              <Avatar initials={c.initials} size={40} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{c.name}</span>
+                  <span style={{ fontSize:11, color:T.muted }}>{c.time}</span>
+                </div>
+                <div style={{ fontSize:12, color:T.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>{c.lastMsg}</div>
+              </div>
+              {c.unread && <div style={{ width:9, height:9, borderRadius:"50%", background:T.teal, flexShrink:0 }} />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat pane */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
+        <div style={{ padding:"14px 20px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:12 }}>
+          <Avatar initials={convos[selected]?.initials} size={36} />
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:T.navy }}>{convos[selected]?.name}</div>
+            <div style={{ fontSize:12, color:T.success }}>● Online now</div>
+          </div>
+          <Badge color={T.success} style={{ marginLeft:"auto" }}>♿ {convos[selected]?.disability}</Badge>
+        </div>
+        <div style={{ flex:1, padding:"20px", display:"flex", flexDirection:"column", justifyContent:"flex-end", gap:12, overflowY:"auto" }}>
+          <div style={{ alignSelf:"flex-start", maxWidth:"68%", padding:"12px 16px", borderRadius:"14px 14px 14px 4px", background:T.bg, border:`1px solid ${T.border}`, fontSize:14, color:T.bodyText, lineHeight:1.6 }}>{convos[selected]?.lastMsg}</div>
+          <div style={{ alignSelf:"flex-end", maxWidth:"68%", padding:"12px 16px", borderRadius:"14px 14px 4px 14px", background:T.teal, fontSize:14, color:"#fff", lineHeight:1.6 }}>Thanks for reaching out! We'll review your application and get back to you shortly.</div>
+        </div>
+        <div style={{ padding:"12px 16px", borderTop:`1px solid ${T.border}`, display:"flex", gap:8 }}>
+          <input placeholder="Type a message..." value={msg} onChange={e=>setMsg(e.target.value)}
+            onKeyDown={e => { if(e.key==="Enter" && msg.trim()) setMsg(""); }}
+            style={{ flex:1, padding:"10px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
+            onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
+          <button onClick={() => setMsg("")}
+            style={{ padding:"10px 18px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Send</button>
         </div>
       </div>
     </div>
   );
 };
 
-// ── Page router ──────────────────────────────────────────────────────────────
-const renderPage = (id, profile, T) => {
-  switch (id) {
-    case "overview":   return <PageOverview   profile={profile} T={T} />;
-    case "jobs":       return <PageJobs       profile={profile} T={T} />;
-    case "candidates": return <PageCandidates profile={profile} T={T} />;
-    case "portfolio":  return <PagePortfolio  profile={profile} T={T} />;
-    case "messages":   return <PageMessages   T={T} />;
-    case "analytics":  return <PageAnalytics  profile={profile} T={T} />;
-    case "feedback":   return <PageFeedback   T={T} />;
-    case "profile":    return <PageProfile    profile={profile} T={T} />;
-    case "settings":   return <PageSettings   profile={profile} T={T} />;
-    default:           return <PageOverview   profile={profile} T={T} />;
-  }
+/* ─── SETTINGS TAB ───────────────────────────────────────────────────────── */
+const SettingsTab = ({ profile, onReset }) => {
+  const s3 = profile?.s3 || {};
+  const s4 = profile?.s4 || {};
+  const [notifs, setNotifs] = useState({
+    matches: s3.notifications !== false,
+    ai: s3.aiSuggest !== false,
+    apps: true,
+  });
+
+  const Toggle = ({ checked, onChange }) => (
+    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      style={{ width:62, height:34, borderRadius:999, border:"none", cursor:"pointer", background:checked ? T.teal : "#C4CDD6", position:"relative", transition:"background 0.25s ease", flexShrink:0, padding:0, outline:"none" }}>
+      <span style={{ position:"absolute", top:3, left:checked ? 31 : 3, width:28, height:28, borderRadius:"50%", background:"#fff", boxShadow:"0 2px 6px rgba(0,0,0,0.22)", transition:"left 0.22s cubic-bezier(0.4,0,0.2,1)", display:"block" }} />
+    </button>
+  );
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:20, maxWidth:680 }}>
+      <Card>
+        <SectionHead>⚙️ Account Settings</SectionHead>
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {["Email Address","Phone Number","New Password"].map(f => (
+            <div key={f}>
+              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>{f}</label>
+              <input type={f.includes("Password") ? "password" : "text"} placeholder={f.includes("Password") ? "••••••••" : `Enter ${f.toLowerCase()}...`}
+                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
+                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
+            </div>
+          ))}
+          <button style={{ alignSelf:"flex-start", padding:"11px 24px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Save Changes</button>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHead>🔔 Notification Preferences</SectionHead>
+        {[
+          { key:"matches", label:"New candidate matches",   sub:"Get notified when a new match is found" },
+          { key:"ai",      label:"AI recommendations",      sub:"Daily AI-powered candidate suggestions" },
+          { key:"apps",    label:"Application updates",     sub:"When candidates update their application status" },
+        ].map(item => (
+          <div key={item.key} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderBottom:`1px solid ${T.border}` }}>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, color:T.navy }}>{item.label}</div>
+              <div style={{ fontSize:12, color:T.muted, marginTop:3 }}>{item.sub}</div>
+            </div>
+            <Toggle checked={notifs[item.key]} onChange={v => setNotifs({...notifs, [item.key]: v})} />
+          </div>
+        ))}
+      </Card>
+
+      <Card>
+        <SectionHead>📋 Onboarding Data</SectionHead>
+        <p style={{ fontSize:14, color:T.muted, margin:"0 0 16px", lineHeight:1.6 }}>
+          Your dashboard reflects your onboarding answers. Reset to update your company profile, industry, preferences, and accommodations.
+        </p>
+        <div style={{ padding:"14px 16px", background:T.warningBg, borderRadius:11, border:`1px solid ${T.warning}33`, marginBottom:16 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:T.warning, marginBottom:4 }}>⚠️ Warning</div>
+          <div style={{ fontSize:13, color:T.bodyText }}>Resetting will clear all your onboarding data from local storage. Your dashboard will reload from scratch.</div>
+        </div>
+        <button onClick={onReset}
+          style={{ padding:"11px 22px", borderRadius:10, border:`1.5px solid ${T.danger}`, background:"#FEF2F2", color:T.danger, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
+          🔄 Reset & Redo Onboarding
+        </button>
+      </Card>
+    </div>
+  );
 };
 
-// ════════════════════════════════════════════════════════════════════════════
-//  MAIN DASHBOARD
-// ════════════════════════════════════════════════════════════════════════════
+/* ─── MAIN ───────────────────────────────────────────────────────────────── */
 export default function EmployerDashboard() {
-  const [active,      setActive]      = useState("overview");
-  const [collapsed,   setCollapsed]   = useState(false);
-  const [notifOpen,   setNotifOpen]   = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [search,      setSearch]      = useState("");
-  const [profile,     setProfile]     = useState(null);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [profile, setProfile] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Load from localStorage on mount — redirect to onboarding if no data yet
   useEffect(() => {
-    const data = loadProfile();
-    if (!data) {
-      window.location.href = "/employer/onboarding";
-    } else {
-      setProfile(data);
+    try {
+      const raw = localStorage.getItem("inklusijobs_employer");
+      if (!raw) { router.replace("/employer/onboarding"); return; }
+      setProfile(JSON.parse(raw));
+    } catch {
+      router.replace("/employer/onboarding");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Pick theme from onboarding Step 5, fallback to navy
-  const themeKey = profile?.s5?.theme || "navy";
-  const T = THEMES[themeKey] || THEMES.navy;
+  const handleReset = () => {
+    localStorage.removeItem("inklusijobs_employer");
+    router.replace("/employer/onboarding");
+  };
 
-  const s1 = profile?.s1 || {};
-  const s2 = profile?.s2 || {};
-
-  const companyName = s2.company  || "Your Company";
-  const adminName   = s1.firstName ? `${s1.firstName} ${s1.lastName||""}`.trim() : "HR Admin";
-  const adminInitial = (s1.firstName || "H")[0].toUpperCase();
-  const companyInitial = companyName[0].toUpperCase();
-
-  const SB_W = collapsed ? 68 : 252;
+  if (loading) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, fontFamily:"Arial, sans-serif", color:T.navy, fontSize:16 }}>
+      Loading your dashboard…
+    </div>
+  );
 
   return (
-    <div style={{ display:"flex", height:"100vh", background:BASE.bg, fontFamily:"'Lexend','DM Sans',sans-serif", color:BASE.navy, overflow:"hidden" }}>
-
-      {/* ── SIDEBAR ── */}
-      <aside style={{ width:SB_W, minWidth:SB_W, height:"100vh", background:`linear-gradient(180deg, ${T.sidebar} 0%, ${T.sidebarEnd} 100%)`, display:"flex", flexDirection:"column", transition:"width 0.25s cubic-bezier(0.4,0,0.2,1)", overflow:"hidden", boxShadow:"4px 0 24px rgba(26,39,68,0.18)", zIndex:20, flexShrink:0 }}>
-
-        {/* Brand — shows real company name */}
-        <div style={{ padding:collapsed?"22px 14px":"22px 20px", borderBottom:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", gap:12, overflow:"hidden" }}>
-          <div style={{ width:38, height:38, borderRadius:"50%", background:`linear-gradient(135deg, ${T.accent}, rgba(255,255,255,0.3))`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:"#fff", flexShrink:0 }}>{companyInitial}</div>
-          {!collapsed && (
-            <div style={{ overflow:"hidden" }}>
-              <div style={{ fontSize:13, fontWeight:800, color:"#fff", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{companyName}</div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.45)" }}>Employer Account</div>
-            </div>
-          )}
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex:1, padding:"10px 0", overflowY:"auto" }}>
-          {NAV.map(n => {
-            const on = active === n.id;
-            return (
-              <button key={n.id} onClick={() => setActive(n.id)} aria-current={on?"page":undefined} title={collapsed?n.label:undefined}
-                style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:collapsed?"11px 0":"11px 20px", justifyContent:collapsed?"center":"flex-start", background:on?`linear-gradient(90deg, ${T.accent}33, ${T.accent}0A)`:"none", border:"none", borderLeft:`3px solid ${on?T.accent:"transparent"}`, color:on?"#fff":"rgba(255,255,255,0.5)", cursor:"pointer", transition:"all 0.15s" }}
-                onMouseEnter={e => { if (!on) e.currentTarget.style.color="rgba(255,255,255,0.85)"; }}
-                onMouseLeave={e => { if (!on) e.currentTarget.style.color="rgba(255,255,255,0.5)";  }}>
-                <Icon name={n.icon} size={17} color="currentColor" />
-                {!collapsed && <span style={{ fontSize:13, fontWeight:on?700:500, whiteSpace:"nowrap" }}>{n.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Collapse */}
-        <div style={{ padding:"14px", borderTop:"1px solid rgba(255,255,255,0.08)" }}>
-          <button onClick={() => setCollapsed(v => !v)} aria-label={collapsed?"Expand sidebar":"Collapse sidebar"}
-            style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:collapsed?"center":"flex-start", gap:8, background:"rgba(255,255,255,0.06)", border:"none", borderRadius:10, padding:"9px", color:"rgba(255,255,255,0.55)", cursor:"pointer" }}
-            onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
-            onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.06)"}>
-            <Icon name={collapsed?"chevRight":"chevLeft"} size={15} color="currentColor" />
-            {!collapsed && <span style={{ fontSize:12, fontWeight:600 }}>Collapse</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN ── */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
-
-        {/* Top bar */}
-        <header style={{ height:62, background:BASE.card, borderBottom:`1px solid ${BASE.border}`, display:"flex", alignItems:"center", padding:"0 24px", gap:14, boxShadow:"0 1px 4px rgba(26,39,68,0.06)", zIndex:10, flexShrink:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, color:BASE.muted, flex:1 }}>
-            <span style={{ color:T.accent, fontWeight:700 }}>InklusiJobs</span>
-            <Icon name="chevRight" size={13} color={BASE.muted} />
-            <span style={{ color:BASE.navy, fontWeight:700 }}>{NAV.find(n => n.id===active)?.label}</span>
-          </div>
-
-          <div style={{ position:"relative", maxWidth:260, width:"100%" }}>
-            <div style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)" }}><Icon name="search" size={14} color={BASE.muted} /></div>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search candidates, jobs…"
-              style={{ width:"100%", padding:"8px 12px 8px 34px", borderRadius:10, border:`1.5px solid ${BASE.border}`, fontSize:13, background:"#F8F9FD", outline:"none", fontFamily:"inherit", boxSizing:"border-box" }} />
-          </div>
-
-          {/* Bell */}
-          <div style={{ position:"relative" }}>
-            <button onClick={() => { setNotifOpen(v=>!v); setProfileOpen(false); }}
-              style={{ width:38, height:38, borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative" }}>
-              <Icon name="bell" size={17} color={BASE.navy} />
-              <span style={{ position:"absolute", top:7, right:7, width:7, height:7, borderRadius:"50%", background:BASE.error, border:"2px solid white" }} />
-            </button>
-            {notifOpen && (
-              <div style={{ position:"absolute", top:46, right:0, width:300, background:BASE.card, borderRadius:14, border:`1px solid ${BASE.border}`, boxShadow:"0 12px 40px rgba(26,39,68,0.15)", zIndex:100, overflow:"hidden" }}>
-                <div style={{ padding:"13px 18px", borderBottom:`1px solid ${BASE.border}`, fontSize:14, fontWeight:700, color:BASE.navy }}>Notifications</div>
-                {[
-                  {text:"New application from Maria Santos", time:"2 min ago",  dot:T.accent      },
-                  {text:"Interview reminder: Juan at 3pm",   time:"1 hour ago", dot:BASE.warning  },
-                  {text:"AI matched 5 new candidates",       time:"Today",      dot:BASE.success  },
-                ].map((n,i) => (
-                  <div key={i} style={{ padding:"11px 18px", borderBottom:i<2?`1px solid ${BASE.border}`:"none", display:"flex", gap:10, alignItems:"flex-start" }}>
-                    <span style={{ width:7, height:7, borderRadius:"50%", background:n.dot, marginTop:5, flexShrink:0 }} />
-                    <div><div style={{ fontSize:13, color:BASE.navy, fontWeight:600 }}>{n.text}</div><div style={{ fontSize:11, color:BASE.muted }}>{n.time}</div></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Profile — shows real name */}
-          <div style={{ position:"relative" }}>
-            <button onClick={() => { setProfileOpen(v=>!v); setNotifOpen(false); }}
-              style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 10px 5px 5px", borderRadius:10, border:`1.5px solid ${BASE.border}`, background:BASE.card, cursor:"pointer" }}>
-              <div style={{ width:28, height:28, borderRadius:"50%", background:`linear-gradient(135deg, ${T.accent}, ${T.sidebar})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontWeight:800, fontSize:12 }}>{adminInitial}</div>
-              <span style={{ fontSize:13, fontWeight:700, color:BASE.navy }}>{adminName}</span>
-              <Icon name="chevDown" size={13} color={BASE.muted} />
-            </button>
-            {profileOpen && (
-              <div style={{ position:"absolute", top:46, right:0, width:200, background:BASE.card, borderRadius:14, border:`1px solid ${BASE.border}`, boxShadow:"0 12px 40px rgba(26,39,68,0.15)", zIndex:100 }}>
-                {["Profile","Company Settings","Billing","Sign Out"].map((item,i) => (
-                  <button key={i} style={{ width:"100%", padding:"11px 18px", background:"none", border:"none", fontSize:13, color:item==="Sign Out"?BASE.error:BASE.navy, fontWeight:item==="Sign Out"?700:500, textAlign:"left", cursor:"pointer", borderBottom:i<3?`1px solid ${BASE.border}`:"none", fontFamily:"inherit" }}
-                    onMouseEnter={e => e.currentTarget.style.background="#F8F9FD"}
-                    onMouseLeave={e => e.currentTarget.style.background="none"}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main style={{ flex:1, overflowY:"auto", padding:28 }}
-          onClick={() => { setNotifOpen(false); setProfileOpen(false); }}>
-          {renderPage(active, profile, T)}
+    <div style={{ display:"flex", minHeight:"100vh", background:T.bg, fontFamily:"Arial, sans-serif" }}>
+      <Sidebar active={activeTab} onTab={setActiveTab} profile={profile} open={sidebarOpen} onToggle={() => setSidebarOpen(s => !s)} />
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <Topbar profile={profile} activeTab={activeTab} onReset={handleReset} />
+        <main style={{ flex:1, overflowY:"auto", padding:"28px 32px" }}>
+          {activeTab === "overview"   && <OverviewTab   profile={profile} onTab={setActiveTab} />}
+          {activeTab === "candidates" && <CandidatesTab profile={profile} />}
+          {activeTab === "jobs"       && <JobsTab       profile={profile} />}
+          {activeTab === "profile"    && <ProfileTab    profile={profile} />}
+          {activeTab === "analytics"  && <AnalyticsTab  profile={profile} />}
+          {activeTab === "messages"   && <MessagesTab />}
+          {activeTab === "settings"   && <SettingsTab   profile={profile} onReset={handleReset} />}
         </main>
       </div>
     </div>

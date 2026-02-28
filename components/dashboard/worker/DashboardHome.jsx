@@ -1,48 +1,164 @@
-'use client';
+// components/dashboard/worker/DashboardHome.jsx
+"use client";
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import StatCard from './StatCard';
-
-const STATS = [
-  { icon: '🏅', value: '12', label: 'Skills Mastered',       delta: '+3',  color: '#2DB8A0' },
-  { icon: '⚡', value: '8',  label: 'Challenges Completed',  delta: '+2',  color: '#1A2744' },
-  { icon: '📈', value: '68%',label: 'Overall Progress',      delta: '+5%', color: '#2DB8A0' },
-  { icon: '🗂️', value: '5',  label: 'Portfolio Items',       delta: '+1',  color: '#1A2744' },
-];
-
-const RECENT_ACTIVITY = [
-  { icon: '✅', title: 'Completed challenge',  sub: 'Database Design Fundamentals', time: '2 hours ago',  c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
-  { icon: '🏆', title: 'Unlocked achievement', sub: 'Fast Learner',                 time: '1 day ago',    c: '#1A2744', bg: 'rgba(26,39,68,0.08)'   },
-  { icon: '🎯', title: 'Added to portfolio',   sub: 'E-commerce Dashboard',         time: '2 days ago',   c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
-  { icon: '🕐', title: 'Started challenge',    sub: 'Build a RESTful API',          time: '3 days ago',   c: '#1A2744', bg: 'rgba(26,39,68,0.06)'   },
-];
-
-const LEARNING_PATH = [
-  { label: 'Beginner',     progress: 100, status: 'Completed',   color: '#2DB8A0', locked: false },
-  { label: 'Intermediate', progress: 68,  status: 'In Progress', color: '#1A2744', locked: false },
-  { label: 'Advanced',     progress: 0,   status: 'Locked',      color: '#9BADC8', locked: true  },
-];
 
 export default function DashboardHome() {
   const [firstName, setFirstName] = useState('');
+  const [stats, setStats] = useState({
+    skillsMastered: 0,
+    challengesCompleted: 0,
+    overallProgress: 0,
+    portfolioItems: 0
+  });
+  const [recentChallenges, setRecentChallenges] = useState([]);
+  const [currentChallenge, setCurrentChallenge] = useState(null);
 
   useEffect(() => {
-    const supabase = createClient();
+    // Load all data from localStorage
+    
+    // 1. Get user name
+    const name = localStorage.getItem('worker_first_name');
+    if (name) setFirstName(name);
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-
-      supabase
-        .from('profiles')
-        .select('first_name')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.first_name) setFirstName(data.first_name);
-        });
+    // 2. Get completed challenges
+    const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
+    
+    // 3. Calculate unique skills
+    const uniqueSkills = [...new Set(challenges.map(c => c.skill || 'General').filter(Boolean))];
+    
+    // 4. Calculate total points
+    const totalPoints = challenges.reduce((sum, c) => sum + (c.points || 0), 0);
+    
+    // 5. Calculate progress (assuming 20 challenges to complete for 100%)
+    const progress = Math.min(100, Math.round((challenges.length / 20) * 100));
+    
+    setStats({
+      skillsMastered: uniqueSkills.length,
+      challengesCompleted: challenges.length,
+      overallProgress: progress,
+      portfolioItems: challenges.length // Each challenge becomes portfolio item
     });
+
+    // 6. Get recent challenges (last 4)
+    const recent = challenges.slice(-4).reverse();
+    setRecentChallenges(recent);
+    
+    // 7. Check for in-progress challenge
+    const inProgress = JSON.parse(localStorage.getItem('current_challenge') || 'null');
+    if (inProgress) {
+      setCurrentChallenge(inProgress);
+    }
+    
   }, []);
+
+  // Real stats from localStorage
+  const STATS = [
+    { icon: '🏅', value: stats.skillsMastered.toString(), label: 'Skills Mastered', delta: `+${stats.skillsMastered}`, color: '#2DB8A0' },
+    { icon: '⚡', value: stats.challengesCompleted.toString(), label: 'Challenges Completed', delta: `+${stats.challengesCompleted}`, color: '#1A2744' },
+    { icon: '📈', value: `${stats.overallProgress}%`, label: 'Overall Progress', delta: `+${stats.overallProgress}%`, color: '#2DB8A0' },
+    { icon: '🗂️', value: stats.portfolioItems.toString(), label: 'Portfolio Items', delta: `+${stats.portfolioItems}`, color: '#1A2744' },
+  ];
+
+const getLearningPath = () => {
+  const roadmapProgress = JSON.parse(localStorage.getItem('roadmap_progress') || 'null');
+  
+  if (roadmapProgress) {
+    return [
+      { 
+        label: 'Beginner', 
+        progress: roadmapProgress.beginner || 0, 
+        status: roadmapProgress.beginner >= 100 ? 'Completed' : roadmapProgress.beginner > 0 ? 'In Progress' : 'Not Started', 
+        color: '#2DB8A0', 
+        locked: false 
+      },
+      { 
+        label: 'Intermediate', 
+        progress: roadmapProgress.intermediate || 0, 
+        status: roadmapProgress.intermediate >= 100 ? 'Completed' : roadmapProgress.intermediate > 0 ? 'In Progress' : 'Locked', 
+        color: '#1A2744', 
+        locked: (roadmapProgress.beginner || 0) < 100 
+      },
+      { 
+        label: 'Advanced', 
+        progress: roadmapProgress.advanced || 0, 
+        status: roadmapProgress.advanced >= 100 ? 'Completed' : roadmapProgress.advanced > 0 ? 'In Progress' : 'Locked', 
+        color: '#9BADC8', 
+        locked: (roadmapProgress.intermediate || 0) < 100 
+      },
+    ];
+  }
+
+  const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
+  const beginnerCount = challenges.filter(c => c.difficulty === 'Beginner' || !c.difficulty).length;
+  const intermediateCount = challenges.filter(c => c.difficulty === 'Intermediate').length;
+  const advancedCount = challenges.filter(c => c.difficulty === 'Advanced').length;
+  
+  return [
+    { 
+      label: 'Beginner', 
+      progress: Math.min(100, Math.round((beginnerCount / 5) * 100)), 
+      status: beginnerCount >= 5 ? 'Completed' : beginnerCount > 0 ? 'In Progress' : 'Not Started', 
+      color: '#2DB8A0', 
+      locked: false 
+    },
+    { 
+      label: 'Intermediate', 
+      progress: Math.min(100, Math.round((intermediateCount / 5) * 100)), 
+      status: intermediateCount >= 5 ? 'Completed' : intermediateCount > 0 ? 'In Progress' : 'Locked', 
+      color: '#1A2744', 
+      locked: beginnerCount < 3 
+    },
+    { 
+      label: 'Advanced', 
+      progress: Math.min(100, Math.round((advancedCount / 5) * 100)), 
+      status: advancedCount >= 5 ? 'Completed' : advancedCount > 0 ? 'In Progress' : 'Locked', 
+      color: '#9BADC8', 
+      locked: intermediateCount < 3 
+    },
+  ];
+};
+  const getRecentActivity = () => {
+    if (recentChallenges.length === 0) {
+      return [
+        { icon: '🕐', title: 'No activity yet', sub: 'Start your first challenge!', time: '', c: '#9BADC8', bg: 'rgba(155,173,200,0.08)' }
+      ];
+    }
+    
+    return recentChallenges.map(c => ({
+      icon: '✅',
+      title: 'Completed challenge',
+      sub: c.title || 'Challenge',
+      time: formatTimeAgo(new Date(c.completedAt)),
+      c: '#2DB8A0',
+      bg: 'rgba(45,184,160,0.08)'
+    }));
+  };
+  function formatTimeAgo(date) {
+    if (!date || isNaN(date)) return 'Recently';
+    
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.round(diffMs / 60000);
+    const diffHours = Math.round(diffMs / 3600000);
+    const diffDays = Math.round(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return 'Long ago';
+  }
+  const getJobMatchPercentage = () => {
+    const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
+    const skillsCount = challenges.length;
+    return Math.min(95, 40 + (skillsCount * 5));
+  };
+
+  const RECENT_ACTIVITY = getRecentActivity();
+  const LEARNING_PATH = getLearningPath();
+  const jobMatchPercentage = getJobMatchPercentage();
 
   return (
     <>
@@ -289,7 +405,8 @@ export default function DashboardHome() {
         .dh-match-ring-fill {
           stroke: url(#brandMatchGrad); fill: none;
           stroke-linecap: round;
-          stroke-dasharray: 251; stroke-dashoffset: 75;
+          stroke-dasharray: 251; 
+          stroke-dashoffset: 251 - (251 * jobMatchPercentage / 100);
           transition: stroke-dashoffset 1s ease;
         }
         .dh-match-pct {
@@ -373,7 +490,7 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* ── Stats ── */}
+        {/* ── Stats (Now using real data) ── */}
         <div className="dh-stats">
           {STATS.map((s, i) => <StatCard key={i} {...s} />)}
         </div>
@@ -385,29 +502,41 @@ export default function DashboardHome() {
           <div className="dh-card dh-challenge">
             <div className="dh-challenge-header">
               <span className="dh-section-title">Current Challenge</span>
-              <span className="dh-badge-inprogress">In Progress</span>
+              {currentChallenge ? (
+                <span className="dh-badge-inprogress">In Progress</span>
+              ) : (
+                <span className="dh-badge-inprogress" style={{ background: 'rgba(155,173,200,0.1)', color: '#6B7280' }}>No Active Challenge</span>
+              )}
             </div>
-            <div className="dh-challenge-inner">
-              <div className="dh-challenge-icon">⚡</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="dh-challenge-name">Build a RESTful API with Authentication</div>
-                <div className="dh-challenge-desc">
-                  Create a secure backend API with user authentication, role-based access control, and data validation. Demonstrate best practices in security and architecture.
-                </div>
-                <div className="dh-challenge-meta">
-                  <span className="dh-meta-item">⏱️ Est. 12 hours</span>
-                  <span className="dh-meta-item">🏆 250 points</span>
-                </div>
-                <div className="dh-prog-label">
-                  <span>Challenge Progress</span>
-                  <span style={{ color: '#2DB8A0', fontWeight: 700 }}>65%</span>
-                </div>
-                <div className="dh-prog-track">
-                  <div className="dh-prog-fill" style={{ width: '65%' }} />
+            {currentChallenge ? (
+              <div className="dh-challenge-inner">
+                <div className="dh-challenge-icon">⚡</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="dh-challenge-name">{currentChallenge.title}</div>
+                  <div className="dh-challenge-desc">
+                    {currentChallenge.description?.substring(0, 100)}...
+                  </div>
+                  <div className="dh-challenge-meta">
+                    <span className="dh-meta-item">⏱️ Est. {currentChallenge.estimatedHours || 4} hours</span>
+                    <span className="dh-meta-item">🏆 {currentChallenge.points || 100} points</span>
+                  </div>
+                  <div className="dh-prog-label">
+                    <span>Challenge Progress</span>
+                    <span style={{ color: '#2DB8A0', fontWeight: 700 }}>{currentChallenge.progress || 0}%</span>
+                  </div>
+                  <div className="dh-prog-track">
+                    <div className="dh-prog-fill" style={{ width: `${currentChallenge.progress || 0}%` }} />
+                  </div>
                 </div>
               </div>
-            </div>
-            <button className="dh-continue-btn">Continue Challenge →</button>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No challenge in progress. Start a new challenge!
+              </div>
+            )}
+            {currentChallenge && (
+              <button className="dh-continue-btn">Continue Challenge →</button>
+            )}
           </div>
 
           {/* Learning Path */}
@@ -453,12 +582,12 @@ export default function DashboardHome() {
               <circle className="dh-match-ring-bg"   cx="44" cy="44" r="40" strokeWidth="7" />
               <circle className="dh-match-ring-fill" cx="44" cy="44" r="40" strokeWidth="7" />
             </svg>
-            <div className="dh-match-pct">70%</div>
+            <div className="dh-match-pct">{jobMatchPercentage}%</div>
           </div>
           <div>
             <div className="dh-match-title">Job Match Preview</div>
             <div className="dh-match-desc">
-              You match 70% of requirements for <strong style={{ color: '#1A2744' }}>3 open roles</strong> based on your current skills. Complete the Intermediate path to unlock more.
+              You match {jobMatchPercentage}% of requirements for <strong style={{ color: '#1A2744' }}>open roles</strong> based on your current skills. Complete more challenges to increase your match.
             </div>
           </div>
           <button className="dh-match-cta">Explore Jobs →</button>

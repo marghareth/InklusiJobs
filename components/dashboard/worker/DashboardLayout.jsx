@@ -1,28 +1,12 @@
-'use client';
+// components/dashboard/worker/DashboardLayout.jsx
+"use client";
 
-import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 import { useState } from 'react';
 import Sidebar from './Sidebar';
-import DashboardHome from './DashboardHome';
-import PlaceholderPage from './PlaceholderPage';
-import JobsPageMain from '../jobs/JobsPageMain.jsx';
 import { Bell } from 'lucide-react';
-import SettingsPage from './SettingsPage';
-import PortfolioPage from './portfolio/PortfolioPage';
-import TrackerPage from './TrackerPage';
+import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
 
-const PAGE_CONFIG = {
-  dashboard:  { component: <DashboardHome /> },
-  roadmap:    { component: <PlaceholderPage title="Roadmap"    icon="🗺️" description="Your personalised skill roadmap will be built from your career goals and current capabilities." /> },
-  challenges: { component: <PlaceholderPage title="Challenges" icon="⚡" description="Browse and tackle hands-on coding challenges matched to your skill level and target role." /> },
-  tracker:    { component: <TrackerPage /> },
-  portfolio:  { component: <PortfolioPage /> },
-  jobs:       { component: <JobsPageMain /> },
-  feedback:   { component: <PlaceholderPage title="Feedback"   icon="💬" description="Get AI-powered feedback on your submissions and request mentor reviews." /> },
-  settings:   { component: <SettingsPage /> },
-};
-
-export default function DashboardLayout() {
+export default function DashboardLayout({ children }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -130,7 +114,7 @@ export default function DashboardLayout() {
             </div>
           </div>
           <div className="dl-content">
-            {PAGE_CONFIG[activeTab]?.component}
+            {children}
           </div>
         </div>
       </div>

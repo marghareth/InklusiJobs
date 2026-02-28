@@ -1,58 +1,53 @@
+// app/dashboard/worker/page.js
 "use client";
 
-/**
- * app/dashboard/page.js
- *
- * Acts as a role router. Visiting /dashboard directly redirects
- * to /dashboard/worker or /dashboard/employer based on the stored role.
- *
- * Currently uses a simple module-level variable as a stand-in.
- * ─────────────────────────────────────────────────────────────────────────────
- * TODO: when you add real auth, replace getRole() with your actual
- * session/token reader. Examples:
- *
- *   // JWT cookie via next-auth:
- *   import { getSession } from "next-auth/react";
- *   const session = await getSession();
- *   const role = session?.user?.role;
- *
- *   // Custom cookie:
- *   import { cookies } from "next/headers";
- *   const role = cookies().get("role")?.value;
- * ─────────────────────────────────────────────────────────────────────────────
- */
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import DashboardLayout from '@/components/dashboard/worker/DashboardLayout';
+import WelcomeWorker from '@/components/landing/WelcomeWorker';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-/**
- * Stub role reader.
- * Replace this with your real auth session reader when ready.
- * Returns "worker" | "employer" | null
- */
-function getRole() {
-  // Safe guard for SSR — window is undefined on server
-  if (typeof window === "undefined") return null;
-  // ← swap this line for your real auth check
-  const role = localStorage.getItem("userRole");
-  return role || null;
-}
-
-export default function DashboardIndexPage() {
-  const router = useRouter();
+export default function DashboardPage() {
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const role = getRole();
-
-    if (role === "employer") {
-      router.replace("/dashboard/employer");
-    } else {
-      // Default to worker dashboard.
-      // Once real auth is in place, add a redirect to /login if role is null.
-      router.replace("/dashboard/worker");
+    async function checkFirstVisit() {
+      // Check if first visit using localStorage
+      const hasSeenWelcome = localStorage.getItem('worker_welcome_seen');
+      
+      // Get user's name from Supabase
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('id', user.id)
+          .single();
+        
+        setUserName(profile?.first_name || "there");
+      }
+      
+      // Show welcome on first visit
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+        localStorage.setItem('worker_welcome_seen', 'true');
+      }
     }
-  }, [router]);
+    
+    checkFirstVisit();
+  }, []);
 
-  // Blank screen while redirect happens — replace with a spinner if desired
-  return null;
+  return (
+    <>
+      <DashboardLayout />
+      {showWelcome && (
+        <WelcomeWorker 
+          name={userName} 
+          onClose={() => setShowWelcome(false)} 
+        />
+      )}
+    </>
+  );
 }
