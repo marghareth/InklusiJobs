@@ -6,7 +6,6 @@ import { useState } from "react";
 const steps = [
   {
     num: 1,
-    emoji: "📄",
     title: "Multi-Document Submission",
     desc: "PWD ID + supporting document (medical cert, barangay cert, or PhilHealth records)",
     color: "#FFE4B5",
@@ -14,7 +13,6 @@ const steps = [
   },
   {
     num: 2,
-    emoji: "🤖",
     title: "AI Document Analysis",
     desc: "Gemini Vision API validates fields, checks LGU templates, flags inconsistencies",
     color: "#BFDBFE",
@@ -22,7 +20,6 @@ const steps = [
   },
   {
     num: 3,
-    emoji: "📸",
     title: "Liveness Check",
     desc: "Real-time selfie with PWD ID via browser camera — no special hardware needed",
     color: "#BBF7D0",
@@ -30,7 +27,6 @@ const steps = [
   },
   {
     num: 4,
-    emoji: "🏅",
     title: "Human Review & Badge",
     desc: "Admin reviews flagged cases — approved accounts receive the PWD Verified badge",
     color: "#E9D5FF",
@@ -39,12 +35,12 @@ const steps = [
 ];
 
 const vaasPartners = [
-  { icon: "🏥", label: "Hospitals" },
-  { icon: "🛒", label: "Retailers" },
-  { icon: "✈️", label: "Airlines" },
-  { icon: "💊", label: "Pharmacies" },
-  { icon: "🏛️", label: "Government" },
-  { icon: "🍔", label: "Food Chains" },
+  { label: "Hospitals" },
+  { label: "Retailers" },
+  { label: "Airlines" },
+  { label: "Pharmacies" },
+  { label: "Government" },
+  { label: "Food Chains" },
 ];
 
 export default function VerificationSection() {
@@ -56,10 +52,6 @@ export default function VerificationSection() {
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-8px); }
-        }
-        @keyframes pulse-ring {
-          0% { transform: scale(1); opacity: 0.4; }
-          100% { transform: scale(1.5); opacity: 0; }
         }
         @keyframes shimmer {
           0% { background-position: -200% center; }
@@ -130,7 +122,6 @@ export default function VerificationSection() {
               border: "1px solid rgba(125,220,232,0.25)",
               borderRadius: 999, padding: "6px 18px", marginBottom: 20,
             }}>
-              <span style={{ fontSize: 14 }}>🔐</span>
               <span style={{
                 fontFamily: "Lexend, sans-serif", fontSize: 11, fontWeight: 700,
                 letterSpacing: "0.16em", textTransform: "uppercase", color: "#7DDCE8",
@@ -175,7 +166,7 @@ export default function VerificationSection() {
                   padding: "28px 24px",
                   position: "relative",
                   overflow: "hidden",
-                  animationDelay: `${i * 0.15}s`,
+                  textAlign: "center",
                 }}
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
@@ -191,23 +182,13 @@ export default function VerificationSection() {
 
                 {/* Step number badge */}
                 <div style={{
-                  position: "absolute", top: 16, right: 16,
-                  width: 24, height: 24, borderRadius: "50%",
+                  width: 32, height: 32, borderRadius: "50%",
                   background: "rgba(255,255,255,0.08)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "Lexend, sans-serif", fontSize: 11, fontWeight: 700,
-                  color: "rgba(255,255,255,0.3)",
+                  fontFamily: "Lexend, sans-serif", fontSize: 12, fontWeight: 700,
+                  color: "rgba(255,255,255,0.4)",
+                  margin: "0 auto 16px",
                 }} aria-hidden="true">{step.num}</div>
-
-                {/* Emoji icon */}
-                <div style={{
-                  width: 52, height: 52, borderRadius: 16,
-                  background: step.color + "22",
-                  border: `1.5px solid ${step.color}44`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 24, marginBottom: 16,
-                  animation: hovered === i ? "float 2s ease-in-out infinite" : "none",
-                }} aria-hidden="true">{step.emoji}</div>
 
                 <h3 style={{
                   fontFamily: "Lexend, sans-serif", fontWeight: 600, fontSize: 14,
@@ -240,7 +221,6 @@ export default function VerificationSection() {
           }}>
             <div style={{ flex: "1 1 320px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <span style={{ fontSize: 22 }}>⚡</span>
                 <h3 style={{
                   fontFamily: "Lexend, sans-serif", fontWeight: 700, fontSize: 18,
                   color: "#F0FDFD", margin: 0,
@@ -270,7 +250,7 @@ export default function VerificationSection() {
                     color: "rgba(224,248,250,0.8)",
                   }}
                 >
-                  <span aria-hidden="true">{p.icon}</span> {p.label}
+                  {p.label}
                 </span>
               ))}
             </div>
@@ -301,7 +281,7 @@ export default function VerificationSection() {
                 color: "#0A2A35", margin: 0,
               }}
             >
-              Which one are you? 👇
+              Which one are you?
             </h2>
           </div>
 
@@ -323,7 +303,6 @@ export default function VerificationSection() {
                 boxShadow: "0 8px 32px rgba(15,92,110,0.2)",
               }}
             >
-              {/* Decorative circles */}
               <div style={{
                 position: "absolute", top: -60, right: -60,
                 width: 200, height: 200, borderRadius: "50%",
@@ -336,7 +315,6 @@ export default function VerificationSection() {
               }} aria-hidden="true" />
 
               <div style={{ position: "relative" }}>
-                <div style={{ fontSize: 36, marginBottom: 16 }}>🚀</div>
                 <h3 style={{
                   fontFamily: "Lexend, sans-serif", fontWeight: 700,
                   fontSize: "clamp(1.4rem, 2.5vw, 1.75rem)",
@@ -367,7 +345,7 @@ export default function VerificationSection() {
                 }}
                 className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                Start Your Journey ✨
+                Start Your Journey
               </Link>
             </div>
 
@@ -391,7 +369,6 @@ export default function VerificationSection() {
               }} aria-hidden="true" />
 
               <div style={{ position: "relative" }}>
-                <div style={{ fontSize: 36, marginBottom: 16 }}>🏢</div>
                 <h3 style={{
                   fontFamily: "Lexend, sans-serif", fontWeight: 700,
                   fontSize: "clamp(1.4rem, 2.5vw, 1.75rem)",
@@ -421,7 +398,7 @@ export default function VerificationSection() {
                 }}
                 className="hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C6E]"
               >
-                Post a Job 🎯
+                Post a Job
               </Link>
             </div>
 
