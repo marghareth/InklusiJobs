@@ -484,7 +484,7 @@ export default function RoadmapPage() {
             onClick={() => {
               // Get user role from localStorage or default to "worker"
               const role = localStorage.getItem("userRole") || "worker";
-              window.location.href = role === "employer" ? "/employer/dashboard" : "/worker/dashboard";
+              window.location.href = role === "employer" ? "/employer/dashboard" : "/dashboard/worker";
             }}
             className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >

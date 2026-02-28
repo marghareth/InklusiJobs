@@ -1,493 +1,603 @@
+// components/landing/BasicInformation.jsx
 "use client";
 
-/**
- * AuthModal.jsx  —  DEMO VERSION
- * Auth backed by localStorage (no Supabase required for hackathon demo).
- * Location: components/landing/AuthModal.jsx
- */
+import { useState } from "react";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import EmailVerification from "./EmailVerification";
+// ── Design tokens (from dashboard palette) ───────────────────────────────────
+const C = {
+  navy:      "#1A2744",
+  navyLight: "#1E2F55",
+  accent:    "#2DD4BF",   // teal from dashboard
+  accentDim: "#0F4C4C",
+  bg:        "#F9F8F6",
+  card:      "#FFFFFF",
+  success:   "#16A34A",
+  successBg: "#DCFCE7",
+  error:     "#DC2626",
+  text:      "#1A2744",
+  muted:     "#6B7280",
+  border:    "#E5E7EB",
+  light:     "#CCFBF1",   // teal-tinted light bg
+};
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useAuthModal() {
-  const [isOpen, setIsOpen]   = useState(false);
-  const [tab, setTab]         = useState("signin");
-  const open  = useCallback((defaultTab = "signin") => { setTab(defaultTab); setIsOpen(true); }, []);
-  const close = useCallback(() => setIsOpen(false), []);
-  return { isOpen, tab, open, close };
-}
+const STEPS = [
+  { id: 1, label: "Basic Info",       icon: "👤", desc: "Your personal details"         },
+  { id: 2, label: "Work Preference",  icon: "💼", desc: "Your ideal work setup"         },
+  { id: 3, label: "Disability Info",  icon: "♿", desc: "Accommodations & support"      },
+  { id: 4, label: "Dashboard",        icon: "🎨", desc: "Personalize your experience"   },
+];
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-
-  .am-overlay {
-    position: fixed; inset: 0; z-index: 9999;
-    display: flex; align-items: center; justify-content: center;
-    padding: 16px;
-    background: rgba(15, 28, 27, 0.50);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    animation: am-fade 0.22s ease;
-  }
-  @keyframes am-fade { from { opacity: 0; } to { opacity: 1; } }
-
-  .am-modal {
-    position: relative; width: 100%; max-width: 860px; min-height: 500px;
-    border-radius: 24px; overflow: hidden;
-    display: grid; grid-template-columns: 40% 60%;
-    box-shadow: 0 32px 80px rgba(15, 28, 27, 0.30);
-    animation: am-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  @keyframes am-up {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .am-close {
-    position: absolute; top: 14px; right: 14px; z-index: 10;
-    width: 30px; height: 30px; border-radius: 50%; border: none;
-    background: rgba(255,255,255,0.15); color: #fff; font-size: 16px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: background 0.18s; backdrop-filter: blur(4px);
-  }
-  .am-close:hover { background: rgba(255,255,255,0.30); }
-  .am-close:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
-
-  .am-left {
-    background: linear-gradient(155deg, #0F2942 0%, #1a5f7a 45%, #6dbfb8 80%, #c9a4d4 100%);
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 40px 32px; position: relative; overflow: hidden;
-  }
-  .am-left::before {
-    content: ''; position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse at 25% 75%, rgba(109,191,184,0.35) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 15%, rgba(201,164,212,0.25) 0%, transparent 55%);
-  }
-  .am-left-body  { position: relative; z-index: 1; }
-  .am-left-quote {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(17px, 2vw, 24px); font-style: italic;
-    color: rgba(255,255,255,0.90); line-height: 1.45; margin: 0 0 14px;
-  }
-  .am-left-sub {
-    font-family: 'DM Sans', sans-serif; font-size: 11px;
-    color: rgba(255,255,255,0.50); letter-spacing: 0.3px;
-  }
-
-  .am-right {
-    background: #F7F6F4; padding: 44px 48px;
-    display: flex; flex-direction: column; justify-content: center;
-    overflow-y: auto; max-height: 90vh;
-  }
-
-  .am-logo {
-    font-family: 'DM Serif Display', serif; font-size: 19px;
-    color: #1E293B; margin: 0 0 24px; letter-spacing: -0.3px; display: block;
-  }
-  .am-logo span { color: #15803D; }
-
-  .am-tabs { display: flex; border-bottom: 2px solid #E2E8F0; margin-bottom: 24px; }
-  .am-tab {
-    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
-    color: #94A3B8; background: none; border: none;
-    padding: 0 0 11px; margin-right: 24px; cursor: pointer;
-    position: relative; transition: color 0.18s;
-  }
-  .am-tab.active { color: #1E293B; }
-  .am-tab.active::after {
-    content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
-    height: 2px; background: #1E40AF; border-radius: 2px;
-  }
-
-  .am-heading {
-    font-family: 'DM Sans', sans-serif;
-    font-size: clamp(20px, 2.4vw, 26px); font-weight: 700;
-    color: #1E293B; margin: 0 0 5px;
-  }
-  .am-subtext {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    color: #64748B; margin: 0 0 22px;
-  }
-  .am-subtext button {
-    background: none; border: none; padding: 0; cursor: pointer;
-    color: #1E40AF; font-weight: 600; font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
-    text-decoration: underline; text-underline-offset: 3px;
-  }
-
-  .am-form     { display: flex; flex-direction: column; gap: 16px; }
-  .am-field    { display: flex; flex-direction: column; gap: 5px; }
-  .am-name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  .am-label {
-    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
-    color: #64748B; letter-spacing: 0.4px; text-transform: uppercase;
-  }
-  .am-input-wrap { position: relative; }
-  .am-input {
-    width: 100%; box-sizing: border-box;
-    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1E293B;
-    background: #fff; border: 1.5px solid #E2E8F0; border-radius: 10px;
-    padding: 11px 14px; outline: none;
-    transition: border-color 0.18s, box-shadow 0.18s;
-  }
-  .am-input::placeholder { color: #CBD5E1; }
-  .am-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,0.10); }
-  .am-input.with-icon { padding-right: 42px; }
-
-  .am-eye {
-    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; cursor: pointer;
-    color: #94A3B8; display: flex; align-items: center; padding: 4px;
-    transition: color 0.18s;
-  }
-  .am-eye:hover { color: #1E293B; }
-
-  .am-row { display: flex; align-items: center; justify-content: space-between; }
-  .am-remember {
-    display: flex; align-items: center; gap: 7px;
-    font-family: 'DM Sans', sans-serif; font-size: 12px;
-    color: #64748B; cursor: pointer; user-select: none;
-  }
-  .am-remember input { width: 14px; height: 14px; accent-color: #1E40AF; cursor: pointer; }
-  .am-forgot {
-    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
-    color: #1E40AF; text-decoration: underline; text-underline-offset: 3px;
-    background: none; border: none; cursor: pointer; padding: 0;
-  }
-
-  .am-submit {
-    width: 100%; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px;
-    color: #fff; background: #1E293B; border: none; border-radius: 12px; padding: 13px;
-    cursor: pointer; letter-spacing: 0.3px; transition: background 0.2s, transform 0.15s;
-  }
-  .am-submit:hover         { background: #1E40AF; transform: translateY(-1px); }
-  .am-submit:disabled      { opacity: 0.6; cursor: not-allowed; transform: none; }
-  .am-submit:focus-visible { outline: 2px solid #2563EB; outline-offset: 3px; }
-
-  .am-divider {
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700;
-    color: #94A3B8; letter-spacing: 1.2px; text-transform: uppercase;
-  }
-  .am-divider::before, .am-divider::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
-
-  .am-social { display: flex; flex-direction: column; gap: 9px; }
-  .am-social-btn {
-    width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-    color: #1E293B; background: #fff; border: 1.5px solid #E2E8F0;
-    border-radius: 12px; padding: 11px 18px; cursor: pointer;
-    transition: border-color 0.18s, background 0.18s, transform 0.15s;
-  }
-  .am-social-btn:hover { background: #f8fafc; border-color: #CBD5E1; transform: translateY(-1px); }
-
-  .am-error {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA;
-    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
-  }
-  .am-warning {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A;
-    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
-  }
-  .am-success {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    color: #065F46; background: #ECFDF5; border: 1px solid #A7F3D0;
-    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
-  }
-
-  .am-role-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700;
-    letter-spacing: 1.2px; text-transform: uppercase;
-    padding: 5px 12px; border-radius: 100px; margin-bottom: 20px; width: fit-content;
-  }
-  .am-role-badge.worker   { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
-  .am-role-badge.employer { background: #F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE; }
-  .am-role-badge::before {
-    content: ''; width: 6px; height: 6px;
-    border-radius: 50%; background: currentColor; opacity: 0.7;
-  }
-
-  @media (max-width: 600px) {
-    .am-modal    { grid-template-columns: 1fr; border-radius: 20px; }
-    .am-left     { display: none; }
-    .am-right    { padding: 32px 24px; max-height: 95vh; }
-    .am-name-row { grid-template-columns: 1fr; }
-  }
-`;
-
-// ─── Icons ─────────────────────────────────────────────────────────────────────
-const EyeIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-const EyeOffIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
-  </svg>
-);
-const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-  </svg>
-);
-const FacebookIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
+// ── Shared UI components ─────────────────────────────────────────────────────
+const Label = ({ children, required }) => (
+  <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 6 }}>
+    {children}{required && <span style={{ color: C.error, marginLeft: 3 }}>*</span>}
+  </div>
 );
 
-// ─── localStorage helpers ─────────────────────────────────────────────────────
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem("ij_users") || "[]"); } catch { return []; }
-}
-function saveUsers(users) {
-  localStorage.setItem("ij_users", JSON.stringify(users));
-}
-function setCurrentUser(user) {
-  localStorage.setItem("ij_current_user", JSON.stringify(user));
-}
+const inputStyle = {
+  width: "100%", padding: "10px 14px", borderRadius: 10,
+  border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit",
+  background: "#FAFAFA", outline: "none", boxSizing: "border-box", color: C.navy,
+};
 
-// ─── SignInForm ───────────────────────────────────────────────────────────────
-function SignInForm({ role, onSignIn, onSwitchTab }) {
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+const Input = ({ placeholder, value, onChange, type = "text", min, max }) => (
+  <input
+    type={type} placeholder={placeholder} value={value} onChange={onChange}
+    min={min} max={max}
+    style={inputStyle}
+    onFocus={e => e.target.style.borderColor = C.accent}
+    onBlur={e => e.target.style.borderColor = C.border}
+  />
+);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const Select = ({ options, value, onChange }) => (
+  <select value={value} onChange={onChange}
+    style={{ ...inputStyle, cursor: "pointer" }}
+    onFocus={e => e.target.style.borderColor = C.accent}
+    onBlur={e => e.target.style.borderColor = C.border}>
+    {options.map(o => <option key={o} value={o}>{o}</option>)}
+  </select>
+);
 
-    const data  = new FormData(e.target);
-    const email = data.get("email")?.trim().toLowerCase();
-    const pwd   = data.get("password");
+const ChipSelect = ({ options, selected, onToggle, max }) => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    {options.map(opt => {
+      const active = selected.includes(opt);
+      const disabled = !active && max && selected.length >= max;
+      return (
+        <button key={opt} onClick={() => !disabled && onToggle(opt)}
+          style={{
+            padding: "7px 14px", borderRadius: 99, fontSize: 13, fontWeight: 600,
+            border: `1.5px solid ${active ? C.accent : C.border}`,
+            background: active ? C.light : C.card,
+            color: active ? C.navy : C.muted,
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.5 : 1,
+            transition: "all 0.15s",
+          }}>
+          {opt}
+        </button>
+      );
+    })}
+  </div>
+);
 
-    const users = getUsers();
-    const found = users.find((u) => u.email === email);
+const Field = ({ label, required, children }) => (
+  <div style={{ marginBottom: 20 }}>
+    <Label required={required}>{label}</Label>
+    {children}
+  </div>
+);
 
-    setTimeout(() => {
-      setLoading(false);
-      if (!found) {
-        setError("No account found with that email. Please sign up first.");
-        return;
-      }
-      if (found.password !== pwd) {
-        setError("Incorrect password. Please try again.");
-        return;
-      }
-      // Save session
-      setCurrentUser(found);
-      onSignIn(found);
-    }, 600);
-  };
+const Row = ({ children }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>{children}</div>
+);
+
+// ── Step 1 – Basic Information ────────────────────────────────────────────────
+const Step1 = ({ data, set }) => {
+  const educationalOptions = [
+    "Some Elementary", "Elementary Graduate", "Some High School",
+    "High School Graduate", "Some College", "College Graduate",
+    "Some/Completed Master's Degree", "Master's Graduate", "Vocational/TVET",
+  ];
+  return (
+    <div>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Tell us about yourself</h2>
+      <p style={{ color: C.muted, fontSize: 14, marginBottom: 28 }}>We'll personalize your InklusiJobs experience just for you.</p>
+      <Row>
+        <Field label="First Name" required>
+          <Input placeholder="Juan" value={data.firstName} onChange={e => set({ ...data, firstName: e.target.value })} />
+        </Field>
+        <Field label="Last Name" required>
+          <Input placeholder="Dela Cruz" value={data.lastName} onChange={e => set({ ...data, lastName: e.target.value })} />
+        </Field>
+      </Row>
+      <Field label="Age" required>
+        <Input type="number" placeholder="25" min="1" max="120" value={data.age} onChange={e => set({ ...data, age: e.target.value })} />
+      </Field>
+      <Field label="Current Address" required>
+        <Input placeholder="123 Mabini St, Quezon City, Metro Manila" value={data.currentAddress} onChange={e => set({ ...data, currentAddress: e.target.value })} />
+      </Field>
+      <Field label="Permanent Address" required>
+        <Input placeholder="456 Rizal Ave, Cebu City, Cebu" value={data.permanentAddress} onChange={e => set({ ...data, permanentAddress: e.target.value })} />
+      </Field>
+      <Field label="Contact Number" required>
+        <Input type="tel" placeholder="+63 912 345 6789" value={data.contactNumber} onChange={e => set({ ...data, contactNumber: e.target.value })} />
+      </Field>
+      <Field label="Educational Attainment" required>
+        <Select
+          options={["Select Educational Attainment", ...educationalOptions]}
+          value={data.educationalAttainment}
+          onChange={e => set({ ...data, educationalAttainment: e.target.value })}
+        />
+      </Field>
+    </div>
+  );
+};
+
+// ── Step 2 – Work Preference ──────────────────────────────────────────────────
+const Step2 = ({ data, set }) => {
+  const workTypes = ["Remote", "Hybrid", "On-site"];
+  const contractTypes = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"];
+  const industries = ["Technology", "Healthcare", "Finance", "Education", "Retail", "Manufacturing", "Media", "BPO/Call Center", "Government", "Non-profit", "Creative/Arts", "Other"];
+  const skillOptions = ["Communication", "Data Entry", "Customer Service", "Graphic Design", "Web Development", "Administrative", "Accounting", "Teaching/Tutoring", "Caregiving", "Writing/Editing", "Research", "Sales", "IT Support", "Transcription", "Social Media"];
+  const availabilities = ["Immediately", "Within 2 weeks", "Within a month", "Open to discuss"];
 
   return (
-    <>
-      {role && <div className={`am-role-badge ${role}`}>{role}</div>}
-      <h2 className="am-heading">Welcome back</h2>
-      <p className="am-subtext">
-        Don&apos;t have an account?{" "}
-        <button type="button" onClick={() => onSwitchTab("signup")}>Sign up free</button>
-      </p>
-      {error && <div className="am-error">{error}</div>}
-      <form className="am-form" onSubmit={handleSubmit}>
-        <div className="am-field">
-          <label className="am-label" htmlFor="si-email">Email</label>
-          <input id="si-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
-        </div>
-        <div className="am-field">
-          <label className="am-label" htmlFor="si-pwd">Password</label>
-          <div className="am-input-wrap">
-            <input id="si-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Your password" required autoComplete="current-password" />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
-              {showPwd ? <EyeOffIcon /> : <EyeIcon />}
+    <div>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Your work preferences</h2>
+      <p style={{ color: C.muted, fontSize: 14, marginBottom: 28 }}>Help us match you to jobs that fit your lifestyle and goals.</p>
+
+      <Field label="Preferred Work Setup" required>
+        <div style={{ display: "flex", gap: 8 }}>
+          {workTypes.map(t => (
+            <button key={t} onClick={() => set({ ...data, workType: t })}
+              style={{
+                flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${data.workType === t ? C.accent : C.border}`,
+                background: data.workType === t ? C.light : C.card,
+                color: data.workType === t ? C.navy : C.muted, cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+              {t}
             </button>
-          </div>
+          ))}
         </div>
-        <div className="am-row">
-          <label className="am-remember"><input type="checkbox" /> Remember me</label>
-          <button type="button" className="am-forgot">Forgot password?</button>
+      </Field>
+
+      <Field label="Preferred Contract Type" required>
+        <Select
+          options={["Select contract type", ...contractTypes]}
+          value={data.contractType}
+          onChange={e => set({ ...data, contractType: e.target.value })}
+        />
+      </Field>
+
+      <Field label="Preferred Industry">
+        <Select
+          options={["Select preferred industry", ...industries]}
+          value={data.industry}
+          onChange={e => set({ ...data, industry: e.target.value })}
+        />
+      </Field>
+
+      <Row>
+        <Field label="Expected Monthly Salary (min)">
+          <Input placeholder="₱15,000" value={data.salaryMin} onChange={e => set({ ...data, salaryMin: e.target.value })} />
+        </Field>
+        <Field label="Expected Monthly Salary (max)">
+          <Input placeholder="₱30,000" value={data.salaryMax} onChange={e => set({ ...data, salaryMax: e.target.value })} />
+        </Field>
+      </Row>
+
+      <Field label="Skills (select all that apply)">
+        <ChipSelect options={skillOptions} selected={data.skills || []}
+          onToggle={opt => {
+            const c = data.skills || [];
+            set({ ...data, skills: c.includes(opt) ? c.filter(s => s !== opt) : [...c, opt] });
+          }} />
+      </Field>
+
+      <Field label="Availability to Start">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {availabilities.map(a => (
+            <button key={a} onClick={() => set({ ...data, availability: a })}
+              style={{
+                padding: "7px 16px", borderRadius: 99, fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${data.availability === a ? C.accent : C.border}`,
+                background: data.availability === a ? C.light : C.card,
+                color: data.availability === a ? C.navy : C.muted, cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+              {a}
+            </button>
+          ))}
         </div>
-        <button type="submit" className="am-submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign In"}
-        </button>
-        <div className="am-divider">or</div>
-        <div className="am-social">
-          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
-          <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
-        </div>
-      </form>
-    </>
+      </Field>
+
+      <Field label="Tell us more about your career goals">
+        <textarea
+          placeholder="e.g. I'm looking for a remote role where I can use my design skills and grow in UX..."
+          rows={3}
+          value={data.goals || ""}
+          onChange={e => set({ ...data, goals: e.target.value })}
+          style={{ ...inputStyle, resize: "none" }}
+          onFocus={e => e.target.style.borderColor = C.accent}
+          onBlur={e => e.target.style.borderColor = C.border}
+        />
+      </Field>
+    </div>
   );
-}
+};
 
-// ─── SignUpForm ───────────────────────────────────────────────────────────────
-function SignUpForm({ role, onSignUp, onSwitchTab }) {
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
-  const [warning, setWarning] = useState("");
+// ── Step 3 – Type of Disability ───────────────────────────────────────────────
+const Step3 = ({ data, set }) => {
+  const disabilityTypes = [
+    "Visual Impairment", "Hearing Impairment", "Physical/Mobility", "Psychosocial",
+    "Intellectual", "Learning Disability", "Speech/Language", "Chronic Illness",
+    "Autism Spectrum", "Multiple Disabilities", "Prefer not to say",
+  ];
+  const accommodations = [
+    "Screen reader support", "Sign language interpreter", "Flexible scheduling",
+    "Physical accessibility", "Assistive technology", "Quiet workspace",
+    "Remote work option", "Custom workstation", "Extended deadlines",
+    "Written communication preference", "Frequent breaks",
+  ];
+  const severities = ["Mild", "Moderate", "Severe", "Prefer not to say"];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError("");
-    setWarning("");
-    setLoading(true);
+  return (
+    <div>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Disability information</h2>
+      <p style={{ color: C.muted, fontSize: 14, marginBottom: 6 }}>This helps us match you with inclusive employers and suitable accommodations.</p>
+      <div style={{
+        background: C.light, border: `1px solid ${C.accent}`, borderRadius: 10,
+        padding: "10px 14px", marginBottom: 24, fontSize: 13, color: C.accentDim, fontWeight: 500
+      }}>
+        🔒 This information is kept confidential and only shared with employers you apply to.
+      </div>
 
-    const data      = new FormData(e.target);
-    const firstName = data.get("firstName")?.trim();
-    const lastName  = data.get("lastName")?.trim();
-    const email     = data.get("email")?.trim().toLowerCase();
-    const pwd       = data.get("password");
+      <Field label="Type of Disability">
+        <ChipSelect options={disabilityTypes} selected={data.disabilityTypes || []}
+          onToggle={opt => {
+            const c = data.disabilityTypes || [];
+            set({ ...data, disabilityTypes: c.includes(opt) ? c.filter(d => d !== opt) : [...c, opt] });
+          }} />
+      </Field>
 
-    const users = getUsers();
+      <Field label="Severity Level">
+        <div style={{ display: "flex", gap: 8 }}>
+          {severities.map(s => (
+            <button key={s} onClick={() => set({ ...data, severity: s })}
+              style={{
+                flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${data.severity === s ? C.accent : C.border}`,
+                background: data.severity === s ? C.light : C.card,
+                color: data.severity === s ? C.navy : C.muted, cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </Field>
 
-    // ✅ Check for duplicate email
-    if (users.find((u) => u.email === email)) {
-      setLoading(false);
-      setWarning("An account with this email already exists. Please log in instead.");
-      return;
+      <Field label="PWD ID Number">
+        <Input placeholder="e.g. 2024-QC-12345" value={data.pwdId || ""} onChange={e => set({ ...data, pwdId: e.target.value })} />
+      </Field>
+
+      <Field label="Workplace Accommodations Needed">
+        <ChipSelect options={accommodations} selected={data.accommodations || []}
+          onToggle={opt => {
+            const c = data.accommodations || [];
+            set({ ...data, accommodations: c.includes(opt) ? c.filter(a => a !== opt) : [...c, opt] });
+          }} />
+      </Field>
+
+      <Field label="Additional notes about your needs">
+        <textarea
+          placeholder="e.g. I need an ergonomic chair and occasional breaks every 2 hours due to my condition..."
+          rows={3}
+          value={data.disabilityNotes || ""}
+          onChange={e => set({ ...data, disabilityNotes: e.target.value })}
+          style={{ ...inputStyle, resize: "none" }}
+          onFocus={e => e.target.style.borderColor = C.accent}
+          onBlur={e => e.target.style.borderColor = C.border}
+        />
+      </Field>
+
+      <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginTop: 8 }}>
+        <input
+          type="checkbox"
+          checked={data.consentSharing || false}
+          onChange={e => set({ ...data, consentSharing: e.target.checked })}
+          style={{ width: 16, height: 16, accentColor: C.accent, cursor: "pointer", marginTop: 2, flexShrink: 0 }}
+        />
+        <span style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
+          I consent to sharing my disability information with employers I apply to through InklusiJobs for the purpose of requesting appropriate accommodations.
+        </span>
+      </label>
+    </div>
+  );
+};
+
+// ── Step 4 – Dashboard Preference ─────────────────────────────────────────────
+const Step4 = ({ data, set }) => {
+  const themes = [
+    { id: "teal",  label: "Teal Focus", bg: "#0F4C4C", accent: "#2DD4BF" },
+    { id: "navy",  label: "Navy Pro",   bg: "#1A2744", accent: "#7286D3" },
+    { id: "slate", label: "Slate",      bg: "#334155", accent: "#94A3B8" },
+    { id: "rose",  label: "Rose",       bg: "#881337", accent: "#FB7185" },
+  ];
+  const layouts = ["Compact", "Comfortable", "Spacious"];
+  const widgets = ["Job Matches", "Application Tracker", "Saved Jobs", "Interview Schedule", "Skills Progress", "Recommended Employers"];
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Personalize your dashboard</h2>
+      <p style={{ color: C.muted, fontSize: 14, marginBottom: 28 }}>Choose how your InklusiJobs workspace looks and feels.</p>
+
+      <Field label="Dashboard Theme">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          {themes.map(t => (
+            <button key={t.id} onClick={() => set({ ...data, theme: t.id })}
+              style={{
+                padding: "14px 10px", borderRadius: 12,
+                border: `2px solid ${data.theme === t.id ? C.accent : C.border}`,
+                cursor: "pointer", background: C.card, transition: "all 0.15s",
+              }}>
+              <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 8 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 6, background: t.bg }} />
+                <div style={{ width: 20, height: 20, borderRadius: 6, background: t.accent }} />
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{t.label}</div>
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Layout Density">
+        <div style={{ display: "flex", gap: 8 }}>
+          {layouts.map(l => (
+            <button key={l} onClick={() => set({ ...data, layout: l })}
+              style={{
+                flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                border: `1.5px solid ${data.layout === l ? C.accent : C.border}`,
+                background: data.layout === l ? C.light : C.card,
+                color: data.layout === l ? C.navy : C.muted, cursor: "pointer",
+                transition: "all 0.15s",
+              }}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Default Dashboard Widgets (pick up to 4)">
+        <ChipSelect options={widgets} selected={data.widgets || []} max={4}
+          onToggle={opt => {
+            const c = data.widgets || [];
+            set({ ...data, widgets: c.includes(opt) ? c.filter(w => w !== opt) : [...c, opt] });
+          }} />
+      </Field>
+
+      <Field label="Email Notifications">
+        {[
+          { key: "newMatches",       label: "New job match alerts"          },
+          { key: "appUpdates",       label: "Application status updates"    },
+          { key: "interviewRemind",  label: "Interview reminders"           },
+          { key: "weeklyDigest",     label: "Weekly job digest"             },
+        ].map(({ key, label }) => (
+          <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              defaultChecked
+              style={{ width: 16, height: 16, accentColor: C.accent, cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 14, color: C.navy, fontWeight: 500 }}>{label}</span>
+          </label>
+        ))}
+      </Field>
+    </div>
+  );
+};
+
+// ── Main wizard ───────────────────────────────────────────────────────────────
+export default function BasicInformation({ onSubmit, initialData = {} }) {
+  const [step, setStep]     = useState(1);
+  const [complete, setComplete] = useState(false);
+
+  const [s1, setS1] = useState({
+    firstName: initialData.firstName || "",
+    lastName: initialData.lastName || "",
+    age: initialData.age || "",
+    currentAddress: initialData.currentAddress || "",
+    permanentAddress: initialData.permanentAddress || "",
+    contactNumber: initialData.contactNumber || "",
+    educationalAttainment: initialData.educationalAttainment || "",
+  });
+  const [s2, setS2] = useState({ workType: "Remote", contractType: "", industry: "", salaryMin: "", salaryMax: "", skills: [], availability: "", goals: "" });
+  const [s3, setS3] = useState({ disabilityTypes: [], severity: "", pwdId: "", accommodations: [], disabilityNotes: "", consentSharing: false });
+  const [s4, setS4] = useState({ theme: "teal", layout: "Comfortable", widgets: ["Job Matches", "Application Tracker"] });
+
+  const canNext = () => {
+    if (step === 1) return s1.firstName && s1.lastName && s1.age && s1.currentAddress && s1.permanentAddress && s1.contactNumber && s1.educationalAttainment;
+    if (step === 2) return s2.workType && s2.contractType;
+    return true;
+  };
+
+  const handleLaunch = () => {
+    const allData = { ...s1, workPreference: s2, disability: s3, dashboard: s4 };
+    
+    // 🔥 SAVE FIRST NAME TO LOCALSTORAGE FOR WELCOME MESSAGE
+    if (s1.firstName) {
+      localStorage.setItem('worker_first_name', s1.firstName);
     }
-
-    setTimeout(() => {
-      setLoading(false);
-      const newUser = {
-        id:        `user_${Date.now()}`,
-        email,
-        password:  pwd,
-        firstName,
-        lastName,
-        role:      role || "worker",
-        createdAt: new Date().toISOString(),
-      };
-      saveUsers([...users, newUser]);
-      setCurrentUser(newUser);
-      onSignUp(newUser);
-    }, 600);
+    
+    // Optional: Save all data
+    localStorage.setItem('worker_profile', JSON.stringify(allData));
+    
+    onSubmit?.(allData);
+    setComplete(true);
   };
 
+  const stepContent = () => {
+    switch (step) {
+      case 1: return <Step1 data={s1} set={setS1} />;
+      case 2: return <Step2 data={s2} set={setS2} />;
+      case 3: return <Step3 data={s3} set={setS3} />;
+      case 4: return <Step4 data={s4} set={setS4} />;
+    }
+  };
+
+  // ── Completion screen ──────────────────────────────────────────────────────
+  if (complete) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Lexend','DM Sans',sans-serif" }}>
+        <div style={{ textAlign: "center", maxWidth: 480, padding: 40 }}>
+          <div style={{ fontSize: 72, marginBottom: 20 }}>🎉</div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: C.navy, marginBottom: 12 }}>You're all set, {s1.firstName || "there"}!</h1>
+          <p style={{ color: C.muted, fontSize: 15, marginBottom: 8, lineHeight: 1.6 }}>
+            Your profile is ready and we're already finding inclusive job matches for you.
+          </p>
+          <p style={{ color: C.muted, fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
+            InklusiJobs will surface PWD-friendly employers matching your <strong style={{ color: C.navy }}>{s2.workType || "preferred"}</strong> work setup.
+          </p>
+          <a href="/dashboard/worker" style={{
+            display: "inline-block", padding: "14px 36px", borderRadius: 12,
+            background: `linear-gradient(135deg, ${C.accentDim}, #0D7377)`,
+            color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(13,115,119,0.35)",
+          }}>
+            Go to Dashboard →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Wizard layout ──────────────────────────────────────────────────────────
   return (
-    <>
-      {role && <div className={`am-role-badge ${role}`}>{role}</div>}
-      <h2 className="am-heading">Create your account</h2>
-      <p className="am-subtext">
-        Already have an account?{" "}
-        <button type="button" onClick={() => onSwitchTab("signin")}>Sign in</button>
-      </p>
-      {error   && <div className="am-error">{error}</div>}
-      {warning && <div className="am-warning">⚠️ {warning}</div>}
-      <form className="am-form" onSubmit={handleSubmit}>
-        <div className="am-name-row">
-          <div className="am-field">
-            <label className="am-label" htmlFor="su-fn">First Name</label>
-            <input id="su-fn" name="firstName" type="text" className="am-input" placeholder="Juan" required />
-          </div>
-          <div className="am-field">
-            <label className="am-label" htmlFor="su-ln">Last Name</label>
-            <input id="su-ln" name="lastName" type="text" className="am-input" placeholder="Dela Cruz" required />
-          </div>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Lexend','DM Sans',sans-serif", display: "flex" }}>
+
+      {/* Left sidebar */}
+      <div style={{
+        width: 280, minWidth: 280,
+        background: `linear-gradient(180deg, ${C.navy} 0%, #1E2F55 100%)`,
+        padding: "40px 28px", display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ marginBottom: 48 }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>InklusiJobs</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>Worker Setup</div>
         </div>
-        <div className="am-field">
-          <label className="am-label" htmlFor="su-email">Email</label>
-          <input id="su-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
+
+        <div style={{ flex: 1 }}>
+          {STEPS.map((s, i) => {
+            const done = step > s.id, current = step === s.id;
+            return (
+              <div key={s.id} style={{ display: "flex", gap: 14, marginBottom: 28, alignItems: "flex-start" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    background: done ? C.success : current ? C.accent : "rgba(255,255,255,0.1)",
+                    border: `2px solid ${done ? C.success : current ? C.accent : "rgba(255,255,255,0.2)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: done ? 16 : 14, fontWeight: 800, color: "#fff",
+                    transition: "all 0.25s",
+                  }}>
+                    {done ? "✓" : s.icon}
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div style={{
+                      width: 2, height: 20, marginTop: 4,
+                      background: done ? C.success : "rgba(255,255,255,0.1)",
+                      transition: "background 0.25s",
+                    }} />
+                  )}
+                </div>
+                <div style={{ paddingTop: 4 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: current ? 700 : 600,
+                    color: current ? "#fff" : done ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)",
+                  }}>{s.label}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.desc}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="am-field">
-          <label className="am-label" htmlFor="su-pwd">Password</label>
-          <div className="am-input-wrap">
-            <input id="su-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} required />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
-              {showPwd ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-          </div>
-        </div>
-        <button type="submit" className="am-submit" disabled={loading}>
-          {loading ? "Creating account…" : "Get Started"}
-        </button>
-        <div className="am-divider">or</div>
-        <div className="am-social">
-          <button type="button" className="am-social-btn"><GoogleIcon /> Continue with Google</button>
-          <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
-        </div>
-      </form>
-    </>
-  );
-}
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-export default function AuthModal({
-  isOpen,
-  onClose,
-  defaultTab = "signin",
-  role = null,
-  onSignUpComplete,
-  onSignInComplete,
-}) {
-  const [tab, setTab]         = useState(defaultTab);
-  const overlayRef            = useRef(null);
-  const modalRef              = useRef(null);
-  const closeRef              = useRef(null);
-
-  useEffect(() => { if (isOpen) setTab(defaultTab); }, [isOpen, defaultTab]);
-  useEffect(() => { document.body.style.overflow = isOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [isOpen]);
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
-
-  const handleOverlay = useCallback((e) => { if (e.target === overlayRef.current) onClose(); }, [onClose]);
-
-  // Sign in complete — go to correct dashboard, NO profile creation
-  const handleSignIn = (user) => {
-    onSignInComplete?.(user.role);
-  };
-
-  // Sign up complete — go to correct dashboard, NO profile creation
-  const handleSignUp = (user) => {
-    onSignUpComplete?.(user.role);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      <style>{css}</style>
-      <div className="am-overlay" ref={overlayRef} onClick={handleOverlay} role="dialog" aria-modal="true" aria-label="Authentication">
-        <div className="am-modal" ref={modalRef}>
-          <button className="am-close" onClick={onClose} aria-label="Close modal" ref={closeRef}>✕</button>
-
-          <div className="am-left" aria-hidden="true">
-            <div className="am-left-body">
-              <p className="am-left-quote">&ldquo;Skills that speak louder than credentials.&rdquo;</p>
-              <p className="am-left-sub">InklusiJobs · Built for PWDs. Powered by AI.</p>
-            </div>
-          </div>
-
-          <div className="am-right">
-            <span className="am-logo">Inklusi<span>Jobs</span></span>
-            <div className="am-tabs">
-              <button className={`am-tab ${tab === "signin"  ? "active" : ""}`} onClick={() => setTab("signin")}>Sign In</button>
-              <button className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign Up</button>
-            </div>
-            {tab === "signin"
-              ? <SignInForm  role={role} onSignIn={handleSignIn}   onSwitchTab={setTab} />
-              : <SignUpForm  role={role} onSignUp={handleSignUp}   onSwitchTab={setTab} />
-            }
+        {/* Progress bar */}
+        <div style={{ marginTop: "auto" }}>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Step {step} of {STEPS.length}</div>
+          <div style={{ height: 4, borderRadius: 99, background: "rgba(255,255,255,0.1)" }}>
+            <div style={{
+              height: "100%", borderRadius: 99, background: C.accent,
+              width: `${((step - 1) / (STEPS.length - 1)) * 100}%`,
+              transition: "width 0.4s cubic-bezier(0.4,0,0.2,1)",
+            }} />
           </div>
         </div>
       </div>
-    </>
+
+      {/* Right content panel */}
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, maxWidth: 680, width: "100%", margin: "0 auto", padding: "48px 40px" }}>
+          {stepContent()}
+        </div>
+
+        {/* Footer nav */}
+        <div style={{
+          borderTop: `1px solid ${C.border}`, padding: "20px 40px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          background: C.card,
+        }}>
+          <button
+            onClick={() => setStep(s => s - 1)} disabled={step === 1}
+            style={{
+              padding: "10px 24px", borderRadius: 10,
+              border: `1.5px solid ${C.border}`, background: C.card,
+              color: step === 1 ? C.muted : C.navy, fontSize: 14, fontWeight: 600,
+              cursor: step === 1 ? "not-allowed" : "pointer", opacity: step === 1 ? 0.5 : 1,
+            }}>
+            ← Back
+          </button>
+
+          {/* Dot progress */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {STEPS.map(s => (
+              <div key={s.id} style={{
+                width: step === s.id ? 20 : 6, height: 6, borderRadius: 99,
+                background: step >= s.id ? C.accent : C.border,
+                transition: "all 0.25s",
+              }} />
+            ))}
+          </div>
+
+          {step < 4 ? (
+            <button
+              onClick={() => canNext() && setStep(s => s + 1)}
+              style={{
+                padding: "10px 28px", borderRadius: 10, border: "none",
+                background: canNext() ? `linear-gradient(135deg, ${C.accentDim}, #0D7377)` : C.border,
+                color: canNext() ? "#fff" : C.muted, fontSize: 14, fontWeight: 700,
+                cursor: canNext() ? "pointer" : "not-allowed",
+                boxShadow: canNext() ? "0 4px 14px rgba(13,115,119,0.3)" : "none",
+                transition: "all 0.2s",
+              }}>
+              Continue →
+            </button>
+          ) : (
+            <button onClick={handleLaunch} style={{
+              padding: "10px 28px", borderRadius: 10, border: "none",
+              background: `linear-gradient(135deg, ${C.success}, #15803D)`,
+              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(22,163,74,0.3)",
+            }}>
+              Launch Dashboard 🚀
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
