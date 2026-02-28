@@ -1,18 +1,28 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
 
 export default function TermsOfUse() {
+  const bottomRef = useRef(null);
+  const topRef = useRef(null);
+
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
 
-        {/* Back Button Bar */}
-        <div style={styles.backBar}>
-          <Link href="/" style={styles.backButton}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Top bar — discrete skip to bottom */}
+        <div style={styles.topBar} ref={topRef}>
+          <button
+            onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            style={styles.scrollDownBtn}
+            aria-label="Skip to bottom of page"
+          >
+            Skip to bottom
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Back to Home
-          </Link>
+          </button>
         </div>
 
         {/* Header */}
@@ -203,14 +213,24 @@ export default function TermsOfUse() {
             </p>
           </Section>
 
-          {/* Bottom back button */}
-          <div style={{ textAlign: "center", paddingTop: 16, paddingBottom: 8 }}>
+          {/* Bottom action row */}
+          <div ref={bottomRef} style={styles.bottomActions}>
             <Link href="/" style={styles.backButtonBottom}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Back to Home
             </Link>
+            <button
+              onClick={() => topRef.current?.scrollIntoView({ behavior: "smooth" })}
+              style={styles.scrollTopBtn}
+              aria-label="Scroll back to top"
+            >
+              Back to top
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
 
         </div>
@@ -220,7 +240,7 @@ export default function TermsOfUse() {
           <p style={{ margin: 0 }}>© 2025 InklusiJobs. All rights reserved.</p>
           <div style={styles.footerLinks}>
             <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-            <span style={{ color: "rgba(125,220,232,0.3)" }}>·</span>
+            <span style={{ color: "#cbd5e1" }}>·</span>
             <a href="/terms" style={styles.footerLink}>Terms of Use</a>
           </div>
         </div>
@@ -281,39 +301,28 @@ const styles = {
     boxShadow: "0 2px 16px rgba(0,0,0,0.08)",
     overflow: "hidden",
   },
-  backBar: {
+  // Discrete top bar with skip-to-bottom
+  topBar: {
     background: "#0A2E38",
     borderBottom: "1px solid rgba(125,220,232,0.1)",
-    padding: "12px 32px",
+    padding: "9px 28px",
+    display: "flex",
+    justifyContent: "flex-end",
   },
-  backButton: {
+  scrollDownBtn: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 7,
-    color: "#7DDCE8",
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 500,
+    gap: 5,
+    color: "rgba(125,220,232,0.5)",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 400,
     fontFamily: "'Lexend', sans-serif",
-    padding: "6px 14px",
-    borderRadius: 8,
-    border: "1px solid rgba(125,220,232,0.25)",
-    background: "rgba(125,220,232,0.06)",
-    transition: "all 0.15s",
-  },
-  backButtonBottom: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    color: "#071E26",
-    background: "#7DDCE8",
-    textDecoration: "none",
-    fontSize: 14,
-    fontWeight: 600,
-    fontFamily: "'Lexend', sans-serif",
-    padding: "11px 28px",
-    borderRadius: 10,
-    transition: "background 0.15s",
+    padding: "2px 0",
+    letterSpacing: "0.01em",
+    transition: "color 0.15s",
   },
   header: {
     background: "linear-gradient(135deg, #0D3D4D 0%, #0A2E38 100%)",
@@ -368,6 +377,43 @@ const styles = {
     color: "#0A7A8F",
     fontWeight: 600,
     textDecoration: "none",
+  },
+  // Bottom row: Back to Home (solid) + Back to top (ghost)
+  bottomActions: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingTop: 32,
+    paddingBottom: 8,
+  },
+  backButtonBottom: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    color: "#ffffff",
+    background: "#0A2E38",
+    textDecoration: "none",
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "'Lexend', sans-serif",
+    padding: "11px 22px",
+    borderRadius: 10,
+  },
+  scrollTopBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    color: "#64748b",
+    background: "none",
+    border: "1px solid #e2e8f0",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 500,
+    fontFamily: "'Lexend', sans-serif",
+    padding: "10px 18px",
+    borderRadius: 10,
+    transition: "all 0.15s",
   },
   footer: {
     background: "#f8fafc",
