@@ -1,3 +1,4 @@
+//app/(main)/challenges/[challengeId]/page.js
 export default function ChallengePage() {
   return (
     <div>

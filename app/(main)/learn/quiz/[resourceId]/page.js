@@ -1,3 +1,4 @@
+//app/(main)/learn/quiz/[resourceId]/page.js
 "use client";
 
 import { useState, useEffect } from "react";

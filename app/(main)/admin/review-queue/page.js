@@ -1,3 +1,4 @@
+//app/(main)/admin/review-queue/page.js
 "use client";
 
 /**
