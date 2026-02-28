@@ -1,12 +1,9 @@
 "use client";
 
-import {
-  useState, useEffect, useRef, useCallback, useReducer,
-} from "react";
+import { useState, useEffect, useRef, useCallback, useReducer } from "react";
 
 const STORAGE_KEY = "ij_a11y_v1";
-const DYSLEXIA_FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap";
+const DYSLEXIA_FONT_URL = "https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap";
 
 const DEFAULT_SETTINGS = {
   dyslexiaFont:   false,
@@ -19,49 +16,17 @@ const DEFAULT_SETTINGS = {
   colorFilter:    "none",
 };
 
-const KEYBOARD_SHORTCUTS = [
-  { keys: ["Alt", "A"],   desc: "Open / close accessibility panel" },
-  { keys: ["Alt", "D"],   desc: "Toggle dyslexia-friendly font" },
-  { keys: ["Alt", "+"],   desc: "Increase font size" },
-  { keys: ["Alt", "−"],   desc: "Decrease font size" },
-  { keys: ["Alt", "C"],   desc: "Toggle high contrast" },
-  { keys: ["Alt", "L"],   desc: "Toggle highlight links" },
-  { keys: ["Alt", "U"],   desc: "Toggle large cursor" },
-  { keys: ["Alt", "R"],   desc: "Toggle reading mode" },
-  { keys: ["Alt", "S"],   desc: "Start / stop text-to-speech" },
-  { keys: ["Escape"],     desc: "Close panel / stop reading" },
-];
-
-const COLOR_FILTERS = [
-  { value: "none",         label: "None",         color: "#64748B" },
-  { value: "protanopia",   label: "Protanopia",   color: "#E55B4D" },
-  { value: "deuteranopia", label: "Deuteranopia", color: "#4D8BE5" },
-  { value: "tritanopia",   label: "Tritanopia",   color: "#4DE5B8" },
-];
-
 const SVG_FILTERS = `
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
     <defs>
       <filter id="a11y-protanopia">
-        <feColorMatrix type="matrix" values="
-          0.567 0.433 0     0 0
-          0.558 0.442 0     0 0
-          0     0.242 0.758 0 0
-          0     0     0     1 0"/>
+        <feColorMatrix type="matrix" values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/>
       </filter>
       <filter id="a11y-deuteranopia">
-        <feColorMatrix type="matrix" values="
-          0.625 0.375 0   0 0
-          0.7   0.3   0   0 0
-          0     0.3   0.7 0 0
-          0     0     0   1 0"/>
+        <feColorMatrix type="matrix" values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/>
       </filter>
       <filter id="a11y-tritanopia">
-        <feColorMatrix type="matrix" values="
-          0.95 0.05  0     0 0
-          0    0.433 0.567 0 0
-          0    0.475 0.525 0 0
-          0    0     0     1 0"/>
+        <feColorMatrix type="matrix" values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/>
       </filter>
     </defs>
   </svg>
@@ -94,33 +59,22 @@ function usePersistedSettings() {
 function useApplySettings(settings) {
   useEffect(() => {
     const root = document.documentElement;
-
-    // Dyslexia font
     if (settings.dyslexiaFont) {
       if (!document.getElementById("a11y-dyslexia-font")) {
         const link = document.createElement("link");
-        link.id   = "a11y-dyslexia-font";
-        link.rel  = "stylesheet";
-        link.href = DYSLEXIA_FONT_URL;
+        link.id = "a11y-dyslexia-font"; link.rel = "stylesheet"; link.href = DYSLEXIA_FONT_URL;
         document.head.appendChild(link);
       }
       root.classList.add("a11y-dyslexia");
     } else {
       root.classList.remove("a11y-dyslexia");
     }
-
-    // Font size
-    root.style.setProperty("--a11y-font-size", `${settings.fontSize}%`);
     root.style.fontSize = `${settings.fontSize}%`;
-
-    // Classes
     root.classList.toggle("a11y-high-contrast",   settings.highContrast);
     root.classList.toggle("a11y-highlight-links", settings.highlightLinks);
     root.classList.toggle("a11y-large-cursor",    settings.largeCursor);
     root.classList.toggle("a11y-reduce-motion",   settings.reduceMotion);
     root.classList.toggle("a11y-reading-mode",    settings.readingMode);
-
-    // Color filter
     const mainEl = document.getElementById("a11y-filter-target") || document.body;
     mainEl.style.filter = settings.colorFilter !== "none" ? `url(#a11y-${settings.colorFilter})` : "";
   }, [settings]);
@@ -132,58 +86,29 @@ function useGlobalStyles() {
     const style = document.createElement("style");
     style.id = "a11y-global-styles";
     style.textContent = `
-      /* Dyslexia font — force override everything including Tailwind font classes */
-      .a11y-dyslexia *,
-      .a11y-dyslexia *::before,
-      .a11y-dyslexia *::after {
+      .a11y-dyslexia *, .a11y-dyslexia *::before, .a11y-dyslexia *::after {
         font-family: 'Lexend', sans-serif !important;
       }
-
-      /* High contrast */
       .a11y-high-contrast body { background: #000 !important; color: #fff !important; }
-      .a11y-high-contrast *:not([class*="a11y-panel"]):not([class*="a11y-btn"]):not(nav):not(nav *) {
+      .a11y-high-contrast *:not([class*="a11y-panel"]):not(nav):not(nav *) {
         background-color: #000 !important; color: #fff !important; border-color: #fff !important;
       }
       .a11y-high-contrast a { color: #ffff00 !important; }
-      .a11y-high-contrast button, .a11y-high-contrast input, .a11y-high-contrast select, .a11y-high-contrast textarea {
+      .a11y-high-contrast button, .a11y-high-contrast input, .a11y-high-contrast select {
         background: #111 !important; color: #fff !important; border: 2px solid #fff !important;
       }
-      /* Protect logo/navbar from high contrast override */
-      .a11y-high-contrast nav,
-      .a11y-high-contrast nav * {
-        background-color: revert !important;
-        color: revert !important;
-        border-color: revert !important;
-      }
-      /* Give logo a visible background when high contrast is on */
-      .a11y-high-contrast [data-logo] {
-        background: #fff !important;
-        padding: 4px 10px !important;
-        border-radius: 6px !important;
-      }
-
-      /* Highlight links — underline only, no background */
       .a11y-highlight-links a {
-        text-decoration: underline !important;
-        text-underline-offset: 4px !important;
-        text-decoration-thickness: 2px !important;
-        text-decoration-color: #1E40AF !important;
+        text-decoration: underline !important; text-underline-offset: 4px !important;
+        text-decoration-thickness: 2px !important; text-decoration-color: #0F5C6E !important;
       }
-
-      /* Large cursor */
       .a11y-large-cursor, .a11y-large-cursor * {
         cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M8 4 L8 32 L14 26 L19 36 L22 35 L17 25 L26 25 Z' fill='black' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 8 4, auto !important;
       }
-
-      /* Reduce motion */
       .a11y-reduce-motion *, .a11y-reduce-motion *::before, .a11y-reduce-motion *::after {
-        animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
       }
-
-      /* TTS highlight */
       .a11y-tts-highlight { background: #fef08a !important; color: #1a1a1a !important; border-radius: 3px; }
-
-      @keyframes a11ySlideIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+      @keyframes a11ySlideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     `;
     document.head.appendChild(style);
     const svgWrap = document.createElement("div");
@@ -195,9 +120,9 @@ function useGlobalStyles() {
 
 function useDrag() {
   const [pos, setPos] = useState({ x: 24, y: 24 });
-  const dragging      = useRef(false);
-  const startOffset   = useRef({ x: 0, y: 0 });
-  const btnRef        = useRef(null);
+  const dragging = useRef(false);
+  const startOffset = useRef({ x: 0, y: 0 });
+  const btnRef = useRef(null);
 
   useEffect(() => {
     setPos({ x: window.innerWidth - 72, y: window.innerHeight - 72 });
@@ -221,7 +146,7 @@ function useDrag() {
   useEffect(() => {
     const move = (clientX, clientY) => {
       if (!dragging.current) return;
-      const x = Math.max(0, Math.min(window.innerWidth  - 56, clientX - startOffset.current.x));
+      const x = Math.max(0, Math.min(window.innerWidth - 56, clientX - startOffset.current.x));
       const y = Math.max(0, Math.min(window.innerHeight - 56, clientY - startOffset.current.y));
       setPos({ x, y });
     };
@@ -229,14 +154,14 @@ function useDrag() {
     const onTouchMove = (e) => { const t = e.touches[0]; move(t.clientX, t.clientY); };
     const stop = () => { dragging.current = false; };
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup",   stop);
+    window.addEventListener("mouseup", stop);
     window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("touchend",  stop);
+    window.addEventListener("touchend", stop);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup",   stop);
+      window.removeEventListener("mouseup", stop);
       window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend",  stop);
+      window.removeEventListener("touchend", stop);
     };
   }, []);
 
@@ -253,129 +178,113 @@ function useTTS() {
     document.querySelectorAll(".a11y-tts-highlight").forEach(el => el.classList.remove("a11y-tts-highlight"));
   }, []);
 
-  // Read page from top automatically — finds all readable elements in order
   const startReading = useCallback(() => {
-    if (!window.speechSynthesis) {
-      alert("Text-to-speech is not supported in this browser.");
-      return;
-    }
+    if (!window.speechSynthesis) { alert("Text-to-speech is not supported in this browser."); return; }
     stop();
-
-    // Gather all visible text elements in DOM order
-    const selector = "h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote, figcaption";
-    const elements = Array.from(document.querySelectorAll(selector)).filter(el => {
+    const elements = Array.from(document.querySelectorAll("h1,h2,h3,h4,h5,h6,p,li,td,th,blockquote")).filter(el => {
       const text = el.innerText?.trim();
-      if (!text) return false;
-      // Skip elements inside the accessibility panel itself
-      if (el.closest("#a11y-panel") || el.closest("[data-a11y-panel]")) return false;
-      return true;
+      return text && !el.closest("#a11y-panel") && !el.closest("[data-a11y-panel]");
     });
-
-    if (elements.length === 0) return;
-
+    if (!elements.length) return;
     let index = 0;
     setSpeaking(true);
-
     const speakNext = () => {
-      if (index >= elements.length) {
-        setSpeaking(false);
-        return;
-      }
-
-      // Remove previous highlight
+      if (index >= elements.length) { setSpeaking(false); return; }
       document.querySelectorAll(".a11y-tts-highlight").forEach(el => el.classList.remove("a11y-tts-highlight"));
-
       const el = elements[index];
       el.classList.add("a11y-tts-highlight");
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      const text = el.innerText || el.textContent;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate  = 0.95;
-      utterance.pitch = 1;
-      utterance.onend = () => {
-        el.classList.remove("a11y-tts-highlight");
-        index++;
-        speakNext();
-      };
-      utterance.onerror = () => {
-        el.classList.remove("a11y-tts-highlight");
-        setSpeaking(false);
-      };
-      utterRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      const utt = new SpeechSynthesisUtterance(el.innerText || el.textContent);
+      utt.rate = 0.95;
+      utt.onend = () => { el.classList.remove("a11y-tts-highlight"); index++; speakNext(); };
+      utt.onerror = () => { el.classList.remove("a11y-tts-highlight"); setSpeaking(false); };
+      utterRef.current = utt;
+      window.speechSynthesis.speak(utt);
     };
-
     speakNext();
   }, [stop]);
 
   return { speaking, startReading, stop };
 }
 
-function SectionHeader({ icon, title }) {
+// ── Toggle Switch ─────────────────────────────────────────────────────────────
+function Toggle({ checked, onChange, id, label }) {
   return (
-    <div style={S.sectionHeader}>
-      <span style={S.sectionIcon} aria-hidden="true">{icon}</span>
-      <span style={S.sectionTitle}>{title}</span>
+    <button
+      id={id} role="switch" aria-checked={checked} aria-label={label}
+      onClick={() => onChange(!checked)}
+      style={{
+        width: 52, height: 28, borderRadius: 14, border: "none", padding: 0,
+        background: checked ? "#0F5C6E" : "#CBD5E1",
+        cursor: "pointer", position: "relative", flexShrink: 0,
+        transition: "background 0.2s",
+      }}
+    >
+      <span style={{
+        position: "absolute", top: 3, left: checked ? 27 : 3,
+        width: 22, height: 22, borderRadius: "50%",
+        background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+        transition: "left 0.2s cubic-bezier(0.4,0,0.2,1)",
+        display: "block",
+      }} />
+    </button>
+  );
+}
+
+// ── Feature Row ───────────────────────────────────────────────────────────────
+function FeatureRow({ icon, label, desc, shortcut, checked, onChange, id }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      gap: 12, padding: "12px 0",
+      borderBottom: "1px solid #F1F5F9",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+          background: "#F8FAFC", border: "1px solid #E2E8F0",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 16,
+        }}>{icon}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif" }}>{label}</span>
+            {shortcut && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, fontFamily: "monospace",
+                background: "#F1F5F9", color: "#64748B",
+                border: "1px solid #E2E8F0", borderRadius: 4,
+                padding: "1px 5px", letterSpacing: "0.3px",
+              }}>{shortcut}</span>
+            )}
+          </div>
+          {desc && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1, fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 }}>{desc}</div>}
+        </div>
+      </div>
+      <Toggle checked={checked} onChange={onChange} id={id} label={label} />
     </div>
   );
 }
 
-// Shortcut badge shown inline next to feature label
-function ShortcutBadge({ keys }) {
+// ── Section Label ─────────────────────────────────────────────────────────────
+function SectionLabel({ children }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, marginLeft: 6 }}>
-      {keys.map((k, i) => (
-        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-          <kbd style={S.kbdInline}>{k}</kbd>
-          {i < keys.length - 1 && <span style={{ fontSize: 9, color: "#CBD5E1" }}>+</span>}
-        </span>
-      ))}
-    </span>
+    <div style={{
+      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+      letterSpacing: "0.12em", textTransform: "uppercase",
+      fontFamily: "'DM Sans', system-ui, sans-serif",
+      marginTop: 16, marginBottom: 4,
+    }}>{children}</div>
   );
 }
 
-function ToggleRow({ label, desc, checked, onChange, id, shortcut }) {
-  return (
-    <label htmlFor={id} style={S.toggleRow}>
-      <div style={S.toggleInfo}>
-        <span style={S.toggleLabel}>
-          {label}
-          {shortcut && <ShortcutBadge keys={shortcut} />}
-        </span>
-        {desc && <span style={S.toggleDesc}>{desc}</span>}
-      </div>
-      <button id={id} role="switch" aria-checked={checked} aria-label={label}
-        onClick={() => onChange(!checked)}
-        style={{ ...S.toggle, ...(checked ? S.toggleOn : {}) }}>
-        <span style={{ ...S.toggleThumb, ...(checked ? S.toggleThumbOn : {}) }} />
-      </button>
-    </label>
-  );
-}
-
-function ShortcutRow({ keys, desc }) {
-  return (
-    <div style={S.shortcutRow}>
-      <div style={S.shortcutKeys}>
-        {keys.map((k, i) => (
-          <span key={i}>
-            <kbd style={S.kbd}>{k}</kbd>
-            {i < keys.length - 1 && <span style={S.kbdPlus}>+</span>}
-          </span>
-        ))}
-      </div>
-      <span style={S.shortcutDesc}>{desc}</span>
-    </div>
-  );
-}
-
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function AccessibilityPanel() {
-  const [mounted,    setMounted]    = useState(false);
-  const [open,       setOpen]       = useState(false);
-  const [activeTab,  setActiveTab]  = useState("text");
-  const [settings,   dispatch]      = usePersistedSettings();
-  const panelRef   = useRef(null);
+  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [settings, dispatch] = usePersistedSettings();
+  const panelRef = useRef(null);
   const triggerRef = useRef(null);
 
   useEffect(() => { setMounted(true); }, []);
@@ -386,8 +295,7 @@ export default function AccessibilityPanel() {
   useApplySettings(settings);
   useGlobalStyles();
 
-
-
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape") { setOpen(false); tts.stop(); return; }
@@ -397,7 +305,7 @@ export default function AccessibilityPanel() {
         case "d": e.preventDefault(); dispatch({ type: "TOGGLE", key: "dyslexiaFont" }); break;
         case "+":
         case "=": e.preventDefault(); dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 10) }); break;
-        case "-": e.preventDefault(); dispatch({ type: "SET", key: "fontSize", value: Math.max(80,  settings.fontSize - 10) }); break;
+        case "-": e.preventDefault(); dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 10) }); break;
         case "c": e.preventDefault(); dispatch({ type: "TOGGLE", key: "highContrast" }); break;
         case "l": e.preventDefault(); dispatch({ type: "TOGGLE", key: "highlightLinks" }); break;
         case "u": e.preventDefault(); dispatch({ type: "TOGGLE", key: "largeCursor" }); break;
@@ -409,22 +317,7 @@ export default function AccessibilityPanel() {
     return () => window.removeEventListener("keydown", handler);
   }, [settings.fontSize, tts, dispatch]);
 
-  useEffect(() => {
-    if (!open || !panelRef.current) return;
-    const focusable = panelRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusable[0];
-    const last  = focusable[focusable.length - 1];
-    const trap = (e) => {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey ? document.activeElement === first : document.activeElement === last) {
-        e.preventDefault(); (e.shiftKey ? last : first).focus();
-      }
-    };
-    document.addEventListener("keydown", trap);
-    first?.focus();
-    return () => document.removeEventListener("keydown", trap);
-  }, [open, activeTab]);
-
+  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -440,283 +333,279 @@ export default function AccessibilityPanel() {
     k !== "fontSize" && k !== "colorFilter" ? v === true : k === "fontSize" ? v !== 100 : v !== "none"
   ).length;
 
-  const tabs = [
-    { id: "text",    icon: "Aa", label: "Text"    },
-    { id: "display", icon: "◑",  label: "Display" },
-    { id: "motion",  icon: "⟳",  label: "Motion"  },
-    { id: "reading", icon: "📖", label: "Reading" },
-    { id: "color",   icon: "◉",  label: "Color"   },
-    { id: "keys",    icon: "⌨",  label: "Keys"    },
-  ];
-
-  const panelLeft  = pos.x > window.innerWidth / 2 ? "auto" : `${pos.x}px`;
-  const panelRight = pos.x > window.innerWidth / 2 ? `${window.innerWidth - pos.x - 56}px` : "auto";
-  const panelTop   = pos.y > window.innerHeight / 2 ? "auto" : `${pos.y + 64}px`;
-  const panelBot   = pos.y > window.innerHeight / 2 ? `${window.innerHeight - pos.y + 8}px` : "auto";
+  const panelRight = `${window.innerWidth - pos.x - 56}px`;
+  const panelBottom = `${window.innerHeight - pos.y + 12}px`;
 
   return (
     <>
-      <div ref={(el) => { btnRef.current = el; triggerRef.current = el; }}
+      {/* Floating trigger button */}
+      <div
+        ref={(el) => { btnRef.current = el; triggerRef.current = el; }}
         suppressHydrationWarning
-        style={{ ...S.floatWrap, left: `${pos.x}px`, top: `${pos.y}px` }}
-        onMouseDown={onMouseDown} onTouchStart={onTouchStart}>
-        <button onClick={() => setOpen(o => !o)}
-          aria-label={open ? "Close accessibility panel" : "Open accessibility panel"}
-          aria-expanded={open} aria-controls="a11y-panel"
-          style={{ ...S.trigger, ...(open ? S.triggerOpen : {}) }}
-          title="Accessibility Options (Alt+A)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        style={{ position: "fixed", zIndex: 10000, left: `${pos.x}px`, top: `${pos.y}px`, cursor: "grab", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
+        onMouseDown={onMouseDown} onTouchStart={onTouchStart}
+      >
+        <button
+          onClick={() => setOpen(o => !o)}
+          aria-label={open ? "Close accessibility panel" : "Open accessibility panel (Alt+A)"}
+          aria-expanded={open}
+          style={{
+            width: 52, height: 52, borderRadius: "50%", border: "none",
+            background: open ? "#0A3D4A" : "#0F5C6E",
+            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", boxShadow: "0 4px 20px rgba(15,92,110,0.45)",
+            transition: "transform 0.2s, background 0.2s",
+            position: "relative", outline: "none",
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="4" r="2"/>
             <path d="M12 6v4M8 10H5l2 8h2l1-4h4l1 4h2l2-8h-3"/>
           </svg>
           {activeCount > 0 && (
-            <span style={S.badge} aria-label={`${activeCount} active`}>{activeCount}</span>
+            <span style={{
+              position: "absolute", top: -4, right: -4, width: 18, height: 18,
+              borderRadius: "50%", background: "#F59E0B", color: "#1a1a1a",
+              fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center",
+              justifyContent: "center", border: "2px solid #fff",
+            }}>{activeCount}</span>
           )}
         </button>
       </div>
 
+      {/* Panel */}
       {open && (
-        <div id="a11y-panel" data-a11y-panel ref={panelRef} role="dialog" aria-label="Accessibility Settings" aria-modal="false"
-          style={{ ...S.panel, left: panelLeft, right: panelRight, top: panelTop, bottom: panelBot }}>
-
-          <div style={S.panelHeader}>
-            <div>
-              <h2 style={S.panelTitle}>Accessibility</h2>
-              <p style={S.panelSub}>Customize your experience</p>
+        <div
+          id="a11y-panel"
+          data-a11y-panel
+          ref={panelRef}
+          role="dialog"
+          aria-label="Accessibility Settings"
+          style={{
+            position: "fixed", zIndex: 9999,
+            right: pos.x > window.innerWidth / 2 ? panelRight : "auto",
+            left: pos.x > window.innerWidth / 2 ? "auto" : `${pos.x}px`,
+            bottom: pos.y > window.innerHeight / 2 ? panelBottom : "auto",
+            top: pos.y > window.innerHeight / 2 ? "auto" : `${pos.y + 64}px`,
+            width: 340,
+            maxHeight: "85vh",
+            background: "#fff",
+            borderRadius: 20,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)",
+            border: "1px solid #E2E8F0",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+            animation: "a11ySlideIn 0.2s cubic-bezier(0.22,1,0.36,1)",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            padding: "16px 18px 14px",
+            borderBottom: "1px solid #F1F5F9",
+            background: "linear-gradient(135deg, #0F5C6E08, #0F5C6E04)",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: "#0F5C6E", display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="4" r="2"/><path d="M12 6v4M8 10H5l2 8h2l1-4h4l1 4h2l2-8h-3"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Accessibility</div>
+                <div style={{ fontSize: 11, color: "#94A3B8" }}>
+                  {activeCount > 0 ? `${activeCount} feature${activeCount > 1 ? "s" : ""} active` : "All features off"}
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 6 }}>
               {activeCount > 0 && (
-                <button style={S.resetBtn} onClick={() => dispatch({ type: "RESET" })} aria-label="Reset all">Reset</button>
+                <button
+                  onClick={() => dispatch({ type: "RESET" })}
+                  style={{
+                    padding: "5px 10px", borderRadius: 8, border: "1px solid #E2E8F0",
+                    background: "#fff", color: "#64748B", fontSize: 11, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
+                  }}
+                >Reset</button>
               )}
-              <button style={S.closeBtn} onClick={() => setOpen(false)} aria-label="Close panel">✕</button>
+              <button
+                onClick={() => setOpen(false)}
+                style={{
+                  width: 28, height: 28, borderRadius: "50%", border: "none",
+                  background: "#F1F5F9", color: "#64748B", cursor: "pointer",
+                  fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+                aria-label="Close"
+              >✕</button>
             </div>
           </div>
 
-          <div style={S.tabBar} role="tablist" aria-label="Accessibility categories">
-            {tabs.map(tab => (
-              <button key={tab.id} role="tab" aria-selected={activeTab === tab.id}
-                aria-controls={`a11y-tab-${tab.id}`} id={`a11y-tab-btn-${tab.id}`}
-                style={{ ...S.tab, ...(activeTab === tab.id ? S.tabActive : {}) }}
-                onClick={() => setActiveTab(tab.id)}>
-                <span style={S.tabIcon} aria-hidden="true">{tab.icon}</span>
-                <span style={S.tabLabel}>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 16px", scrollbarWidth: "thin", scrollbarColor: "#E2E8F0 transparent" }}>
 
-          <div style={S.tabContent}>
-
-            {/* TEXT */}
-            {activeTab === "text" && (
-              <div id="a11y-tab-text" role="tabpanel" aria-labelledby="a11y-tab-btn-text">
-                <SectionHeader icon="✦" title="Text Options" />
-                <ToggleRow id="toggle-dyslexia" label="Dyslexia-friendly font"
-                  desc="Switches to Lexend — optimised for readability"
-                  shortcut={["Alt", "D"]}
-                  checked={settings.dyslexiaFont}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "dyslexiaFont" })} />
-                <div style={S.sliderSection}>
-                  <div style={S.sliderHeader}>
-                    <span style={S.toggleLabel}>
-                      Font Size
-                      <ShortcutBadge keys={["Alt", "+"]} />
-                    </span>
-                    <span style={S.sliderValue}>{settings.fontSize}%</span>
+            {/* ── FONT SIZE ── */}
+            <SectionLabel>Text Size</SectionLabel>
+            <div style={{ padding: "10px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <button
+                  onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 10) })}
+                  aria-label="Decrease font size"
+                  style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >A−</button>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>Font Size</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F5C6E", fontFamily: "monospace" }}>{settings.fontSize}%</span>
                   </div>
-                  <div style={S.sliderTrackWrap}>
-                    <button style={S.sliderBtn} aria-label="Decrease font size"
-                      onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 5) })}>A−</button>
-                    <div style={S.sliderWrap}>
-                      <input type="range" min={80} max={150} step={5} value={settings.fontSize}
-                        onChange={e => dispatch({ type: "SET", key: "fontSize", value: Number(e.target.value) })}
-                        aria-label="Font size" style={S.slider} />
-                      <div style={{ ...S.sliderFill, width: `${((settings.fontSize - 80) / 70) * 100}%` }} />
-                    </div>
-                    <button style={S.sliderBtn} aria-label="Increase font size"
-                      onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 5) })}>A+</button>
-                  </div>
-                  {settings.fontSize !== 100 && (
-                    <button style={S.smallReset} onClick={() => dispatch({ type: "SET", key: "fontSize", value: 100 })}>Reset to 100%</button>
-                  )}
+                  <input
+                    type="range" min={80} max={150} step={5} value={settings.fontSize}
+                    onChange={e => dispatch({ type: "SET", key: "fontSize", value: Number(e.target.value) })}
+                    aria-label="Font size"
+                    style={{ width: "100%", accentColor: "#0F5C6E", cursor: "pointer", height: 4 }}
+                  />
                 </div>
+                <button
+                  onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 10) })}
+                  aria-label="Increase font size"
+                  style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >A+</button>
               </div>
-            )}
+              {settings.fontSize !== 100 && (
+                <button onClick={() => dispatch({ type: "SET", key: "fontSize", value: 100 })}
+                  style={{ marginTop: 6, background: "none", border: "none", color: "#94A3B8", fontSize: 10, cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "'DM Sans', system-ui" }}>
+                  Reset to 100%
+                </button>
+              )}
+            </div>
 
-            {/* DISPLAY */}
-            {activeTab === "display" && (
-              <div id="a11y-tab-display" role="tabpanel" aria-labelledby="a11y-tab-btn-display">
-                <SectionHeader icon="◑" title="Display Options" />
-                <ToggleRow id="toggle-contrast" label="High contrast"
-                  desc="Dark background, white text"
-                  shortcut={["Alt", "C"]}
-                  checked={settings.highContrast}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "highContrast" })} />
-                <ToggleRow id="toggle-links" label="Highlight links"
-                  desc="Underlines all links for visibility"
-                  shortcut={["Alt", "L"]}
-                  checked={settings.highlightLinks}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "highlightLinks" })} />
-                <ToggleRow id="toggle-cursor" label="Large cursor"
-                  desc="Bigger mouse pointer for visibility"
-                  shortcut={["Alt", "U"]}
-                  checked={settings.largeCursor}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "largeCursor" })} />
-              </div>
-            )}
+            {/* ── TEXT ── */}
+            <SectionLabel>Text & Display</SectionLabel>
+            <FeatureRow icon="📖" label="Dyslexia-friendly font" desc="Switches to Lexend for readability" shortcut="Alt+D"
+              checked={settings.dyslexiaFont} onChange={() => dispatch({ type: "TOGGLE", key: "dyslexiaFont" })} id="toggle-dyslexia" />
+            <FeatureRow icon="◑" label="High contrast" desc="Dark background, white text" shortcut="Alt+C"
+              checked={settings.highContrast} onChange={() => dispatch({ type: "TOGGLE", key: "highContrast" })} id="toggle-contrast" />
+            <FeatureRow icon="🔗" label="Highlight links" desc="Underlines all links" shortcut="Alt+L"
+              checked={settings.highlightLinks} onChange={() => dispatch({ type: "TOGGLE", key: "highlightLinks" })} id="toggle-links" />
+            <FeatureRow icon="🖱️" label="Large cursor" desc="Bigger mouse pointer" shortcut="Alt+U"
+              checked={settings.largeCursor} onChange={() => dispatch({ type: "TOGGLE", key: "largeCursor" })} id="toggle-cursor" />
 
-            {/* MOTION */}
-            {activeTab === "motion" && (
-              <div id="a11y-tab-motion" role="tabpanel" aria-labelledby="a11y-tab-btn-motion">
-                <SectionHeader icon="⟳" title="Motion" />
-                <ToggleRow id="toggle-motion" label="Reduce motion"
-                  desc="Disables animations and transitions"
-                  checked={settings.reduceMotion}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "reduceMotion" })} />
-                <div style={S.infoBox} role="note">
-                  <p style={S.infoText}>Useful for users with vestibular disorders or motion sensitivity.</p>
-                </div>
-              </div>
-            )}
+            {/* ── MOTION & FOCUS ── */}
+            <SectionLabel>Motion & Focus</SectionLabel>
+            <FeatureRow icon="⏸️" label="Reduce motion" desc="Disables animations" 
+              checked={settings.reduceMotion} onChange={() => dispatch({ type: "TOGGLE", key: "reduceMotion" })} id="toggle-motion" />
+            <FeatureRow icon="🔍" label="Reading mode" desc="Dims page for focused reading" shortcut="Alt+R"
+              checked={settings.readingMode} onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })} id="toggle-reading" />
 
-            {/* READING */}
-            {activeTab === "reading" && (
-              <div id="a11y-tab-reading" role="tabpanel" aria-labelledby="a11y-tab-btn-reading">
-                <SectionHeader icon="📖" title="Reading Features" />
-                <ToggleRow id="toggle-reading" label="Reading mode"
-                  desc="Dims background content for focus"
-                  shortcut={["Alt", "R"]}
-                  checked={settings.readingMode}
-                  onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })} />
-                <div style={S.divider} />
-                <div style={S.ttsSection}>
-                  <div style={S.toggleInfo}>
-                    <span style={S.toggleLabel}>
+            {/* ── READ ALOUD ── */}
+            <SectionLabel>Read Aloud</SectionLabel>
+            <div style={{ padding: "10px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, background: tts.speaking ? "#FEF3C7" : "#F8FAFC", border: `1px solid ${tts.speaking ? "#FCD34D" : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🔊</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>
                       Read page aloud
-                      <ShortcutBadge keys={["Alt", "S"]} />
-                    </span>
-                    <span style={S.toggleDesc}>
-                      {tts.speaking ? "Reading aloud — reads the entire page top to bottom" : "Reads the full page automatically using browser text-to-speech"}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    {!tts.speaking && (
-                      <button style={S.ttsBtn}
-                        onClick={() => { setOpen(false); tts.startReading(); }}
-                        aria-label="Start reading page aloud">
-                        ▶ Read Page
-                      </button>
-                    )}
-                    {tts.speaking && (
-                      <button style={{ ...S.ttsBtn, ...S.ttsBtnStop }}
-                        onClick={tts.stop}
-                        aria-label="Stop reading">
-                        ■ Stop
-                      </button>
-                    )}
+                      <span style={{ fontSize: 9, fontWeight: 700, fontFamily: "monospace", background: "#F1F5F9", color: "#64748B", border: "1px solid #E2E8F0", borderRadius: 4, padding: "1px 5px" }}>Alt+S</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: tts.speaking ? "#D97706" : "#94A3B8", marginTop: 1 }}>
+                      {tts.speaking ? "Reading page aloud…" : "Reads full page top to bottom"}
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => tts.speaking ? tts.stop() : (setOpen(false), tts.startReading())}
+                  style={{
+                    padding: "8px 14px", borderRadius: 10, border: "none",
+                    background: tts.speaking ? "#DC2626" : "#0F5C6E",
+                    color: "#fff", fontSize: 12, fontWeight: 700,
+                    cursor: "pointer", flexShrink: 0, fontFamily: "'DM Sans', system-ui",
+                  }}
+                >{tts.speaking ? "■ Stop" : "▶ Read"}</button>
+              </div>
+            </div>
+
+            {/* ── COLOR FILTERS ── */}
+            <SectionLabel>Color Vision</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "8px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
+              {[
+                { value: "none",         label: "None",         color: "#64748B", icon: "👁️" },
+                { value: "protanopia",   label: "Protanopia",   color: "#E55B4D", icon: "🔴" },
+                { value: "deuteranopia", label: "Deuteranopia", color: "#4D8BE5", icon: "🔵" },
+                { value: "tritanopia",   label: "Tritanopia",   color: "#4DE5B8", icon: "🟢" },
+              ].map(cf => (
+                <button key={cf.value}
+                  role="radio" aria-checked={settings.colorFilter === cf.value}
+                  onClick={() => dispatch({ type: "SET", key: "colorFilter", value: cf.value })}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 12px", borderRadius: 10,
+                    border: `1.5px solid ${settings.colorFilter === cf.value ? "#0F5C6E" : "#E2E8F0"}`,
+                    background: settings.colorFilter === cf.value ? "#F0FDFA" : "#fff",
+                    cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    color: settings.colorFilter === cf.value ? "#0F5C6E" : "#475569",
+                    fontFamily: "'DM Sans', system-ui", transition: "all 0.15s",
+                  }}
+                >
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: cf.color, flexShrink: 0 }} />
+                  {cf.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── SHORTCUTS ── */}
+            <SectionLabel>Keyboard Shortcuts</SectionLabel>
+            <button
+              onClick={() => setShowShortcuts(s => !s)}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 10,
+                border: "1.5px solid #E2E8F0", background: "#F8FAFC",
+                color: "#475569", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "'DM Sans', system-ui",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                marginTop: 4,
+              }}
+            >
+              <span>⌨️ {showShortcuts ? "Hide shortcuts" : "Show all shortcuts"}</span>
+              <span>{showShortcuts ? "▲" : "▼"}</span>
+            </button>
+            {showShortcuts && (
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 0 }}>
+                {[
+                  { keys: "Alt+A", desc: "Open / close panel" },
+                  { keys: "Alt+D", desc: "Dyslexia font" },
+                  { keys: "Alt+C", desc: "High contrast" },
+                  { keys: "Alt+L", desc: "Highlight links" },
+                  { keys: "Alt+U", desc: "Large cursor" },
+                  { keys: "Alt+R", desc: "Reading mode" },
+                  { keys: "Alt+S", desc: "Read aloud" },
+                  { keys: "Alt++", desc: "Increase font size" },
+                  { keys: "Alt+−", desc: "Decrease font size" },
+                  { keys: "Escape", desc: "Close panel" },
+                ].map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #F8FAFC" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", background: "#1E293B", color: "#fff", padding: "2px 7px", borderRadius: 5, border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a" }}>{s.keys}</span>
+                    <span style={{ fontSize: 11, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>{s.desc}</span>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* COLOR */}
-            {activeTab === "color" && (
-              <div id="a11y-tab-color" role="tabpanel" aria-labelledby="a11y-tab-btn-color">
-                <SectionHeader icon="◉" title="Colour Accessibility" />
-                <p style={S.colorDesc}>Apply colour filters for different types of colour vision deficiency.</p>
-                <div style={S.colorGrid} role="radiogroup" aria-label="Colour blindness filter">
-                  {COLOR_FILTERS.map(cf => (
-                    <button key={cf.value} role="radio" aria-checked={settings.colorFilter === cf.value}
-                      style={{ ...S.colorChip, ...(settings.colorFilter === cf.value ? S.colorChipActive : {}) }}
-                      onClick={() => dispatch({ type: "SET", key: "colorFilter", value: cf.value })}>
-                      <span style={{ ...S.colorDot, background: cf.color }} aria-hidden="true" />
-                      {cf.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* KEYS */}
-            {activeTab === "keys" && (
-              <div id="a11y-tab-keys" role="tabpanel" aria-labelledby="a11y-tab-btn-keys">
-                <SectionHeader icon="⌨" title="Keyboard Shortcuts" />
-                <div style={S.shortcutList} role="list">
-                  {KEYBOARD_SHORTCUTS.map((s, i) => (
-                    <div key={i} role="listitem"><ShortcutRow keys={s.keys} desc={s.desc} /></div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          <div style={S.panelFooter}>
-            <span style={S.footerText}>♿ WCAG 2.1 AA</span>
-            <span style={S.footerDot} aria-hidden="true">·</span>
-            <span style={S.footerText}>InklusiJobs</span>
+          {/* Footer */}
+          <div style={{ padding: "8px 18px", borderTop: "1px solid #F1F5F9", background: "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <span style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>♿ WCAG 2.1 AA</span>
+            <span style={{ color: "#CBD5E1", fontSize: 10 }}>·</span>
+            <span style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>InklusiJobs</span>
           </div>
         </div>
       )}
     </>
   );
 }
-
-const S = {
-  floatWrap: { position: "fixed", zIndex: 10000, cursor: "grab", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" },
-  trigger: { width: 52, height: 52, borderRadius: "50%", border: "none", background: "linear-gradient(135deg, #1E40AF, #0e7490)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(14,116,144,0.45)", transition: "transform 0.2s, box-shadow 0.2s", position: "relative", outline: "none" },
-  triggerOpen: { background: "linear-gradient(135deg, #1E293B, #1E40AF)", boxShadow: "0 6px 28px rgba(30,64,175,0.5)", transform: "scale(1.06)" },
-  badge: { position: "absolute", top: -4, right: -4, width: 18, height: 18, borderRadius: "50%", background: "#f59e0b", color: "#1a1a1a", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff", fontFamily: "system-ui, sans-serif" },
-  panel: { position: "fixed", zIndex: 9999, width: 420, maxHeight: "88vh", background: "#ffffff", borderRadius: 24, boxShadow: "0 20px 60px rgba(0,0,0,0.18)", border: "1px solid rgba(30,64,175,0.10)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'DM Sans', system-ui, sans-serif", animation: "a11ySlideIn 0.22s cubic-bezier(0.22,1,0.36,1)" },
-  panelHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px 12px", borderBottom: "1px solid #f1f5f9", background: "linear-gradient(135deg, #EFF6FF, #F0FDFA)" },
-  panelTitle: { margin: 0, fontSize: 15, fontWeight: 700, color: "#1E293B", letterSpacing: "-0.2px", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  panelSub: { margin: "2px 0 0", fontSize: 11, color: "#64748B", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  closeBtn: { width: 28, height: 28, borderRadius: "50%", border: "none", background: "rgba(100,116,139,0.12)", color: "#64748B", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui" },
-  resetBtn: { padding: "4px 10px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", color: "#64748B", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  tabBar: { display: "flex", borderBottom: "1px solid #f1f5f9", overflowX: "auto", scrollbarWidth: "none", padding: "0 4px" },
-  tab: { flex: "0 0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 10px 7px", border: "none", background: "transparent", color: "#94A3B8", cursor: "pointer", fontSize: 10, fontWeight: 600, fontFamily: "'DM Sans', system-ui, sans-serif", borderBottomWidth: 2, borderBottomStyle: "solid", borderBottomColor: "transparent", transition: "color 0.15s, border-color 0.15s", minWidth: 44 },
-  tabActive: { color: "#1E40AF", borderBottomColor: "#1E40AF" },
-  tabIcon: { fontSize: 14, lineHeight: 1 },
-  tabLabel: { fontSize: 9, letterSpacing: "0.4px" },
-  tabContent: { flex: 1, overflowY: "auto", padding: "14px 16px", scrollbarWidth: "thin", scrollbarColor: "#e2e8f0 transparent" },
-  sectionHeader: { display: "flex", alignItems: "center", gap: 7, marginBottom: 12 },
-  sectionIcon: { fontSize: 13, color: "#1E40AF" },
-  sectionTitle: { fontSize: 11, fontWeight: 700, color: "#1E40AF", letterSpacing: "0.8px", textTransform: "uppercase", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  toggleRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", cursor: "pointer", borderBottom: "1px solid #f8fafc" },
-  toggleInfo: { display: "flex", flexDirection: "column", gap: 2, flex: 1 },
-  toggleLabel: { fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.3, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 4 },
-  toggleDesc: { fontSize: 11, color: "#94A3B8", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 },
-  // toggle — track 56x34, thumb 28x28, 3px gap each side
-  toggle: { width: 56, height: 34, borderRadius: 17, border: "none", background: "#e2e8f0", cursor: "pointer", position: "relative", flexShrink: 0, transition: "background 0.22s", padding: 0 },
-  toggleOn: { background: "linear-gradient(135deg, #1E40AF, #0e7490)" },
-  toggleThumb: { position: "absolute", top: "3px", left: "3px", width: 28, height: 28, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)", display: "block" },
-  toggleThumbOn: { left: "25px" },
-  sliderSection: { padding: "12px 0 4px", borderBottom: "1px solid #f8fafc" },
-  sliderHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  sliderValue: { fontSize: 12, fontWeight: 700, color: "#1E40AF", fontFamily: "monospace" },
-  sliderTrackWrap: { display: "flex", alignItems: "center", gap: 8 },
-  sliderBtn: { width: 32, height: 28, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748B", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0, fontFamily: "system-ui" },
-  sliderWrap: { flex: 1, position: "relative", height: 20, display: "flex", alignItems: "center" },
-  slider: { width: "100%", appearance: "none", WebkitAppearance: "none", height: 4, borderRadius: 2, background: "#e2e8f0", outline: "none", cursor: "pointer", position: "relative", zIndex: 2 },
-  sliderFill: { position: "absolute", left: 0, height: 4, background: "linear-gradient(90deg, #1E40AF, #0e7490)", borderRadius: 2, pointerEvents: "none", zIndex: 1, transition: "width 0.1s" },
-  smallReset: { marginTop: 6, background: "none", border: "none", color: "#94A3B8", fontSize: 10, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", padding: 0, textDecoration: "underline" },
-  colorDesc: { fontSize: 12, color: "#64748B", marginBottom: 12, lineHeight: 1.5, fontFamily: "'DM Sans', system-ui, sans-serif" },
-  colorGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 },
-  colorChip: { display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "all 0.15s" },
-  colorChipActive: { border: "1.5px solid #1E40AF", background: "#EFF6FF", color: "#1E40AF" },
-  colorDot: { width: 12, height: 12, borderRadius: "50%", flexShrink: 0 },
-  ttsSection: { padding: "10px 0" },
-  ttsBtn: { padding: "8px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #1E40AF, #0e7490)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  ttsBtnStop: { background: "linear-gradient(135deg, #dc2626, #b91c1c)" },
-  shortcutList: { display: "flex", flexDirection: "column", gap: 2 },
-  shortcutRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 0", borderBottom: "1px solid #f8fafc" },
-  shortcutKeys: { display: "flex", alignItems: "center", gap: 4, flexShrink: 0 },
-  kbd: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "2px 7px", borderRadius: 5, background: "#1E293B", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "monospace", border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a", minWidth: 24, lineHeight: 1.4 },
-  kbdInline: { display: "inline-flex", alignItems: "center", padding: "1px 5px", borderRadius: 4, background: "#f1f5f9", color: "#1E293B", fontSize: 9, fontWeight: 700, fontFamily: "monospace", border: "1px solid #e2e8f0", boxShadow: "0 1px 0 #cbd5e1", lineHeight: 1.4 },
-  kbdPlus: { fontSize: 10, color: "#94A3B8", margin: "0 2px", fontFamily: "system-ui" },
-  shortcutDesc: { fontSize: 11, color: "#64748B", textAlign: "right", fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 },
-  infoBox: { marginTop: 12, padding: "10px 12px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #e2e8f0" },
-  infoText: { margin: 0, fontSize: 11, color: "#64748B", lineHeight: 1.6, fontFamily: "'DM Sans', system-ui, sans-serif" },
-  divider: { height: 1, background: "#f1f5f9", margin: "8px 0" },
-  panelFooter: { display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 16px", borderTop: "1px solid #f1f5f9", background: "#fafafa" },
-  footerText: { fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui, sans-serif" },
-  footerDot: { color: "#CBD5E1", fontSize: 10 },
-};

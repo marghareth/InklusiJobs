@@ -42,7 +42,7 @@ export default function HeroSection() {
         <div className="flex flex-wrap gap-4 justify-center">
           <Link
             href="#how-it-works"
-            className="inline-flex items-center justify-center bg-[#0023FF] hover:bg-blue-700 text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl transition-colors duration-200"
+            className="inline-flex items-center justify-center bg-[#0F5C6E] hover:bg-[#0a4557] text-white font-['Lexend'] font-semibold text-base px-8 py-3.5 rounded-xl transition-colors duration-200"
           >
             See How It Works
           </Link>

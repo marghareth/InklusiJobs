@@ -1,7 +1,10 @@
 // app/api/quiz/score/route.js
+// DEMO VERSION — Supabase saveQuizAttempt replaced with localStorage instruction.
+// The CLIENT saves the result to localStorage after receiving it from this route.
+// AI scoring logic is unchanged — fallback added for when AI is slow.
+
 import { NextResponse } from "next/server";
 import { callAI } from "@/lib/api";
-import { saveQuizAttempt } from "@/lib/supabase-progress";
 
 export async function POST(request) {
   try {
@@ -9,49 +12,59 @@ export async function POST(request) {
     const { resourceId, jobId, questions, answers, userId } = body;
 
     if (!questions || !answers) {
-      return NextResponse.json({ error: "Missing questions or answers" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing questions or answers" },
+        { status: 400 }
+      );
     }
 
     const questionFeedback = [];
     let totalScore = 0;
     let textQuestions = [];
 
-    // ── Score MC questions immediately (rule-based) ─────────────────────────
+    // ── Score MC questions immediately (rule-based) ──────────────────────────
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       const userAnswer = answers[i];
 
       if (q.type === "single") {
         const correct = userAnswer === q.correct;
-        const score   = correct ? 20 : 0; // 20 points each (5 questions = 100)
-        totalScore   += score;
+        const score = correct ? 20 : 0; // 20 points each (5 questions = 100)
+        totalScore += score;
         questionFeedback.push({
           questionIndex: i,
-          type:          "single",
+          type: "single",
           correct,
           score,
-          maxScore:      20,
-          explanation:   q.explanation || "",
-          feedback:      correct ? "Correct! Great thinking." : `The correct answer was: "${q.options?.find(o => o.value === q.correct)?.label}"`,
+          maxScore: 20,
+          explanation: q.explanation || "",
+          feedback: correct
+            ? "Correct! Great thinking."
+            : `The correct answer was: "${q.options?.find((o) => o.value === q.correct)?.label}"`,
         });
       } else if (q.type === "text") {
         textQuestions.push({ index: i, question: q, answer: userAnswer });
       }
     }
 
-    // ── Score text questions with AI ────────────────────────────────────────
+    // ── Score text questions with AI (with fallback) ─────────────────────────
     if (textQuestions.length > 0) {
       for (const tq of textQuestions) {
-        const prompt = buildTextScoringPrompt(tq.question, tq.answer);
         let aiResult;
         try {
+          const prompt = buildTextScoringPrompt(tq.question, tq.answer);
           aiResult = await callAI(prompt);
+
+          if (!aiResult?.score && aiResult?.score !== 0) {
+            throw new Error("Invalid AI response");
+          }
         } catch {
-          // Fallback: give partial credit for attempt
+          // Fallback: give reasonable partial credit based on answer length
+          const wordCount = tq.answer?.trim().split(/\s+/).length || 0;
           aiResult = {
-            score: tq.answer?.trim().length > 50 ? 14 : 8,
-            feedback: "Your answer shows effort. Keep practising this skill.",
-            encouragement: "Well done for attempting the open-ended question!",
+            score: wordCount >= 80 ? 15 : wordCount >= 40 ? 12 : wordCount >= 15 ? 9 : 5,
+            feedback: "Your answer shows genuine effort. Keep building on this skill!",
+            encouragement: "Well done for attempting the open-ended question — that takes courage!",
           };
         }
 
@@ -59,11 +72,11 @@ export async function POST(request) {
         totalScore += score;
         questionFeedback.push({
           questionIndex: tq.index,
-          type:          "text",
-          correct:       score >= 14,
+          type: "text",
+          correct: score >= 14,
           score,
-          maxScore:      20,
-          feedback:      aiResult.feedback || "",
+          maxScore: 20,
+          feedback: aiResult.feedback || "",
           encouragement: aiResult.encouragement || "",
         });
       }
@@ -72,41 +85,39 @@ export async function POST(request) {
     // Sort feedback back into question order
     questionFeedback.sort((a, b) => a.questionIndex - b.questionIndex);
 
-    const finalScore  = Math.round(totalScore);
-    const passed      = finalScore >= 60; // 60% passing for quizzes
+    const finalScore = Math.round(totalScore);
+    const passed = finalScore >= 60;
     const encouragement = passed
-      ? "Great job! You've shown a solid understanding of this topic."
-      : "Keep going — review the resource and try again. You're building real skills.";
+      ? "Great job! You've shown a solid understanding of this topic. 🎉"
+      : "Keep going — review the resource and try again. You're building real skills!";
 
     const result = {
-      score:            finalScore,
-      maxScore:         100,
+      score: finalScore,
+      maxScore: 100,
       passed,
       questionFeedback,
       encouragement,
       answers,
+      resourceId,
+      jobId,
+      userId,
+      // Tell the client to save this to localStorage
+      saveToLocalStorage: true,
+      localStorageKey: `inklusi_quiz_attempts_${userId}_${jobId}`,
     };
-
-    // Save to Supabase if userId provided
-    if (userId && jobId && resourceId) {
-      try {
-        const phaseNumber = questions[0]?.phaseNumber || 1;
-        await saveQuizAttempt(userId, jobId, resourceId, phaseNumber, {
-          ...result,
-          feedback: questionFeedback,
-        });
-      } catch (e) {
-        console.error("[quiz/score] Supabase save error:", e);
-      }
-    }
 
     return NextResponse.json(result);
 
   } catch (error) {
     console.error("[quiz/score] Error:", error);
-    return NextResponse.json({ error: "Scoring failed", detail: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Scoring failed", detail: error.message },
+      { status: 500 }
+    );
   }
 }
+
+// ─── TEXT SCORING PROMPT ──────────────────────────────────────────────────────
 
 function buildTextScoringPrompt(question, answer) {
   return `You are a fair, encouraging skills evaluator for InklusiJobs — a job platform for PWDs in the Philippines.
@@ -127,10 +138,10 @@ SCORING GUIDE:
 - 6–9:   Beginning — attempt made but significant gaps in knowledge
 - 0–5:   Insufficient — no answer or completely off-topic
 
-ANTI-BIAS: Do NOT penalise for informal language, Filipino English, or brevity if the answer is correct.
+ANTI-BIAS RULE: Do NOT penalise for informal language, Filipino English, or brevity if the answer is correct.
 Give credit for correct thinking even if imperfectly expressed.
 
-Return ONLY this JSON:
+Return ONLY this JSON — no markdown, no extra text:
 {
   "score": 16,
   "feedback": "Specific, constructive 1-2 sentence feedback on what they did well and what to improve",
