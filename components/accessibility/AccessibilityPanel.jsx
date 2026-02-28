@@ -16,8 +16,6 @@ const DEFAULT_SETTINGS = {
   colorFilter:    "none",
 };
 
-const SVG_FILTERS = ""; // No longer using SVG filters — using CSS classes instead
-
 function settingsReducer(state, action) {
   switch (action.type) {
     case "TOGGLE": return { ...state, [action.key]: !state[action.key] };
@@ -61,12 +59,10 @@ function useApplySettings(settings) {
     root.classList.toggle("a11y-large-cursor",    settings.largeCursor);
     root.classList.toggle("a11y-reduce-motion",   settings.reduceMotion);
     root.classList.toggle("a11y-reading-mode",    settings.readingMode);
-    // Apply color filter via CSS class on html, targets #a11y-cf-wrap (not body)
     document.documentElement.classList.remove("a11y-cf-protanopia", "a11y-cf-deuteranopia", "a11y-cf-tritanopia");
     if (settings.colorFilter !== "none") {
       document.documentElement.classList.add(`a11y-cf-${settings.colorFilter}`);
     } else {
-      // Explicitly clear any leftover filter on main content
       const wrap = document.getElementById("a11y-cf-wrap");
       if (wrap) wrap.style.filter = "";
     }
@@ -102,15 +98,12 @@ function useGlobalStyles() {
       }
       .a11y-tts-highlight { background: #fef08a !important; color: #1a1a1a !important; border-radius: 3px; }
       @keyframes a11ySlideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-      /* Color vision — applied via class on a wrapper div, not body */
       .a11y-cf-protanopia   #a11y-cf-wrap { filter: url(#a11y-p) !important; }
       .a11y-cf-deuteranopia #a11y-cf-wrap { filter: url(#a11y-d) !important; }
       .a11y-cf-tritanopia   #a11y-cf-wrap { filter: url(#a11y-t) !important; }
       #a11y-cf-wrap { min-height: 100%; }
     `;
     document.head.appendChild(style);
-    // Inject SVG filters into a fixed, invisible element (not body prepend)
     if (!document.getElementById("a11y-svg-filters")) {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.id = "a11y-svg-filters";
@@ -123,7 +116,6 @@ function useGlobalStyles() {
       </defs>`;
       document.body.appendChild(svg);
     }
-    // Wrap page content in a div we can safely filter
     if (!document.getElementById("a11y-cf-wrap")) {
       const main = document.getElementById("main-content");
       if (main) { main.id = "a11y-cf-wrap"; }
@@ -146,7 +138,6 @@ function useDrag() {
     if (e.button !== 0) return;
     const rect = btnRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
     startOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    // Don't set dragging=true yet — only start drag on actual movement
     const onFirstMove = () => {
       dragging.current = true;
       window.removeEventListener("mousemove", onFirstMove);
@@ -259,29 +250,29 @@ function FeatureRow({ icon, label, desc, shortcut, checked, onChange, id }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      gap: 12, padding: "12px 0",
+      gap: 12, padding: "14px 0",
       borderBottom: "1px solid #F1F5F9",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
         <span style={{
-          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
           background: "#F8FAFC", border: "1px solid #E2E8F0",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 16,
+          fontSize: 20,
         }}>{icon}</span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif" }}>{label}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#1E293B", fontFamily: "'DM Sans', system-ui, sans-serif" }}>{label}</span>
             {shortcut && (
               <span style={{
-                fontSize: 9, fontWeight: 700, fontFamily: "monospace",
+                fontSize: 10, fontWeight: 700, fontFamily: "monospace",
                 background: "#F1F5F9", color: "#64748B",
                 border: "1px solid #E2E8F0", borderRadius: 4,
-                padding: "1px 5px", letterSpacing: "0.3px",
+                padding: "2px 6px", letterSpacing: "0.3px",
               }}>{shortcut}</span>
             )}
           </div>
-          {desc && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 1, fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 }}>{desc}</div>}
+          {desc && <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 2, fontFamily: "'DM Sans', system-ui, sans-serif", lineHeight: 1.4 }}>{desc}</div>}
         </div>
       </div>
       <Toggle checked={checked} onChange={onChange} id={id} label={label} />
@@ -293,10 +284,10 @@ function FeatureRow({ icon, label, desc, shortcut, checked, onChange, id }) {
 function SectionLabel({ children }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 700, color: "#94A3B8",
+      fontSize: 11, fontWeight: 700, color: "#94A3B8",
       letterSpacing: "0.12em", textTransform: "uppercase",
       fontFamily: "'DM Sans', system-ui, sans-serif",
-      marginTop: 16, marginBottom: 4,
+      marginTop: 18, marginBottom: 2,
     }}>{children}</div>
   );
 }
@@ -318,7 +309,6 @@ export default function AccessibilityPanel() {
   useApplySettings(settings);
   useGlobalStyles();
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape") { setOpen(false); tts.stop(); return; }
@@ -340,9 +330,7 @@ export default function AccessibilityPanel() {
     return () => window.removeEventListener("keydown", handler);
   }, [settings.fontSize, tts, dispatch]);
 
-  // Close on outside click + ensure body scroll is never locked
   useEffect(() => {
-    // Always ensure body can scroll
     document.body.style.overflow = "";
     document.documentElement.style.overflow = "";
     if (!open) return;
@@ -352,7 +340,6 @@ export default function AccessibilityPanel() {
     document.addEventListener("mousedown", handler);
     return () => {
       document.removeEventListener("mousedown", handler);
-      // Ensure scroll is restored when panel closes
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
     };
@@ -418,7 +405,7 @@ export default function AccessibilityPanel() {
             left: pos.x > window.innerWidth / 2 ? "auto" : `${pos.x}px`,
             bottom: pos.y > window.innerHeight / 2 ? panelBottom : "auto",
             top: pos.y > window.innerHeight / 2 ? "auto" : `${pos.y + 64}px`,
-            width: 340,
+            width: 380,
             maxHeight: "85vh",
             background: "#fff",
             borderRadius: 20,
@@ -433,23 +420,23 @@ export default function AccessibilityPanel() {
         >
           {/* Header */}
           <div style={{
-            padding: "16px 18px 14px",
+            padding: "18px 20px 16px",
             borderBottom: "1px solid #F1F5F9",
             background: "linear-gradient(135deg, #0F5C6E08, #0F5C6E04)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{
-                width: 36, height: 36, borderRadius: 10,
+                width: 42, height: 42, borderRadius: 12,
                 background: "#0F5C6E", display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="4" r="2"/><path d="M12 6v4M8 10H5l2 8h2l1-4h4l1 4h2l2-8h-3"/>
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Accessibility</div>
-                <div style={{ fontSize: 11, color: "#94A3B8" }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#0F172A" }}>Accessibility</div>
+                <div style={{ fontSize: 13, color: "#94A3B8" }}>
                   {activeCount > 0 ? `${activeCount} feature${activeCount > 1 ? "s" : ""} active` : "All features off"}
                 </div>
               </div>
@@ -459,8 +446,8 @@ export default function AccessibilityPanel() {
                 <button
                   onClick={() => dispatch({ type: "RESET" })}
                   style={{
-                    padding: "5px 10px", borderRadius: 8, border: "1px solid #E2E8F0",
-                    background: "#fff", color: "#64748B", fontSize: 11, fontWeight: 600,
+                    padding: "6px 12px", borderRadius: 8, border: "1px solid #E2E8F0",
+                    background: "#fff", color: "#64748B", fontSize: 13, fontWeight: 600,
                     cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif",
                   }}
                 >Reset</button>
@@ -468,9 +455,9 @@ export default function AccessibilityPanel() {
               <button
                 onClick={() => setOpen(false)}
                 style={{
-                  width: 28, height: 28, borderRadius: "50%", border: "none",
+                  width: 32, height: 32, borderRadius: "50%", border: "none",
                   background: "#F1F5F9", color: "#64748B", cursor: "pointer",
-                  fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
                 }}
                 aria-label="Close"
               >✕</button>
@@ -478,21 +465,21 @@ export default function AccessibilityPanel() {
           </div>
 
           {/* Scrollable content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 16px", scrollbarWidth: "thin", scrollbarColor: "#E2E8F0 transparent" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "4px 20px 18px", scrollbarWidth: "thin", scrollbarColor: "#E2E8F0 transparent" }}>
 
             {/* ── FONT SIZE ── */}
             <SectionLabel>Text Size</SectionLabel>
-            <div style={{ padding: "10px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "12px 0 14px", borderBottom: "1px solid #F1F5F9" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button
                   onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.max(80, settings.fontSize - 10) })}
                   aria-label="Decrease font size"
-                  style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ width: 42, height: 42, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 15, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
                 >A−</button>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>Font Size</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F5C6E", fontFamily: "monospace" }}>{settings.fontSize}%</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>Font Size</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#0F5C6E", fontFamily: "monospace" }}>{settings.fontSize}%</span>
                   </div>
                   <input
                     type="range" min={80} max={150} step={5} value={settings.fontSize}
@@ -504,12 +491,12 @@ export default function AccessibilityPanel() {
                 <button
                   onClick={() => dispatch({ type: "SET", key: "fontSize", value: Math.min(150, settings.fontSize + 10) })}
                   aria-label="Increase font size"
-                  style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 14, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  style={{ width: 42, height: 42, borderRadius: 10, border: "1.5px solid #E2E8F0", background: "#F8FAFC", color: "#475569", fontSize: 15, fontWeight: 700, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
                 >A+</button>
               </div>
               {settings.fontSize !== 100 && (
                 <button onClick={() => dispatch({ type: "SET", key: "fontSize", value: 100 })}
-                  style={{ marginTop: 6, background: "none", border: "none", color: "#94A3B8", fontSize: 10, cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "'DM Sans', system-ui" }}>
+                  style={{ marginTop: 8, background: "none", border: "none", color: "#94A3B8", fontSize: 12, cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "'DM Sans', system-ui" }}>
                   Reset to 100%
                 </button>
               )}
@@ -528,23 +515,23 @@ export default function AccessibilityPanel() {
 
             {/* ── MOTION & FOCUS ── */}
             <SectionLabel>Motion & Focus</SectionLabel>
-            <FeatureRow icon="⏸️" label="Reduce motion" desc="Disables animations" 
+            <FeatureRow icon="⏸️" label="Reduce motion" desc="Disables animations"
               checked={settings.reduceMotion} onChange={() => dispatch({ type: "TOGGLE", key: "reduceMotion" })} id="toggle-motion" />
             <FeatureRow icon="🔍" label="Reading mode" desc="Dims page for focused reading" shortcut="Alt+R"
               checked={settings.readingMode} onChange={() => dispatch({ type: "TOGGLE", key: "readingMode" })} id="toggle-reading" />
 
             {/* ── READ ALOUD ── */}
             <SectionLabel>Read Aloud</SectionLabel>
-            <div style={{ padding: "10px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
+            <div style={{ padding: "14px 0 14px", borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 10, background: tts.speaking ? "#FEF3C7" : "#F8FAFC", border: `1px solid ${tts.speaking ? "#FCD34D" : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🔊</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, background: tts.speaking ? "#FEF3C7" : "#F8FAFC", border: `1px solid ${tts.speaking ? "#FCD34D" : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🔊</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: "#1E293B", display: "flex", alignItems: "center", gap: 7 }}>
                       Read page aloud
-                      <span style={{ fontSize: 9, fontWeight: 700, fontFamily: "monospace", background: "#F1F5F9", color: "#64748B", border: "1px solid #E2E8F0", borderRadius: 4, padding: "1px 5px" }}>Alt+S</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", background: "#F1F5F9", color: "#64748B", border: "1px solid #E2E8F0", borderRadius: 4, padding: "2px 6px" }}>Alt+S</span>
                     </div>
-                    <div style={{ fontSize: 11, color: tts.speaking ? "#D97706" : "#94A3B8", marginTop: 1 }}>
+                    <div style={{ fontSize: 13, color: tts.speaking ? "#D97706" : "#94A3B8", marginTop: 2 }}>
                       {tts.speaking ? "Reading page aloud…" : "Reads full page top to bottom"}
                     </div>
                   </div>
@@ -552,9 +539,9 @@ export default function AccessibilityPanel() {
                 <button
                   onClick={() => tts.speaking ? tts.stop() : (setOpen(false), tts.startReading())}
                   style={{
-                    padding: "8px 14px", borderRadius: 10, border: "none",
+                    padding: "10px 16px", borderRadius: 10, border: "none",
                     background: tts.speaking ? "#DC2626" : "#0F5C6E",
-                    color: "#fff", fontSize: 12, fontWeight: 700,
+                    color: "#fff", fontSize: 14, fontWeight: 700,
                     cursor: "pointer", flexShrink: 0, fontFamily: "'DM Sans', system-ui",
                   }}
                 >{tts.speaking ? "■ Stop" : "▶ Read"}</button>
@@ -563,7 +550,7 @@ export default function AccessibilityPanel() {
 
             {/* ── COLOR FILTERS ── */}
             <SectionLabel>Color Vision</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "8px 0 12px", borderBottom: "1px solid #F1F5F9" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "10px 0 14px", borderBottom: "1px solid #F1F5F9" }}>
               {[
                 { value: "none",         label: "None",         color: "#64748B", icon: "👁️" },
                 { value: "protanopia",   label: "Protanopia",   color: "#E55B4D", icon: "🔴" },
@@ -575,10 +562,10 @@ export default function AccessibilityPanel() {
                   onClick={() => dispatch({ type: "SET", key: "colorFilter", value: cf.value })}
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
-                    padding: "10px 12px", borderRadius: 10,
+                    padding: "12px 14px", borderRadius: 10,
                     border: `1.5px solid ${settings.colorFilter === cf.value ? "#0F5C6E" : "#E2E8F0"}`,
                     background: settings.colorFilter === cf.value ? "#F0FDFA" : "#fff",
-                    cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontSize: 13, fontWeight: 600,
                     color: settings.colorFilter === cf.value ? "#0F5C6E" : "#475569",
                     fontFamily: "'DM Sans', system-ui", transition: "all 0.15s",
                   }}
@@ -594,9 +581,9 @@ export default function AccessibilityPanel() {
             <button
               onClick={() => setShowShortcuts(s => !s)}
               style={{
-                width: "100%", padding: "10px 12px", borderRadius: 10,
+                width: "100%", padding: "12px 14px", borderRadius: 10,
                 border: "1.5px solid #E2E8F0", background: "#F8FAFC",
-                color: "#475569", fontSize: 12, fontWeight: 600,
+                color: "#475569", fontSize: 14, fontWeight: 600,
                 cursor: "pointer", fontFamily: "'DM Sans', system-ui",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 marginTop: 4,
@@ -619,9 +606,9 @@ export default function AccessibilityPanel() {
                   { keys: "Alt+−", desc: "Decrease font size" },
                   { keys: "Escape", desc: "Close panel" },
                 ].map((s, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #F8FAFC" }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", background: "#1E293B", color: "#fff", padding: "2px 7px", borderRadius: 5, border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a" }}>{s.keys}</span>
-                    <span style={{ fontSize: 11, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>{s.desc}</span>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #F8FAFC" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", background: "#1E293B", color: "#fff", padding: "3px 8px", borderRadius: 5, border: "1px solid #334155", boxShadow: "0 2px 0 #0f172a" }}>{s.keys}</span>
+                    <span style={{ fontSize: 13, color: "#64748B", fontFamily: "'DM Sans', system-ui" }}>{s.desc}</span>
                   </div>
                 ))}
               </div>
@@ -630,10 +617,10 @@ export default function AccessibilityPanel() {
           </div>
 
           {/* Footer */}
-          <div style={{ padding: "8px 18px", borderTop: "1px solid #F1F5F9", background: "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <span style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>♿ WCAG 2.1 AA</span>
-            <span style={{ color: "#CBD5E1", fontSize: 10 }}>·</span>
-            <span style={{ fontSize: 10, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>InklusiJobs</span>
+          <div style={{ padding: "10px 20px", borderTop: "1px solid #F1F5F9", background: "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <span style={{ fontSize: 12, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>♿ WCAG 2.1 AA</span>
+            <span style={{ color: "#CBD5E1", fontSize: 12 }}>·</span>
+            <span style={{ fontSize: 12, color: "#CBD5E1", fontFamily: "'DM Sans', system-ui" }}>InklusiJobs</span>
           </div>
         </div>
       )}

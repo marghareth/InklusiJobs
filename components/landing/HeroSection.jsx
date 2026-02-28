@@ -10,7 +10,6 @@ export default function HeroSection() {
   const [arrowPos, setArrowPos] = useState(0);
   const [eyeScale, setEyeScale] = useState(1);
 
-  // ── Parallax: bg moves at 40% scroll speed ─────────────────────────────
   useEffect(() => {
     const handleScroll = () => {
       if (bgRef.current) {
@@ -21,7 +20,6 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ── Bouncing arrow for "See How It Works" ─────────────────────────────
   useEffect(() => {
     let frame;
     let start;
@@ -35,7 +33,6 @@ export default function HeroSection() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  // ── Pulsing play button for "View Success Stories" ────────────────────
   useEffect(() => {
     let frame;
     let start;
@@ -54,7 +51,7 @@ export default function HeroSection() {
       className="relative min-h-screen w-full overflow-hidden"
       aria-labelledby="hero-heading"
     >
-      {/* ── Parallax background ─────────────────────────────────────────── */}
+      {/* Parallax background */}
       <div
         ref={bgRef}
         aria-hidden="true"
@@ -79,27 +76,13 @@ export default function HeroSection() {
         aria-hidden="true"
       />
 
-      {/* ── Content ─────────────────────────────────────────────────────── */}
+      {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-6 md:px-20 pt-32">
 
-        {/* Pill badge */}
-        <div
-          className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-widest"
-          style={{
-            background: "rgba(255,255,255,0.15)",
-            color: "#E0F4F7",
-            border: "1px solid rgba(255,255,255,0.25)",
-            fontFamily: "Arial, Helvetica, sans-serif",
-          }}
-        >
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#34D399", display: "inline-block" }} aria-hidden="true" />
-          Equal Opportunity Platform
-        </div>
-
-        {/* Heading */}
+        {/* Heading — bigger */}
         <h1
           id="hero-heading"
-          className="font-light leading-[1.1] text-4xl md:text-5xl lg:text-6xl mb-6 max-w-3xl"
+          className="font-light leading-[1.1] text-5xl md:text-6xl lg:text-7xl mb-8 max-w-4xl"
           style={{ color: "#F0FDFD", fontFamily: "Arial, Helvetica, sans-serif" }}
         >
           Equal Opportunity<br />
@@ -108,39 +91,22 @@ export default function HeroSection() {
         </h1>
 
         <p
-          className="text-lg md:text-xl leading-relaxed mb-10 max-w-xl"
+          className="text-xl md:text-2xl leading-relaxed mb-12 max-w-xl"
           style={{ color: "rgba(240,253,253,0.80)", fontFamily: "Arial, Helvetica, sans-serif" }}
         >
           InklusiJobs connects persons with disabilities to verified, inclusive employers — with the tools and support to grow your career.
         </p>
 
-        {/* ── Buttons ─────────────────────────────────────────────────── */}
+        {/* Buttons */}
         <div className="flex flex-wrap gap-4 justify-center">
 
-          {/* Get Started Free */}
-          <button
-            onClick={openRoleSelector}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "Arial, Helvetica, sans-serif", fontWeight: 600, fontSize: 16,
-              padding: "14px 32px", borderRadius: 12, border: "none",
-              background: "#0F5C6E", color: "#FFFFFF",
-              boxShadow: "0 4px 20px rgba(15,92,110,0.4)",
-              cursor: "pointer", transition: "opacity 0.2s, transform 0.2s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = "0.92"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
-            Get Started Free
-          </button>
-
-          {/* See How It Works — moving arrow */}
+          {/* See How It Works */}
           <a
             href="#how-it-works"
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-              fontFamily: "Arial, Helvetica, sans-serif", fontWeight: 600, fontSize: 16,
-              padding: "14px 32px", borderRadius: 12,
+              fontFamily: "Arial, Helvetica, sans-serif", fontWeight: 600, fontSize: 20,
+              padding: "18px 40px", borderRadius: 12,
               background: "rgba(255,255,255,0.12)",
               border: "1.5px solid rgba(255,255,255,0.35)",
               color: "#F0FDFD",
@@ -152,12 +118,11 @@ export default function HeroSection() {
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
           >
             See How It Works
-            {/* Animated bouncing arrow */}
             <span
               aria-hidden="true"
               style={{
                 display: "inline-block",
-                fontSize: 20,
+                fontSize: 24,
                 lineHeight: 1,
                 transform: `translateX(${arrowPos}px)`,
               }}
@@ -166,13 +131,13 @@ export default function HeroSection() {
             </span>
           </a>
 
-          {/* View Success Stories — animated pulsing play button */}
+          {/* View Success Stories */}
           <Link
             href="/success-stories"
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 10,
-              fontFamily: "Arial, Helvetica, sans-serif", fontWeight: 600, fontSize: 16,
-              padding: "14px 32px", borderRadius: 12,
+              fontFamily: "Arial, Helvetica, sans-serif", fontWeight: 600, fontSize: 20,
+              padding: "18px 40px", borderRadius: 12,
               background: "rgba(52,211,153,0.15)",
               border: "1.5px solid rgba(52,211,153,0.45)",
               color: "#A7F3D0",
@@ -183,22 +148,21 @@ export default function HeroSection() {
             onMouseEnter={e => e.currentTarget.style.background = "rgba(52,211,153,0.28)"}
             onMouseLeave={e => e.currentTarget.style.background = "rgba(52,211,153,0.15)"}
           >
-            {/* Pulsing play circle */}
             <span
               aria-hidden="true"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 24,
-                height: 24,
+                width: 30,
+                height: 30,
                 borderRadius: "50%",
                 background: "#34D399",
                 flexShrink: 0,
                 transform: `scale(${eyeScale})`,
               }}
             >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                 <polygon points="2,1 9,5 2,9" fill="#0A3D2E" />
               </svg>
             </span>
@@ -207,19 +171,11 @@ export default function HeroSection() {
 
         </div>
 
-        <p
-          className="text-sm mt-8"
-          style={{ color: "rgba(240,253,253,0.50)", fontFamily: "Arial, Helvetica, sans-serif" }}
-        >
-          Trusted by 500+ PWD job seekers and 120+ inclusive employers across the Philippines.
-        </p>
-
         {/* Scroll indicator line */}
         <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center"
           aria-hidden="true"
         >
-          <span style={{ fontSize: 10, color: "rgba(240,253,253,0.35)", fontFamily: "Arial, sans-serif", letterSpacing: "0.15em", textTransform: "uppercase" }}>Scroll</span>
           <div style={{ width: 1, height: 44, background: "linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)", animation: "scroll-fade 2s ease-in-out infinite" }} />
         </div>
 

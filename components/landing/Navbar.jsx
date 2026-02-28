@@ -51,8 +51,8 @@ export default function Navbar() {
             <Image
               src="/images/logo.png"
               alt="InklusiJobs"
-              width={140}
-              height={40}
+              width={180}
+              height={52}
               className="object-contain"
               priority
             />

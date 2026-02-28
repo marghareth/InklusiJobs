@@ -60,17 +60,17 @@ export function AuthModalProvider({ children }) {
     setAuthOpen(true);
   }, []);
 
-  // Sign UP complete — skip BasicInformation, go straight to dashboard
+  // Sign UP complete — employers must complete onboarding first
   const handleSignUpComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "employer") {
-      router.push("/employer/dashboard");
+      router.push("/employer/dashboard/onboarding"); // ← FIXED: was /employer/dashboard
     } else {
       router.push("/dashboard/worker");
     }
   }, [router]);
 
-  // Sign IN complete — role-aware redirect, no profile creation step
+  // Sign IN complete — existing users skip onboarding, go straight to dashboard
   const handleSignInComplete = useCallback((role) => {
     setAuthOpen(false);
     if (role === "employer") {

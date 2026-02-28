@@ -1,23 +1,48 @@
 "use client";
 
-/**
- * OpenModalButton.jsx
- * A lightweight client component that fires the inklusijobs:open-modal event.
- * Use this inside server-rendered pages (About, Learn, ForEmployers, FindWork)
- * so CTAs can still open the auth modal without making the whole page a client component.
- *
- * Usage:
- *   <OpenModalButton style={...} className={...}>Join InklusiJobs →</OpenModalButton>
- */
+import { useAuthModalContext } from "@/components/landing/AuthModalContext";
 
-export default function OpenModalButton({ children, className, style, tab = "signup" }) {
-  const handleClick = () => {
-    window.dispatchEvent(new CustomEvent("inklusijobs:open-modal", { detail: { tab } }));
-  };
+/**
+ * OpenModalButton — renders a button that opens the auth/role selector modal.
+ * Props:
+ *   label     — button text (default: "Get Started")
+ *   className — optional Tailwind classes
+ *   style     — optional inline styles
+ */
+export default function OpenModalButton({ label = "Get Started", className = "", style = {} }) {
+  const { openRoleSelector } = useAuthModalContext();
 
   return (
-    <button onClick={handleClick} className={className} style={style}>
-      {children}
+    <button
+      onClick={openRoleSelector}
+      className={className}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Arial, Helvetica, sans-serif",
+        fontWeight: 700,
+        fontSize: 15,
+        padding: "13px 30px",
+        borderRadius: 12,
+        border: "none",
+        background: "#0F5C6E",
+        color: "#FFFFFF",
+        boxShadow: "0 4px 20px rgba(15,92,110,0.35)",
+        cursor: "pointer",
+        transition: "transform 0.15s, box-shadow 0.15s",
+        ...style,
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 8px 28px rgba(15,92,110,0.45)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 4px 20px rgba(15,92,110,0.35)";
+      }}
+    >
+      {label}
     </button>
   );
 }
