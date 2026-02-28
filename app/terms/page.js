@@ -1,7 +1,19 @@
+import Link from "next/link";
+
 export default function TermsOfUse() {
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
+
+        {/* Back Button Bar */}
+        <div style={styles.backBar}>
+          <Link href="/" style={styles.backButton}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back to Home
+          </Link>
+        </div>
 
         {/* Header */}
         <div style={styles.header}>
@@ -26,8 +38,9 @@ export default function TermsOfUse() {
               workers with employers who value inclusive hiring.
             </p>
             <p style={{ marginTop: 12 }}>
-              <strong>Contact:</strong> steviesummer612@gmail.com<br />
-              <strong>Website:</strong> https://inklusijobs.vercel.app
+              <strong style={{ color: "#0A2E38" }}>Contact:</strong> <span style={{ color: "#475569" }}>steviesummer612@gmail.com</span><br />
+              <strong style={{ color: "#0A2E38" }}>Website:</strong>{" "}
+              <a href="https://inklusijobs.vercel.app" style={styles.link}>https://inklusijobs.vercel.app</a>
             </p>
           </Section>
 
@@ -126,9 +139,7 @@ export default function TermsOfUse() {
           </Section>
 
           <Section title="10. Disability Data and Non-Discrimination">
-            <p>
-              InklusiJobs is built for Persons with Disabilities. We are committed to:
-            </p>
+            <p>InklusiJobs is built for Persons with Disabilities. We are committed to:</p>
             <ul style={styles.list}>
               <li>Treating all users with dignity and respect regardless of disability type</li>
               <li>Never using disability information to discriminate or limit opportunities</li>
@@ -185,20 +196,31 @@ export default function TermsOfUse() {
           <Section title="16. Contact Us">
             <p>For any questions about these Terms:</p>
             <p style={{ marginTop: 12 }}>
-              <strong>InklusiJobs</strong><br />
+              <strong style={{ color: "#0A2E38" }}>InklusiJobs</strong><br />
               Email: <a href="mailto:steviesummer612@gmail.com" style={styles.link}>steviesummer612@gmail.com</a><br />
               Website: <a href="https://inklusijobs.vercel.app" style={styles.link}>https://inklusijobs.vercel.app</a><br />
               Philippines
             </p>
           </Section>
 
+          {/* Bottom back button */}
+          <div style={{ textAlign: "center", paddingTop: 16, paddingBottom: 8 }}>
+            <Link href="/" style={styles.backButtonBottom}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Back to Home
+            </Link>
+          </div>
+
         </div>
 
+        {/* Footer */}
         <div style={styles.footer}>
-          <p>© 2025 InklusiJobs. All rights reserved.</p>
+          <p style={{ margin: 0 }}>© 2025 InklusiJobs. All rights reserved.</p>
           <div style={styles.footerLinks}>
             <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-            <span style={styles.dot}>·</span>
+            <span style={{ color: "rgba(125,220,232,0.3)" }}>·</span>
             <a href="/terms" style={styles.footerLink}>Terms of Use</a>
           </div>
         </div>
@@ -210,15 +232,19 @@ export default function TermsOfUse() {
 
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: 32 }}>
+    <div style={{ marginBottom: 24 }}>
       <h3 style={{
-        fontSize: 18, fontWeight: 700, color: "#1e3d28",
-        marginBottom: 12, paddingBottom: 6,
-        borderBottom: "1px solid #d4e8d8",
+        fontSize: 17,
+        fontWeight: 700,
+        color: "#0A2E38",
+        marginBottom: 12,
+        paddingBottom: 10,
+        borderBottom: "1px solid #e2e8f0",
+        fontFamily: "'Lexend', sans-serif",
       }}>
         {title}
       </h3>
-      <div style={{ color: "#475569", fontSize: 15, lineHeight: 1.7 }}>
+      <div style={{ color: "#475569", fontSize: 15, lineHeight: 1.75, fontFamily: "'Lexend', sans-serif" }}>
         {children}
       </div>
     </div>
@@ -227,7 +253,13 @@ function Section({ title, children }) {
 
 function SubHeading({ children }) {
   return (
-    <p style={{ fontWeight: 700, color: "#1e3d28", marginTop: 14, marginBottom: 6 }}>
+    <p style={{
+      fontWeight: 600,
+      color: "#0A7A8F",
+      marginTop: 14,
+      marginBottom: 6,
+      fontFamily: "'Lexend', sans-serif",
+    }}>
       {children}
     </p>
   );
@@ -236,54 +268,127 @@ function SubHeading({ children }) {
 const styles = {
   container: {
     minHeight: "100vh",
-    background: "#f8fafc",
+    background: "#f1f5f9",
     padding: "40px 20px",
-    fontFamily: "'Inter', 'Arial', sans-serif",
+    fontFamily: "'Lexend', 'Inter', sans-serif",
   },
   wrapper: {
     maxWidth: 760,
     margin: "0 auto",
     background: "#ffffff",
     borderRadius: 16,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 2px 16px rgba(0,0,0,0.08)",
     overflow: "hidden",
   },
+  backBar: {
+    background: "#0A2E38",
+    borderBottom: "1px solid rgba(125,220,232,0.1)",
+    padding: "12px 32px",
+  },
+  backButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    color: "#7DDCE8",
+    textDecoration: "none",
+    fontSize: 14,
+    fontWeight: 500,
+    fontFamily: "'Lexend', sans-serif",
+    padding: "6px 14px",
+    borderRadius: 8,
+    border: "1px solid rgba(125,220,232,0.25)",
+    background: "rgba(125,220,232,0.06)",
+    transition: "all 0.15s",
+  },
+  backButtonBottom: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    color: "#071E26",
+    background: "#7DDCE8",
+    textDecoration: "none",
+    fontSize: 14,
+    fontWeight: 600,
+    fontFamily: "'Lexend', sans-serif",
+    padding: "11px 28px",
+    borderRadius: 10,
+    transition: "background 0.15s",
+  },
   header: {
-    background: "#1e3d28",
+    background: "linear-gradient(135deg, #0D3D4D 0%, #0A2E38 100%)",
+    borderBottom: "1px solid rgba(125,220,232,0.12)",
     padding: "40px 48px",
     textAlign: "center",
   },
   brand: {
-    fontSize: 14, fontWeight: 700, color: "#a7f3d0",
-    letterSpacing: "0.15em", margin: "0 0 12px",
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#7DDCE8",
+    letterSpacing: "0.15em",
+    margin: "0 0 12px",
+    fontFamily: "'Lexend', sans-serif",
   },
   title: {
-    fontSize: 32, fontWeight: 800, color: "#ffffff",
+    fontSize: 32,
+    fontWeight: 800,
+    color: "#E0F8FA",
     margin: "0 0 10px",
+    fontFamily: "'Lexend', sans-serif",
   },
   meta: {
-    fontSize: 13, color: "#6ee7b7", margin: 0,
+    fontSize: 13,
+    color: "rgba(125,220,232,0.6)",
+    margin: 0,
+    fontFamily: "'Lexend', sans-serif",
   },
   body: {
     padding: "40px 48px",
   },
   intro: {
-    fontSize: 15, color: "#475569", lineHeight: 1.8,
-    marginBottom: 32, padding: "16px 20px",
-    background: "#f0f7f1", borderLeft: "4px solid #3d6b47",
+    fontSize: 15,
+    color: "#475569",
+    lineHeight: 1.8,
+    marginBottom: 32,
+    padding: "16px 20px",
+    background: "#f0f9fb",
+    borderLeft: "3px solid #7DDCE8",
     borderRadius: "0 8px 8px 0",
+    fontFamily: "'Lexend', sans-serif",
   },
   list: {
-    paddingLeft: 20, margin: "8px 0",
-    color: "#475569", fontSize: 15, lineHeight: 2,
+    paddingLeft: 20,
+    margin: "8px 0",
+    color: "#475569",
+    fontSize: 15,
+    lineHeight: 2,
+    fontFamily: "'Lexend', sans-serif",
   },
-  link: { color: "#3d6b47", fontWeight: 600 },
+  link: {
+    color: "#0A7A8F",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
   footer: {
-    background: "#f8fafc", borderTop: "1px solid #e2e8f0",
-    padding: "20px 48px", textAlign: "center",
-    fontSize: 13, color: "#94a3b8",
+    background: "#f8fafc",
+    borderTop: "1px solid #e2e8f0",
+    padding: "20px 48px",
+    textAlign: "center",
+    fontSize: 13,
+    color: "#94a3b8",
+    fontFamily: "'Lexend', sans-serif",
   },
-  footerLinks: { marginTop: 6, display: "flex", justifyContent: "center", gap: 12 },
-  footerLink: { color: "#3d6b47", fontWeight: 600, textDecoration: "none" },
-  dot: { color: "#94a3b8" },
+  footerLinks: {
+    marginTop: 8,
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+    alignItems: "center",
+  },
+  footerLink: {
+    color: "#0A7A8F",
+    fontWeight: 600,
+    textDecoration: "none",
+    fontSize: 13,
+  },
 };
