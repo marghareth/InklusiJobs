@@ -1,4 +1,3 @@
-// components/landing/BasicInformation.jsx
 "use client";
 
 /**
@@ -228,21 +227,13 @@ const css = `
     border-radius: 50%; background: currentColor; opacity: 0.7;
   }
 
-const inputStyle = {
-  width: "100%", padding: "10px 14px", borderRadius: 10,
-  border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit",
-  background: "#FAFAFA", outline: "none", boxSizing: "border-box", color: C.navy,
-};
-
-const Input = ({ placeholder, value, onChange, type = "text", min, max }) => (
-  <input
-    type={type} placeholder={placeholder} value={value} onChange={onChange}
-    min={min} max={max}
-    style={inputStyle}
-    onFocus={e => e.target.style.borderColor = C.accent}
-    onBlur={e => e.target.style.borderColor = C.border}
-  />
-);
+  @media (max-width: 600px) {
+    .am-modal    { grid-template-columns: 1fr; border-radius: 20px; }
+    .am-left     { display: none; }
+    .am-right    { padding: 32px 24px; max-height: 95vh; }
+    .am-name-row { grid-template-columns: 1fr; }
+  }
+`;
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const EyeIcon = () => (
@@ -250,39 +241,23 @@ const EyeIcon = () => (
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
   </svg>
 );
-
-const ChipSelect = ({ options, selected, onToggle, max }) => (
-  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-    {options.map(opt => {
-      const active = selected.includes(opt);
-      const disabled = !active && max && selected.length >= max;
-      return (
-        <button key={opt} onClick={() => !disabled && onToggle(opt)}
-          style={{
-            padding: "7px 14px", borderRadius: 99, fontSize: 13, fontWeight: 600,
-            border: `1.5px solid ${active ? C.accent : C.border}`,
-            background: active ? C.light : C.card,
-            color: active ? C.navy : C.muted,
-            cursor: disabled ? "not-allowed" : "pointer",
-            opacity: disabled ? 0.5 : 1,
-            transition: "all 0.15s",
-          }}>
-          {opt}
-        </button>
-      );
-    })}
-  </div>
+const EyeOffIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
 );
-
-const Field = ({ label, required, children }) => (
-  <div style={{ marginBottom: 20 }}>
-    <Label required={required}>{label}</Label>
-    {children}
-  </div>
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
 );
-
-const Row = ({ children }) => (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>{children}</div>
+const FacebookIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
 );
 
 // ─── Firebase error messages → human-friendly ─────────────────────────────────
@@ -346,24 +321,31 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
   };
 
   return (
-    <div>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Your work preferences</h2>
-      <p style={{ color: C.muted, fontSize: 14, marginBottom: 28 }}>Help us match you to jobs that fit your lifestyle and goals.</p>
-
-      <Field label="Preferred Work Setup" required>
-        <div style={{ display: "flex", gap: 8 }}>
-          {workTypes.map(t => (
-            <button key={t} onClick={() => set({ ...data, workType: t })}
-              style={{
-                flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 600,
-                border: `1.5px solid ${data.workType === t ? C.accent : C.border}`,
-                background: data.workType === t ? C.light : C.card,
-                color: data.workType === t ? C.navy : C.muted, cursor: "pointer",
-                transition: "all 0.15s",
-              }}>
-              {t}
+    <>
+      {role && <div className={`am-role-badge ${role}`}>{role}</div>}
+      <h2 className="am-heading">Welcome back</h2>
+      <p className="am-subtext">
+        Don&apos;t have an account?{" "}
+        <button type="button" onClick={() => onSwitchTab("signup")}>Sign up free</button>
+      </p>
+      {error && <div className="am-error">{error}</div>}
+      <form className="am-form" onSubmit={handleSubmit}>
+        <div className="am-field">
+          <label className="am-label" htmlFor="si-email">Email</label>
+          <input id="si-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
+        </div>
+        <div className="am-field">
+          <label className="am-label" htmlFor="si-pwd">Password</label>
+          <div className="am-input-wrap">
+            <input id="si-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Your password" required autoComplete="current-password" />
+            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+              {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
-          ))}
+          </div>
+        </div>
+        <div className="am-row">
+          <label className="am-remember"><input type="checkbox" /> Remember me</label>
+          <button type="button" className="am-forgot">Forgot password?</button>
         </div>
         <button type="submit" className="am-submit" disabled={loading}>
           {loading ? "Signing in…" : "Sign In"}
@@ -379,20 +361,8 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
           }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
-      </Field>
-
-      <Field label="Tell us more about your career goals">
-        <textarea
-          placeholder="e.g. I'm looking for a remote role where I can use my design skills and grow in UX..."
-          rows={3}
-          value={data.goals || ""}
-          onChange={e => set({ ...data, goals: e.target.value })}
-          style={{ ...inputStyle, resize: "none" }}
-          onFocus={e => e.target.style.borderColor = C.accent}
-          onBlur={e => e.target.style.borderColor = C.border}
-        />
-      </Field>
-    </div>
+      </form>
+    </>
   );
 }
 
@@ -452,79 +422,14 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
           <label className="am-label" htmlFor="su-email">Email</label>
           <input id="su-email" name="email" type="email" className="am-input" placeholder="you@example.com" required autoComplete="email" />
         </div>
-      </Field>
-
-      <Field label="PWD ID Number">
-        <Input placeholder="e.g. 2024-QC-12345" value={data.pwdId || ""} onChange={e => set({ ...data, pwdId: e.target.value })} />
-      </Field>
-
-      <Field label="Workplace Accommodations Needed">
-        <ChipSelect options={accommodations} selected={data.accommodations || []}
-          onToggle={opt => {
-            const c = data.accommodations || [];
-            set({ ...data, accommodations: c.includes(opt) ? c.filter(a => a !== opt) : [...c, opt] });
-          }} />
-      </Field>
-
-      <Field label="Additional notes about your needs">
-        <textarea
-          placeholder="e.g. I need an ergonomic chair and occasional breaks every 2 hours due to my condition..."
-          rows={3}
-          value={data.disabilityNotes || ""}
-          onChange={e => set({ ...data, disabilityNotes: e.target.value })}
-          style={{ ...inputStyle, resize: "none" }}
-          onFocus={e => e.target.style.borderColor = C.accent}
-          onBlur={e => e.target.style.borderColor = C.border}
-        />
-      </Field>
-
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginTop: 8 }}>
-        <input
-          type="checkbox"
-          checked={data.consentSharing || false}
-          onChange={e => set({ ...data, consentSharing: e.target.checked })}
-          style={{ width: 16, height: 16, accentColor: C.accent, cursor: "pointer", marginTop: 2, flexShrink: 0 }}
-        />
-        <span style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
-          I consent to sharing my disability information with employers I apply to through InklusiJobs for the purpose of requesting appropriate accommodations.
-        </span>
-      </label>
-    </div>
-  );
-};
-
-// ── Step 4 – Dashboard Preference ─────────────────────────────────────────────
-const Step4 = ({ data, set }) => {
-  const themes = [
-    { id: "teal",  label: "Teal Focus", bg: "#0F4C4C", accent: "#2DD4BF" },
-    { id: "navy",  label: "Navy Pro",   bg: "#1A2744", accent: "#7286D3" },
-    { id: "slate", label: "Slate",      bg: "#334155", accent: "#94A3B8" },
-    { id: "rose",  label: "Rose",       bg: "#881337", accent: "#FB7185" },
-  ];
-  const layouts = ["Compact", "Comfortable", "Spacious"];
-  const widgets = ["Job Matches", "Application Tracker", "Saved Jobs", "Interview Schedule", "Skills Progress", "Recommended Employers"];
-
-  return (
-    <div>
-      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 4 }}>Personalize your dashboard</h2>
-      <p style={{ color: C.muted, fontSize: 14, marginBottom: 28 }}>Choose how your InklusiJobs workspace looks and feels.</p>
-
-      <Field label="Dashboard Theme">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
-          {themes.map(t => (
-            <button key={t.id} onClick={() => set({ ...data, theme: t.id })}
-              style={{
-                padding: "14px 10px", borderRadius: 12,
-                border: `2px solid ${data.theme === t.id ? C.accent : C.border}`,
-                cursor: "pointer", background: C.card, transition: "all 0.15s",
-              }}>
-              <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 8 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 6, background: t.bg }} />
-                <div style={{ width: 20, height: 20, borderRadius: 6, background: t.accent }} />
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{t.label}</div>
+        <div className="am-field">
+          <label className="am-label" htmlFor="su-pwd">Password</label>
+          <div className="am-input-wrap">
+            <input id="su-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} required />
+            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+              {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
-          ))}
+          </div>
         </div>
         <button type="submit" className="am-submit" disabled={loading}>
           {loading ? "Creating account…" : "Get Started"}
@@ -542,34 +447,8 @@ const Step4 = ({ data, set }) => {
           }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
-      </Field>
-
-      <Field label="Default Dashboard Widgets (pick up to 4)">
-        <ChipSelect options={widgets} selected={data.widgets || []} max={4}
-          onToggle={opt => {
-            const c = data.widgets || [];
-            set({ ...data, widgets: c.includes(opt) ? c.filter(w => w !== opt) : [...c, opt] });
-          }} />
-      </Field>
-
-      <Field label="Email Notifications">
-        {[
-          { key: "newMatches",       label: "New job match alerts"          },
-          { key: "appUpdates",       label: "Application status updates"    },
-          { key: "interviewRemind",  label: "Interview reminders"           },
-          { key: "weeklyDigest",     label: "Weekly job digest"             },
-        ].map(({ key, label }) => (
-          <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              defaultChecked
-              style={{ width: 16, height: 16, accentColor: C.accent, cursor: "pointer" }}
-            />
-            <span style={{ fontSize: 14, color: C.navy, fontWeight: 500 }}>{label}</span>
-          </label>
-        ))}
-      </Field>
-    </div>
+      </form>
+    </>
   );
 }
 
@@ -625,104 +504,21 @@ export default function AuthModal({
     redirectByRole(role || "worker");
   };
 
-  const stepContent = () => {
-    switch (step) {
-      case 1: return <Step1 data={s1} set={setS1} />;
-      case 2: return <Step2 data={s2} set={setS2} />;
-      case 3: return <Step3 data={s3} set={setS3} />;
-      case 4: return <Step4 data={s4} set={setS4} />;
-    }
-  };
+  if (!isOpen) return null;
 
-  // ── Completion screen ──────────────────────────────────────────────────────
-  if (complete) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Lexend','DM Sans',sans-serif" }}>
-        <div style={{ textAlign: "center", maxWidth: 480, padding: 40 }}>
-          <div style={{ fontSize: 72, marginBottom: 20 }}>🎉</div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: C.navy, marginBottom: 12 }}>You're all set, {s1.firstName || "there"}!</h1>
-          <p style={{ color: C.muted, fontSize: 15, marginBottom: 8, lineHeight: 1.6 }}>
-            Your profile is ready and we're already finding inclusive job matches for you.
-          </p>
-          <p style={{ color: C.muted, fontSize: 14, marginBottom: 32, lineHeight: 1.6 }}>
-            InklusiJobs will surface PWD-friendly employers matching your <strong style={{ color: C.navy }}>{s2.workType || "preferred"}</strong> work setup.
-          </p>
-          <a href="/dashboard/worker" style={{
-            display: "inline-block", padding: "14px 36px", borderRadius: 12,
-            background: `linear-gradient(135deg, ${C.accentDim}, #0D7377)`,
-            color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(13,115,119,0.35)",
-          }}>
-            Go to Dashboard →
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Wizard layout ──────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Lexend','DM Sans',sans-serif", display: "flex" }}>
+    <>
+      <style>{css}</style>
+      <div className="am-overlay" ref={overlayRef} onClick={handleOverlay} role="dialog" aria-modal="true" aria-label="Authentication">
+        <div className="am-modal" ref={modalRef}>
+          <button className="am-close" onClick={onClose} aria-label="Close modal" ref={closeRef}>✕</button>
 
-      {/* Left sidebar */}
-      <div style={{
-        width: 280, minWidth: 280,
-        background: `linear-gradient(180deg, ${C.navy} 0%, #1E2F55 100%)`,
-        padding: "40px 28px", display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ marginBottom: 48 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>InklusiJobs</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>Worker Setup</div>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          {STEPS.map((s, i) => {
-            const done = step > s.id, current = step === s.id;
-            return (
-              <div key={s.id} style={{ display: "flex", gap: 14, marginBottom: 28, alignItems: "flex-start" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                    background: done ? C.success : current ? C.accent : "rgba(255,255,255,0.1)",
-                    border: `2px solid ${done ? C.success : current ? C.accent : "rgba(255,255,255,0.2)"}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: done ? 16 : 14, fontWeight: 800, color: "#fff",
-                    transition: "all 0.25s",
-                  }}>
-                    {done ? "✓" : s.icon}
-                  </div>
-                  {i < STEPS.length - 1 && (
-                    <div style={{
-                      width: 2, height: 20, marginTop: 4,
-                      background: done ? C.success : "rgba(255,255,255,0.1)",
-                      transition: "background 0.25s",
-                    }} />
-                  )}
-                </div>
-                <div style={{ paddingTop: 4 }}>
-                  <div style={{
-                    fontSize: 13, fontWeight: current ? 700 : 600,
-                    color: current ? "#fff" : done ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)",
-                  }}>{s.label}</div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{s.desc}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ marginTop: "auto" }}>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>Step {step} of {STEPS.length}</div>
-          <div style={{ height: 4, borderRadius: 99, background: "rgba(255,255,255,0.1)" }}>
-            <div style={{
-              height: "100%", borderRadius: 99, background: C.accent,
-              width: `${((step - 1) / (STEPS.length - 1)) * 100}%`,
-              transition: "width 0.4s cubic-bezier(0.4,0,0.2,1)",
-            }} />
+          <div className="am-left" aria-hidden="true">
+            <div className="am-left-body">
+              <p className="am-left-quote">&ldquo;Skills that speak louder than credentials.&rdquo;</p>
+              <p className="am-left-sub">InklusiJobs · Built for PWDs. Powered by AI.</p>
+            </div>
           </div>
-        </div>
-      </div>
 
           <div className="am-right">
             <span className="am-logo">Inklusi<span>Jobs</span></span>
@@ -735,32 +531,8 @@ export default function AuthModal({
               : <SignUpForm  role={role} onSignUp={handleSignUp}  onSwitchTab={setTab} />
             }
           </div>
-
-          {step < 4 ? (
-            <button
-              onClick={() => canNext() && setStep(s => s + 1)}
-              style={{
-                padding: "10px 28px", borderRadius: 10, border: "none",
-                background: canNext() ? `linear-gradient(135deg, ${C.accentDim}, #0D7377)` : C.border,
-                color: canNext() ? "#fff" : C.muted, fontSize: 14, fontWeight: 700,
-                cursor: canNext() ? "pointer" : "not-allowed",
-                boxShadow: canNext() ? "0 4px 14px rgba(13,115,119,0.3)" : "none",
-                transition: "all 0.2s",
-              }}>
-              Continue →
-            </button>
-          ) : (
-            <button onClick={handleLaunch} style={{
-              padding: "10px 28px", borderRadius: 10, border: "none",
-              background: `linear-gradient(135deg, ${C.success}, #15803D)`,
-              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(22,163,74,0.3)",
-            }}>
-              Launch Dashboard 🚀
-            </button>
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
