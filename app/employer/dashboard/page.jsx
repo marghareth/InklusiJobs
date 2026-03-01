@@ -2,935 +2,879 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
-/* ─── THEME ──────────────────────────────────────────────────────────────── */
-const T = {
-  teal:       "#0F5C6E",
-  tealMid:    "#1A8FA5",
-  tealLight:  "#E6F4F6",
-  tealGlow:   "rgba(15,92,110,0.12)",
-  navy:       "#0A2A35",
-  navyLight:  "#122F3D",
-  bodyText:   "#1E3A45",
-  muted:      "#6B8A95",
-  border:     "#D0E4E8",
-  bg:         "#F0F6F8",
-  white:      "#FFFFFF",
-  success:    "#059669",
-  successBg:  "#ECFDF5",
-  warning:    "#D97706",
-  warningBg:  "#FFFBEB",
-  danger:     "#DC2626",
-  accent:     "#2D6A8F",
+const ET = {
+  teal:      "#0F5C6E",
+  tealLight: "#E6F4F6",
+  tealMid:   "#1A8FA5",
+  navy:      "#0A2A35",
+  bodyText:  "#1E3A45",
+  muted:     "#6B8A95",
+  border:    "#D0E4E8",
+  bg:        "#F4F9FA",
+  white:     "#FFFFFF",
+  success:   "#059669",
+  successBg: "#ECFDF5",
+  accent:    "#7286D3",
 };
 
-/* ─── MOCK DATA (filtered by onboarding answers) ─────────────────────────── */
-const ALL_CANDIDATES = [
-  { id:1,  name:"Maria Santos",    initials:"MS", role:"Software Developer",    match:97, skills:["JavaScript","React","Accessibility"], disability:"Visual Impairment",    exp:"3 yrs",  status:"New",         budget:"₱80k–₱150k" },
-  { id:2,  name:"Juan dela Cruz",  initials:"JD", role:"Data Analyst",          match:93, skills:["Python","SQL","Excel"],              disability:"Hearing Impairment",   exp:"2 yrs",  status:"Reviewed",    budget:"₱40k–₱80k"  },
-  { id:3,  name:"Ana Reyes",       initials:"AR", role:"Content Writer",        match:89, skills:["Content Writing","SEO","Canva"],     disability:"Mobility Disability",  exp:"4 yrs",  status:"New",         budget:"₱20k–₱40k"  },
-  { id:4,  name:"Pedro Lim",       initials:"PL", role:"Customer Support",      match:85, skills:["Customer Service","Communication"],  disability:"Speech Impairment",    exp:"1 yr",   status:"Shortlisted", budget:"₱20k–₱40k"  },
-  { id:5,  name:"Rosa Gomez",      initials:"RG", role:"HR Manager",            match:83, skills:["HR Management","Project Management"],disability:"Chronic Illness",      exp:"5 yrs",  status:"New",         budget:"₱80k–₱150k" },
-  { id:6,  name:"Carlo Mendoza",   initials:"CM", role:"Designer",              match:80, skills:["Figma","Canva","Social Media"],      disability:"Autism Spectrum",      exp:"2 yrs",  status:"Reviewed",    budget:"₱40k–₱80k"  },
-  { id:7,  name:"Liza Castillo",   initials:"LC", role:"DevOps Engineer",       match:76, skills:["AWS","Node.js","TypeScript"],        disability:"ADHD",                 exp:"3 yrs",  status:"New",         budget:"₱80k–₱150k" },
-  { id:8,  name:"Ben Torres",      initials:"BT", role:"Product Manager",       match:74, skills:["Project Management","Communication"],"disability":"Physical Disability", exp:"6 yrs",  status:"Shortlisted", budget:"₱150k+"     },
-];
+const EIcon = ({ d, size = 22, color = ET.teal, strokeWidth = 1.7 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+  </svg>
+);
 
-const MOCK_JOBS = [
-  { id:1, title:"Senior React Developer",  type:"Full-time",   applicants:14, posted:"2 days ago",  status:"Active",  urgent:true  },
-  { id:2, title:"Data Analyst",            type:"Part-time",   applicants:9,  posted:"5 days ago",  status:"Active",  urgent:false },
-  { id:3, title:"Customer Support Agent",  type:"Contract",    applicants:22, posted:"1 day ago",   status:"Active",  urgent:true  },
-  { id:4, title:"UX/UI Designer",          type:"Freelance",   applicants:6,  posted:"1 week ago",  status:"Draft",   urgent:false },
-  { id:5, title:"HR Coordinator",          type:"Full-time",   applicants:11, posted:"3 days ago",  status:"Active",  urgent:false },
-];
+// ── FIX 1: Removed stray `s` that was after the closing `};` ─────────────────
+const EICONS = {
+  monitor:       "M9 17H5a2 2 0 0 0-2 2h14a2 2 0 0 0-2-2h-4M3 7h18a1 1 0 0 1 1 1v8H2V8a1 1 0 0 1 1-1Z",
+  heart:         "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
+  barChart:      ["M12 20V10", "M18 20V4", "M6 20v-4"],
+  factory:       ["M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7-5 5-4-3-4 3z"],
+  graduationCap: ["M22 10v6M2 10l10-5 10 5-10 5z", "M6 12v5c3 3 9 3 12 0v-5"],
+  retail:        ["M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17M17 13v0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-10 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"],
+  media:         ["M15 10l4.55-2.5A1 1 0 0 1 21 8.5v7a1 1 0 0 1-1.45.9L15 14", "M1 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8z"],
+  landmark:      ["M3 22h18M6 18V11M10 18V11M14 18V11M18 18V11M2 11l10-7 10 7"],
+  nonprofit:     "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
+  tool:          "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
+  users:         ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2", "M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
+  home:          ["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"],
+  hybrid:        ["M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"],
+  building:      ["M6 22V4a2 2 0 0 1 2-2h8a2 2 0 1 2 2v18Z", "M6 12H4a2 2 0 0 0-2 2v8h4", "M18 9h2a2 2 0 0 1 2 2v11h-4", "M10 6h4M10 10h4M10 14h4M10 18h4"],
+  star:          "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  sparkles:      ["M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"],
+  briefcase:     ["M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16", "M2 9h20v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z"],
+  search:        ["M21 21l-4.35-4.35M11 19A8 8 0 1 0 11 3a8 8 0 0 0 0 16z"],
+  trending:      "M22 7l-8.5 8.5-5-5L2 17",
+  check:         "M20 6 9 17l-5-5",
+  checkCircle:   ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "M22 4 12 14.01l-3-3"],
+  gripVertical:  ["M9 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z","M15 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2z","M9 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z","M15 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z","M9 19a1 1 0 1 0 0-2 1 1 0 0 0 0 2z","M15 19a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"],
+  heartHandshake:["M19 12c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-6z","M12 17v-3","M9 14h6"],
+  target:        ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z","M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z","M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"],
+  grid:          ["M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"],
+  analytics:     ["M18 20V10","M12 20V4","M6 20v-6"],
+  zap:           "M13 2 3 14h9l-1 8 10-12h-9l1-8z",
+};
+// ── END FIX 1 ─────────────────────────────────────────────────────────────────
 
-/* ─── PRIMITIVES ─────────────────────────────────────────────────────────── */
-const Card = ({ children, style={}, onClick }) => (
-  <div onClick={onClick} style={{ background:T.white, borderRadius:16, border:`1px solid ${T.border}`, padding:"24px", boxShadow:"0 2px 12px rgba(10,42,53,0.06)", ...style }}>
-    {children}
+const RANK_ITEMS_DEFAULT = ["Verified Skills","Portfolio Quality","Communication","Speed","Cultural Fit","Cost"];
+const SKILLS_LIST = ["JavaScript","React","Python","SQL","Figma","Node.js","TypeScript","AWS","Java","PHP","Excel","Canva","Customer Service","Data Entry","Content Writing","SEO","Social Media","Bookkeeping","HR Management","Project Management"];
+
+/* ─── Primitives ─────────────────────────────────────────────────────────── */
+const Toggle = ({ checked, onChange }) => (
+  <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+    style={{ width: 58, height: 32, borderRadius: 999, border: "none", cursor: "pointer", background: checked ? ET.teal : "#C4CDD6", position: "relative", transition: "background 0.25s ease", flexShrink: 0, padding: 0, outline: "none" }}>
+    <span style={{
+      position: "absolute", top: 3, left: checked ? 29 : 3, width: 26, height: 26,
+      borderRadius: "50%", background: "#fff", boxShadow: "0 2px 6px rgba(0,0,0,0.22)",
+      transition: "left 0.22s cubic-bezier(0.4,0,0.2,1)", display: "block"
+    }} />
+  </button>
+);
+
+const ToggleRow = ({ label, sublabel, checked, onChange }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", border: `2px solid ${checked ? ET.teal : ET.border}`, borderRadius: 14, background: checked ? ET.tealLight : ET.white, transition: "all 0.18s" }}>
+    <div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: ET.navy }}>{label}</div>
+      {sublabel && <div style={{ fontSize: 13, color: ET.muted, marginTop: 3 }}>{sublabel}</div>}
+    </div>
+    <Toggle checked={checked} onChange={onChange} />
   </div>
 );
 
-const Badge = ({ children, color=T.teal, style={} }) => (
-  <span style={{ display:"inline-flex", alignItems:"center", padding:"3px 10px", borderRadius:99, background:`${color}18`, color, fontSize:12, fontWeight:700, border:`1px solid ${color}30`, ...style }}>
-    {children}
-  </span>
+const EChip = ({ label, selected, onToggle }) => (
+  <button onClick={onToggle} aria-pressed={selected}
+    style={{ padding: "10px 18px", borderRadius: 99, fontSize: 14, fontWeight: selected ? 700 : 500,
+      border: `2px solid ${selected ? ET.teal : ET.border}`,
+      background: selected ? ET.tealLight : ET.white,
+      color: selected ? ET.teal : ET.bodyText, cursor: "pointer", transition: "all 0.15s" }}>
+    {label}
+  </button>
 );
 
-const Avatar = ({ initials, size=44, color=T.teal }) => (
-  <div style={{ width:size, height:size, borderRadius:"50%", background:`linear-gradient(135deg, ${color}, ${T.tealMid})`, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.32, fontWeight:800, flexShrink:0 }}>
-    {initials}
-  </div>
-);
-
-const SectionHead = ({ children, action }) => (
-  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-    <h3 style={{ margin:0, fontSize:16, fontWeight:800, color:T.navy }}>{children}</h3>
-    {action && <button onClick={action.fn} style={{ fontSize:13, color:T.teal, fontWeight:700, background:"none", border:"none", cursor:"pointer", padding:0 }}>{action.label}</button>}
-  </div>
-);
-
-const ProgressBar = ({ value, max=100, color=T.teal, height=8 }) => (
-  <div style={{ height, borderRadius:99, background:T.border, overflow:"hidden" }}>
-    <div style={{ height:"100%", width:`${(value/max)*100}%`, background:`linear-gradient(90deg,${color},${T.tealMid})`, borderRadius:99, transition:"width 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
-  </div>
-);
-
-/* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
-const TABS = [
-  { id:"overview",    label:"Overview",          icon:"⬡",  emoji:"🏠" },
-  { id:"candidates",  label:"Candidate Matches", icon:"◎",  emoji:"👥" },
-  { id:"jobs",        label:"Job Listings",      icon:"▣",  emoji:"💼" },
-  { id:"profile",     label:"Company Profile",   icon:"◈",  emoji:"🏢" },
-  { id:"analytics",   label:"Analytics",         icon:"◉",  emoji:"📊" },
-  { id:"messages",    label:"Messages",          icon:"◻",  emoji:"💬" },
-  { id:"settings",    label:"Settings",          icon:"✦",  emoji:"⚙️" },
-];
-
-const Sidebar = ({ active, onTab, profile, open, onToggle }) => {
-  const s1 = profile?.s1 || {};
+const EIconCard = ({ icon, label, selected, onSelect, size = "md" }) => {
+  const pad = size === "sm" ? "18px 12px" : "22px 18px";
   return (
-    <aside style={{ width:open?256:68, background:T.navy, display:"flex", flexDirection:"column", transition:"width 0.28s cubic-bezier(0.4,0,0.2,1)", flexShrink:0, overflow:"hidden", position:"relative" }}>
-      {/* Logo */}
-      <div style={{ padding:"22px 16px 18px", borderBottom:`1px solid rgba(255,255,255,0.07)`, display:"flex", alignItems:"center", justifyContent: open ? "flex-start" : "center" }}>
-        {open ? (
-          <div style={{ background:"#fff", borderRadius:10, padding:"7px 14px" }}>
-            <Image src="/images/logo.png" alt="InklusiJobs" width={110} height={30} style={{ objectFit:"contain", display:"block" }} />
-          </div>
-        ) : (
-          <div style={{ width:36, height:36, borderRadius:10, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>♿</div>
-        )}
-      </div>
-
-      {/* Company mini card */}
-      {open && (
-        <div style={{ padding:"14px 16px", borderBottom:`1px solid rgba(255,255,255,0.07)` }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            {s1.logoPreview
-              ? <img src={s1.logoPreview} alt="" style={{ width:38, height:38, borderRadius:9, objectFit:"contain", background:"#fff", padding:4, flexShrink:0 }} />
-              : <div style={{ width:38, height:38, borderRadius:9, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>🏢</div>
-            }
-            <div style={{ overflow:"hidden" }}>
-              <div style={{ color:"#fff", fontWeight:800, fontSize:13, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{s1.company || "Your Company"}</div>
-              <div style={{ color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:1 }}>{s1.industry || "Company"}</div>
-            </div>
-          </div>
-          <div style={{ marginTop:10, display:"inline-flex", alignItems:"center", gap:5, background:"rgba(5,150,105,0.18)", padding:"3px 10px", borderRadius:99 }}>
-            <span style={{ width:6, height:6, borderRadius:"50%", background:"#34D399", display:"inline-block" }} />
-            <span style={{ color:"#6EE7B7", fontSize:11, fontWeight:700 }}>Active</span>
-          </div>
-        </div>
-      )}
-
-      {/* Nav */}
-      <nav style={{ flex:1, padding:"10px 0", overflowY:"auto" }}>
-        {TABS.map(tab => (
-          <button key={tab.id} onClick={() => onTab(tab.id)} title={!open ? tab.label : undefined}
-            style={{ display:"flex", alignItems:"center", gap:12, width:"100%", padding: open ? "12px 18px" : "12px", justifyContent: open ? "flex-start" : "center", background: active===tab.id ? "rgba(15,92,110,0.4)" : "transparent", border:"none", borderLeft:`3px solid ${active===tab.id ? T.tealMid : "transparent"}`, cursor:"pointer", color: active===tab.id ? "#fff" : "rgba(255,255,255,0.48)", fontSize:14, fontWeight: active===tab.id ? 700 : 500, fontFamily:"Arial, sans-serif", transition:"all 0.15s", whiteSpace:"nowrap" }}>
-            <span style={{ fontSize:18, flexShrink:0 }}>{tab.emoji}</span>
-            {open && tab.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* Collapse btn */}
-      <button onClick={onToggle}
-        style={{ background:"rgba(255,255,255,0.05)", border:"none", borderTop:`1px solid rgba(255,255,255,0.07)`, color:"rgba(255,255,255,0.38)", padding:"13px", cursor:"pointer", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent: open ? "flex-end" : "center", gap:6, fontFamily:"Arial, sans-serif" }}>
-        {open ? <>Collapse ◀</> : "▶"}
-      </button>
-    </aside>
-  );
-};
-
-/* ─── TOPBAR ─────────────────────────────────────────────────────────────── */
-const Topbar = ({ profile, activeTab, onReset }) => {
-  const s1 = profile?.s1 || {};
-  const tabInfo = TABS.find(t => t.id === activeTab);
-  const initials = (s1.company || "E")[0].toUpperCase();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <header style={{ background:T.white, borderBottom:`1px solid ${T.border}`, padding:"14px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, zIndex:10 }}>
-      <div>
-        <h1 style={{ margin:0, fontSize:21, fontWeight:900, color:T.navy, fontFamily:"Arial, sans-serif" }}>
-          {tabInfo?.emoji} {tabInfo?.label}
-        </h1>
-        <div style={{ fontSize:13, color:T.muted, marginTop:2 }}>{new Date().toLocaleDateString("en-PH",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
-      </div>
-      <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-        {/* Notifications bell */}
-        <button style={{ width:38, height:38, borderRadius:10, border:`1px solid ${T.border}`, background:T.white, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, position:"relative" }}>
-          🔔
-          <span style={{ position:"absolute", top:6, right:6, width:8, height:8, borderRadius:"50%", background:"#EF4444", border:"2px solid #fff" }} />
-        </button>
-        {/* Avatar menu */}
-        <div style={{ position:"relative" }} ref={menuRef}>
-          <button onClick={() => setMenuOpen(m => !m)}
-            style={{ display:"flex", alignItems:"center", gap:10, background:T.bg, border:`1px solid ${T.border}`, borderRadius:12, padding:"6px 12px 6px 6px", cursor:"pointer" }}>
-            {s1.logoPreview
-              ? <img src={s1.logoPreview} alt="" style={{ width:30, height:30, borderRadius:8, objectFit:"contain", background:T.white, padding:2 }} />
-              : <div style={{ width:30, height:30, borderRadius:8, background:T.teal, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:900 }}>{initials}</div>
-            }
-            <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{s1.company || "Employer"}</span>
-            <span style={{ fontSize:11, color:T.muted }}>▾</span>
-          </button>
-          {menuOpen && (
-            <div style={{ position:"absolute", right:0, top:"110%", background:T.white, border:`1px solid ${T.border}`, borderRadius:12, boxShadow:"0 8px 24px rgba(0,0,0,0.1)", zIndex:100, minWidth:180, overflow:"hidden" }}>
-              <div style={{ padding:"12px 16px", borderBottom:`1px solid ${T.border}` }}>
-                <div style={{ fontSize:13, fontWeight:700, color:T.navy }}>{s1.company || "Your Company"}</div>
-                <div style={{ fontSize:12, color:T.muted }}>{s1.industry || ""}</div>
-              </div>
-              <button onClick={onReset}
-                style={{ display:"block", width:"100%", textAlign:"left", padding:"11px 16px", border:"none", background:"none", fontSize:13, color:T.danger, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
-                🔄 Redo Onboarding
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-};
-
-/* ─── OVERVIEW TAB ───────────────────────────────────────────────────────── */
-const OverviewTab = ({ profile, onTab }) => {
-  const s1 = profile?.s1 || {};
-  const s2 = profile?.s2 || {};
-  const s3 = profile?.s3 || {};
-  const s4 = profile?.s4 || {};
-
-  const topCandidates = ALL_CANDIDATES.slice(0, 4);
-  const activeJobs    = MOCK_JOBS.filter(j => j.status === "Active");
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
-
-      {/* Welcome hero */}
-      <div style={{ background:`linear-gradient(130deg, ${T.navy} 0%, ${T.teal} 100%)`, borderRadius:20, padding:"32px 36px", color:"#fff", display:"flex", alignItems:"center", justifyContent:"space-between", gap:20, overflow:"hidden", position:"relative" }}>
-        <div style={{ position:"absolute", right:-40, top:-40, width:220, height:220, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }} />
-        <div style={{ position:"absolute", right:60, bottom:-60, width:160, height:160, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }} />
-        <div style={{ position:"relative" }}>
-          <div style={{ fontSize:13, fontWeight:600, color:"rgba(255,255,255,0.55)", marginBottom:8, letterSpacing:"0.06em", textTransform:"uppercase" }}>Welcome back</div>
-          <h2 style={{ fontSize:30, fontWeight:900, margin:"0 0 8px", fontFamily:"Arial, sans-serif", letterSpacing:"-0.5px" }}>
-            {s1.company || "Your Company"}
-          </h2>
-          <div style={{ fontSize:14, color:"rgba(255,255,255,0.65)", marginBottom:16 }}>
-            {[s1.industry, s1.size && `${s1.size} employees`, s2.workSetup].filter(Boolean).join("  ·  ")}
-          </div>
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-            <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>♿ Inclusive Employer</span>
-            {s3.aiSuggest !== false && <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>✨ AI Matching Active</span>}
-            {s3.inclusiveGuidance !== false && <span style={{ background:"rgba(255,255,255,0.14)", backdropFilter:"blur(4px)", padding:"6px 14px", borderRadius:99, fontSize:12, fontWeight:700, border:"1px solid rgba(255,255,255,0.2)" }}>🎯 Inclusive Guidance On</span>}
-          </div>
-        </div>
-        <div style={{ position:"relative", flexShrink:0 }}>
-          {s1.logoPreview
-            ? <img src={s1.logoPreview} alt="" style={{ width:90, height:90, objectFit:"contain", borderRadius:16, background:"rgba(255,255,255,0.9)", padding:10 }} />
-            : <div style={{ width:90, height:90, borderRadius:16, background:"rgba(255,255,255,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:44, border:"1px solid rgba(255,255,255,0.2)" }}>🏢</div>
-          }
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 }}>
-        {[
-          { icon:"👥", label:"Candidate Matches", value:ALL_CANDIDATES.length, sub:`${ALL_CANDIDATES.filter(c=>c.status==="New").length} new this week`, color:T.teal },
-          { icon:"💼", label:"Active Job Posts",  value:activeJobs.length, sub:"2 expiring soon", color:T.accent },
-          { icon:"📨", label:"Total Applications",value:40, sub:"12 unreviewed", color:T.warning },
-          { icon:"✅", label:"Hires This Month",  value:3,  sub:"↑ 1 from last month", color:T.success },
-        ].map(stat => (
-          <Card key={stat.label} style={{ display:"flex", alignItems:"flex-start", gap:14, padding:"20px" }}>
-            <div style={{ width:46, height:46, borderRadius:12, background:`${stat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{stat.icon}</div>
-            <div>
-              <div style={{ fontSize:28, fontWeight:900, color:T.navy, lineHeight:1 }}>{stat.value}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginTop:4 }}>{stat.label}</div>
-              <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{stat.sub}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Two column */}
-      <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:20 }}>
-
-        {/* Top matches */}
-        <Card>
-          <SectionHead action={{ label:"View all →", fn:() => onTab("candidates") }}>🌟 Top Candidate Matches</SectionHead>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {topCandidates.map(c => (
-              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:12, background:T.bg, border:`1px solid ${T.border}` }}>
-                <Avatar initials={c.initials} size={40} />
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:700, color:T.navy }}>{c.name}</div>
-                  <div style={{ fontSize:12, color:T.muted }}>{c.role} · {c.exp}</div>
-                </div>
-                <div style={{ textAlign:"right", flexShrink:0 }}>
-                  <div style={{ fontSize:18, fontWeight:900, color:T.teal }}>{c.match}%</div>
-                  <div style={{ fontSize:10, color:T.muted }}>match</div>
-                </div>
-                <Badge color={c.status==="New" ? T.teal : c.status==="Shortlisted" ? T.success : T.muted}>{c.status}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Right column */}
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          {/* Job posts */}
-          <Card>
-            <SectionHead action={{ label:"View all →", fn:() => onTab("jobs") }}>💼 Active Jobs</SectionHead>
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              {activeJobs.slice(0,3).map(j => (
-                <div key={j.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", borderRadius:10, background:T.bg, border:`1px solid ${T.border}` }}>
-                  <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:T.navy }}>{j.title}</div>
-                    <div style={{ fontSize:11, color:T.muted }}>{j.type}</div>
-                  </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:16, fontWeight:800, color:T.navy }}>{j.applicants}</div>
-                    <div style={{ fontSize:10, color:T.muted }}>applicants</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Preferences quick glance */}
-          <Card>
-            <SectionHead>📋 Preferences</SectionHead>
-            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {[
-                { label:"Work Setup",  value: s2.workSetup || "Not set"  },
-                { label:"Budget",      value: s2.budget    || "Not set"  },
-                { label:"Experience",  value: s2.expLevel  || "Not set"  },
-                { label:"Urgency",     value: s2.urgency   || "Not set"  },
-                { label:"Frequency",   value: s2.frequency || "Not set"  },
-              ].map(row => (
-                <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>{row.label}</span>
-                  <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{row.value}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Accommodations & skills */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
-        <Card>
-          <SectionHead>♿ Workplace Accommodations</SectionHead>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-            {(s3.accommodations||[]).length > 0
-              ? (s3.accommodations).map(a => <Badge key={a} color={T.success}>{a}</Badge>)
-              : <span style={{ fontSize:13, color:T.muted }}>No accommodations listed yet</span>}
-          </div>
-        </Card>
-        <Card>
-          <SectionHead>🛠 Required Skills</SectionHead>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-            {(s2.skills||[]).length > 0
-              ? (s2.skills).map(s => <Badge key={s} color={T.accent}>{s}</Badge>)
-              : <span style={{ fontSize:13, color:T.muted }}>No skills specified yet</span>}
-          </div>
-        </Card>
-      </div>
-
-      {/* Mission statement */}
-      {s4.mission && (
-        <Card style={{ borderLeft:`4px solid ${T.teal}` }}>
-          <div style={{ fontSize:12, fontWeight:700, color:T.teal, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Company Mission</div>
-          <p style={{ fontSize:15, color:T.bodyText, lineHeight:1.75, margin:0, fontStyle:"italic" }}>"{s4.mission}"</p>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-/* ─── CANDIDATES TAB ─────────────────────────────────────────────────────── */
-const CandidatesTab = ({ profile }) => {
-  const s2 = profile?.s2 || {};
-  const s3 = profile?.s3 || {};
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
-
-  const statuses = ["All","New","Reviewed","Shortlisted"];
-
-  const filtered = ALL_CANDIDATES.filter(c => {
-    if (statusFilter !== "All" && c.status !== statusFilter) return false;
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.role.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
-  return (
-    <div style={{ display:"flex", gap:20, height:"100%" }}>
-      {/* List */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", gap:16 }}>
-        {/* Filters */}
-        <Card style={{ padding:"14px 18px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-            <div style={{ position:"relative", flex:1, minWidth:200 }}>
-              <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", fontSize:14 }}>🔍</span>
-              <input placeholder="Search by name or role..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ width:"100%", boxSizing:"border-box", padding:"9px 14px 9px 34px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", background:T.bg }}
-                onFocus={e => e.target.style.borderColor=T.teal}
-                onBlur={e => e.target.style.borderColor=T.border} />
-            </div>
-            <div style={{ display:"flex", gap:6 }}>
-              {statuses.map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)}
-                  style={{ padding:"8px 16px", borderRadius:99, border:`2px solid ${statusFilter===s ? T.teal : T.border}`, background:statusFilter===s ? T.tealLight : T.white, color:statusFilter===s ? T.teal : T.bodyText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <span style={{ fontSize:13, color:T.muted, fontWeight:600 }}>{filtered.length} results</span>
-          </div>
-        </Card>
-
-        {/* Candidate cards */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          {filtered.map(c => (
-            <Card key={c.id} onClick={() => setSelected(c.id === selected ? null : c.id)}
-              style={{ cursor:"pointer", border:`1.5px solid ${selected===c.id ? T.teal : T.border}`, background: selected===c.id ? T.tealLight : T.white, transition:"all 0.15s" }}>
-              <div style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
-                <Avatar initials={c.initials} size={50} />
-                <div style={{ flex:1 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div>
-                      <div style={{ fontSize:16, fontWeight:800, color:T.navy }}>{c.name}</div>
-                      <div style={{ fontSize:12, color:T.muted, marginTop:2 }}>{c.role} · {c.exp}</div>
-                    </div>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:22, fontWeight:900, color:T.teal, lineHeight:1 }}>{c.match}%</div>
-                      <div style={{ fontSize:10, color:T.muted }}>match</div>
-                    </div>
-                  </div>
-                  <div style={{ marginTop:10 }}>
-                    <ProgressBar value={c.match} color={c.match>=90 ? T.success : c.match>=80 ? T.teal : T.warning} />
-                  </div>
-                  <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
-                    {c.skills.map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
-                  </div>
-                  <div style={{ marginTop:10, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                    <Badge color={T.success}>♿ {c.disability}</Badge>
-                    <Badge color={c.status==="New" ? T.teal : c.status==="Shortlisted" ? T.success : T.muted}>{c.status}</Badge>
-                  </div>
-                  {selected === c.id && (
-                    <div style={{ marginTop:12, display:"flex", gap:8 }}>
-                      <button style={{ flex:1, padding:"9px", borderRadius:9, border:"none", background:T.teal, color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>View Profile</button>
-                      <button style={{ flex:1, padding:"9px", borderRadius:9, border:`1.5px solid ${T.border}`, background:T.white, color:T.bodyText, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Message</button>
-                      <button style={{ padding:"9px 12px", borderRadius:9, border:`1.5px solid ${T.success}`, background:T.successBg, color:T.success, fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>⭐ Shortlist</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* AI insight sidebar */}
-      {profile?.s3?.aiSuggest !== false && (
-        <div style={{ width:260, flexShrink:0, display:"flex", flexDirection:"column", gap:14 }}>
-          <Card style={{ background:`linear-gradient(135deg,${T.navy},${T.teal})`, color:"#fff", border:"none" }}>
-            <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", color:"rgba(255,255,255,0.55)", marginBottom:8 }}>✨ AI Insight</div>
-            <div style={{ fontSize:14, lineHeight:1.6, color:"rgba(255,255,255,0.85)" }}>
-              Based on your preference for <strong style={{ color:"#fff" }}>{profile?.s2?.expLevel || "Mid-Level"}</strong> candidates with <strong style={{ color:"#fff" }}>{profile?.s2?.workSetup || "Remote"}</strong> work, top matches are in the <strong style={{ color:"#fff" }}>{profile?.s1?.industry || "tech"}</strong> sector.
-            </div>
-          </Card>
-          <Card>
-            <SectionHead>📊 Match Breakdown</SectionHead>
-            {[
-              { label:"95–100% match", count:1,  color:T.success },
-              { label:"85–94% match",  count:3,  color:T.teal   },
-              { label:"75–84% match",  count:3,  color:T.warning },
-              { label:"Below 75%",     count:1,  color:T.muted  },
-            ].map(row => (
-              <div key={row.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{ width:10, height:10, borderRadius:"50%", background:row.color, display:"inline-block" }} />
-                  <span style={{ fontSize:12, color:T.bodyText }}>{row.label}</span>
-                </div>
-                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.count}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ─── JOBS TAB ───────────────────────────────────────────────────────────── */
-const JobsTab = ({ profile }) => {
-  const s1 = profile?.s1 || {};
-  const s2 = profile?.s2 || {};
-  const [showForm, setShowForm] = useState(false);
-  const [newJob, setNewJob] = useState({ title:"", type:"Full-time", salary:"", desc:"" });
-
-  const types = (s1.posTypes||[]).length > 0 ? s1.posTypes : ["Full-time","Part-time","Contract","Freelance"];
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div style={{ fontSize:14, color:T.muted }}>
-          Managing <strong style={{ color:T.navy }}>{MOCK_JOBS.length} job posts</strong> · {MOCK_JOBS.filter(j=>j.status==="Active").length} active
-        </div>
-        <button onClick={() => setShowForm(s => !s)}
-          style={{ padding:"11px 22px", borderRadius:11, border:"none", background:`linear-gradient(135deg,${T.teal},${T.tealMid})`, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif", boxShadow:`0 4px 14px ${T.teal}44` }}>
-          {showForm ? "✕ Cancel" : "+ Post New Job"}
-        </button>
-      </div>
-
-      {/* New job form */}
-      {showForm && (
-        <Card style={{ border:`2px solid ${T.teal}` }}>
-          <SectionHead>📝 New Job Post</SectionHead>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-            <div>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Job Title *</label>
-              <input value={newJob.title} onChange={e=>setNewJob({...newJob,title:e.target.value})} placeholder="e.g. Senior React Developer"
-                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
-                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
-            </div>
-            <div>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Position Type</label>
-              <select value={newJob.type} onChange={e=>setNewJob({...newJob,type:e.target.value})}
-                style={{ width:"100%", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", background:T.white }}>
-                {types.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Salary Range</label>
-              <input value={newJob.salary} onChange={e=>setNewJob({...newJob,salary:e.target.value})} placeholder={s2.budget || "e.g. ₱40k–₱80k"}
-                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
-                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
-            </div>
-            <div>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Work Setup</label>
-              <input value={s2.workSetup || ""} readOnly placeholder="From your preferences"
-                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", background:T.bg, color:T.muted }} />
-            </div>
-            <div style={{ gridColumn:"1/-1" }}>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>Job Description</label>
-              <textarea rows={4} value={newJob.desc} onChange={e=>setNewJob({...newJob,desc:e.target.value})} placeholder="Describe responsibilities, requirements, and accommodations offered..."
-                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none", resize:"vertical" }}
-                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
-            </div>
-          </div>
-          {/* Auto-populated skills from onboarding */}
-          {(s2.skills||[]).length > 0 && (
-            <div style={{ marginTop:14 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginBottom:8 }}>Required skills (from your preferences):</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {(s2.skills).map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
-              </div>
-            </div>
-          )}
-          {(profile?.s3?.accommodations||[]).length > 0 && (
-            <div style={{ marginTop:14 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginBottom:8 }}>Accommodations offered:</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {(profile?.s3?.accommodations||[]).map(a => <Badge key={a} color={T.success}>{a}</Badge>)}
-              </div>
-            </div>
-          )}
-          <div style={{ marginTop:16, display:"flex", gap:10 }}>
-            <button style={{ padding:"11px 24px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Publish Job</button>
-            <button style={{ padding:"11px 24px", borderRadius:10, border:`1.5px solid ${T.border}`, background:T.white, color:T.muted, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Save as Draft</button>
-          </div>
-        </Card>
-      )}
-
-      {/* Existing jobs */}
-      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-        {MOCK_JOBS.map(j => (
-          <Card key={j.id} style={{ display:"flex", alignItems:"center", gap:20 }}>
-            <div style={{ width:50, height:50, borderRadius:12, background:j.status==="Active" ? T.tealLight : T.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>💼</div>
-            <div style={{ flex:1 }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                <span style={{ fontSize:16, fontWeight:800, color:T.navy }}>{j.title}</span>
-                {j.urgent && <Badge color={T.danger}>🔥 Urgent</Badge>}
-              </div>
-              <div style={{ fontSize:13, color:T.muted }}>{j.type} · Posted {j.posted} · {s1.company || "Your Company"} · {s2.workSetup || "Remote"}</div>
-              {(s2.skills||[]).length > 0 && (
-                <div style={{ marginTop:6, display:"flex", gap:6, flexWrap:"wrap" }}>
-                  {(s2.skills).slice(0,3).map(sk => <Badge key={sk} color={T.accent}>{sk}</Badge>)}
-                </div>
-              )}
-            </div>
-            <div style={{ textAlign:"right", flexShrink:0 }}>
-              <Badge color={j.status==="Active" ? T.success : T.muted}>{j.status}</Badge>
-              <div style={{ fontSize:22, fontWeight:900, color:T.navy, marginTop:8 }}>{j.applicants}</div>
-              <div style={{ fontSize:11, color:T.muted }}>applicants</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-/* ─── PROFILE TAB ────────────────────────────────────────────────────────── */
-const ProfileTab = ({ profile }) => {
-  const s1 = profile?.s1 || {};
-  const s2 = profile?.s2 || {};
-  const s3 = profile?.s3 || {};
-  const s4 = profile?.s4 || {};
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
-      {/* Header card */}
-      <Card style={{ display:"flex", alignItems:"center", gap:24 }}>
-        {s1.logoPreview
-          ? <img src={s1.logoPreview} alt="" style={{ width:88, height:88, objectFit:"contain", borderRadius:16, border:`1px solid ${T.border}`, padding:8 }} />
-          : <div style={{ width:88, height:88, borderRadius:16, background:T.tealLight, display:"flex", alignItems:"center", justifyContent:"center", fontSize:44 }}>🏢</div>
-        }
-        <div style={{ flex:1 }}>
-          <h2 style={{ fontSize:26, fontWeight:900, color:T.navy, margin:"0 0 8px", fontFamily:"Arial, sans-serif" }}>{s1.company || "Your Company"}</h2>
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-            {s1.industry    && <Badge color={T.teal}>{s1.industry}</Badge>}
-            {(s1.sizeCustom||s1.size) && <Badge color={T.muted}>{s1.sizeCustom||s1.size} employees</Badge>}
-            <Badge color={T.success}>♿ Inclusive Employer</Badge>
-            {s4.visible !== false && <Badge color={T.accent}>👁 Profile Visible</Badge>}
-          </div>
-        </div>
-        <div style={{ textAlign:"center", padding:"16px 24px", background:T.tealLight, borderRadius:14, border:`1px solid ${T.teal}33` }}>
-          <div style={{ fontSize:32, fontWeight:900, color:T.teal }}>96%</div>
-          <div style={{ fontSize:12, fontWeight:700, color:T.teal }}>Profile Complete</div>
-        </div>
-      </Card>
-
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
-        {/* Company details */}
-        <Card>
-          <SectionHead>🏢 Company Details</SectionHead>
-          {[
-            ["Company Name",     s1.company],
-            ["Industry",         s1.industry],
-            ["Company Size",     s1.sizeCustom || s1.size],
-            ["Position Types",   (s1.posTypes||[]).join(", ")],
-            ["Work Setup",       s2.workSetup],
-            ["Budget Range",     s2.budget],
-            ["Hiring Frequency", s2.frequency],
-            ["Urgency Level",    s2.urgency],
-            ["Experience Level", s2.expLevel],
-          ].filter((row) => row[1]).map(([label, value], i, arr) => (
-            <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"11px 0", borderBottom: i<arr.length-1 ? `1px solid ${T.border}` : "none" }}>
-              <span style={{ fontSize:13, color:T.muted, fontWeight:600, flexShrink:0 }}>{label}</span>
-              <span style={{ fontSize:13, color:T.navy, fontWeight:700, textAlign:"right", maxWidth:"58%" }}>{value}</span>
-            </div>
-          ))}
-        </Card>
-
-        {/* Roles, skills, accommodations */}
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          <Card>
-            <SectionHead>🎯 Roles Hiring For</SectionHead>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-              {(s2.roles||[]).length > 0 ? (s2.roles).map(r => <Badge key={r} color={T.teal}>{r}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>Not specified</span>}
-            </div>
-          </Card>
-          <Card>
-            <SectionHead>🛠 Required Skills</SectionHead>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-              {(s2.skills||[]).length > 0 ? (s2.skills).map(s => <Badge key={s} color={T.accent}>{s}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>Not specified</span>}
-            </div>
-          </Card>
-          <Card>
-            <SectionHead>♿ Accommodations Provided</SectionHead>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
-              {(s3.accommodations||[]).length > 0 ? (s3.accommodations).map(a => <Badge key={a} color={T.success}>{a}</Badge>) : <span style={{ fontSize:13, color:T.muted }}>None listed</span>}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Mission */}
-      {s4.mission && (
-        <Card style={{ borderLeft:`4px solid ${T.teal}` }}>
-          <div style={{ fontSize:12, fontWeight:700, color:T.teal, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Company Mission Statement</div>
-          <p style={{ fontSize:15, color:T.bodyText, lineHeight:1.8, margin:0, fontStyle:"italic" }}>"{s4.mission}"</p>
-        </Card>
-      )}
-
-      {/* Hiring priority ranking */}
-      {(s3.rankItems||[]).length > 0 && (
-        <Card>
-          <SectionHead>📊 Hiring Priority Ranking</SectionHead>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
-            {(s3.rankItems).map((item, i) => (
-              <div key={item} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", borderRadius:11, border:`1.5px solid ${T.border}`, background:T.bg }}>
-                <div style={{ width:28, height:28, borderRadius:"50%", background: i===0 ? "#F59E0B" : i===1 ? T.muted : T.border, color: i<2 ? "#fff" : T.bodyText, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, flexShrink:0 }}>{i+1}</div>
-                <span style={{ fontSize:13, fontWeight:700, color:T.bodyText }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-/* ─── ANALYTICS TAB ──────────────────────────────────────────────────────── */
-const AnalyticsTab = ({ profile }) => {
-  const s1 = profile?.s1 || {};
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
-        {[
-          { icon:"👁️", label:"Profile Views",       value:"128", sub:"↑ 23% this week",   color:T.teal   },
-          { icon:"📨", label:"Total Applications",  value:"40",  sub:"↑ 8 this week",     color:T.accent },
-          { icon:"✅", label:"Acceptance Rate",     value:"42%", sub:"Industry avg: 35%", color:T.success},
-        ].map(stat => (
-          <Card key={stat.label} style={{ display:"flex", alignItems:"flex-start", gap:14 }}>
-            <div style={{ width:46, height:46, borderRadius:12, background:`${stat.color}15`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, flexShrink:0 }}>{stat.icon}</div>
-            <div>
-              <div style={{ fontSize:28, fontWeight:900, color:T.navy, lineHeight:1 }}>{stat.value}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:T.bodyText, marginTop:4 }}>{stat.label}</div>
-              <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>{stat.sub}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
-        <Card>
-          <SectionHead>📊 Application Funnel</SectionHead>
-          {[
-            { label:"Profile Views",    value:128, pct:100 },
-            { label:"Applications",     value:40,  pct:31  },
-            { label:"Reviewed",         value:22,  pct:17  },
-            { label:"Shortlisted",      value:10,  pct:8   },
-            { label:"Hired",            value:3,   pct:2   },
-          ].map(row => (
-            <div key={row.label} style={{ marginBottom:14 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-                <span style={{ fontSize:13, color:T.bodyText, fontWeight:600 }}>{row.label}</span>
-                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.value}</span>
-              </div>
-              <ProgressBar value={row.pct} />
-            </div>
-          ))}
-        </Card>
-
-        <Card>
-          <SectionHead>♿ Diversity Metrics</SectionHead>
-          {[
-            { label:"Visual Impairment",    pct:33, color:T.teal    },
-            { label:"Hearing Impairment",   pct:25, color:T.tealMid },
-            { label:"Mobility Disability",  pct:22, color:T.accent  },
-            { label:"Other Disabilities",   pct:20, color:T.muted   },
-          ].map(row => (
-            <div key={row.label} style={{ marginBottom:14 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-                <span style={{ fontSize:13, color:T.bodyText, fontWeight:600 }}>{row.label}</span>
-                <span style={{ fontSize:13, fontWeight:800, color:T.navy }}>{row.pct}%</span>
-              </div>
-              <ProgressBar value={row.pct} color={row.color} />
-            </div>
-          ))}
-        </Card>
-      </div>
-
-      {/* Industry-specific insight */}
-      {s1.industry && (
-        <Card style={{ background:`linear-gradient(130deg,${T.navy},${T.teal})`, border:"none" }}>
-          <div style={{ fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.5)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>✨ AI Industry Insight — {s1.industry}</div>
-          <p style={{ fontSize:14, color:"rgba(255,255,255,0.85)", lineHeight:1.7, margin:0 }}>
-            In the <strong style={{ color:"#fff" }}>{s1.industry}</strong> sector, inclusive employers report <strong style={{ color:"#fff" }}>34% higher retention rates</strong> among PWD hires compared to the industry average. Your current accommodation offering is above average — consider adding <strong style={{ color:"#fff" }}>Assistive Technology</strong> support to increase match quality by an estimated 18%.
-          </p>
-        </Card>
-      )}
-    </div>
-  );
-};
-
-/* ─── MESSAGES TAB ───────────────────────────────────────────────────────── */
-const MessagesTab = () => {
-  const [selected, setSelected] = useState(0);
-  const [msg, setMsg] = useState("");
-  const convos = ALL_CANDIDATES.map((c, i) => ({
-    ...c,
-    lastMsg: ["Hi! I'm very interested in the role.", "Thank you for reviewing my application.", "Looking forward to hearing from you.", "I have relevant experience in accessibility tools.", "When can we schedule an interview?", "I attached my portfolio for your review.", "Happy to provide more references.","Available for a call anytime this week."][i] || "Hello!",
-    time: `${i+1}h ago`,
-    unread: i < 3,
-  }));
-
-  return (
-    <div style={{ display:"flex", gap:0, background:T.white, borderRadius:16, border:`1px solid ${T.border}`, overflow:"hidden", height:620 }}>
-      {/* Convo list */}
-      <div style={{ width:290, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
-        <div style={{ padding:"16px 18px", borderBottom:`1px solid ${T.border}`, fontSize:15, fontWeight:800, color:T.navy }}>Messages</div>
-        <div style={{ flex:1, overflowY:"auto" }}>
-          {convos.map((c, i) => (
-            <div key={c.id} onClick={() => setSelected(i)}
-              style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 16px", cursor:"pointer", background:selected===i ? T.tealLight : "transparent", borderBottom:`1px solid ${T.border}`, transition:"background 0.12s" }}>
-              <Avatar initials={c.initials} size={40} />
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:T.navy }}>{c.name}</span>
-                  <span style={{ fontSize:11, color:T.muted }}>{c.time}</span>
-                </div>
-                <div style={{ fontSize:12, color:T.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>{c.lastMsg}</div>
-              </div>
-              {c.unread && <div style={{ width:9, height:9, borderRadius:"50%", background:T.teal, flexShrink:0 }} />}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Chat pane */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
-        <div style={{ padding:"14px 20px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:12 }}>
-          <Avatar initials={convos[selected]?.initials} size={36} />
-          <div>
-            <div style={{ fontSize:15, fontWeight:800, color:T.navy }}>{convos[selected]?.name}</div>
-            <div style={{ fontSize:12, color:T.success }}>● Online now</div>
-          </div>
-          <Badge color={T.success} style={{ marginLeft:"auto" }}>♿ {convos[selected]?.disability}</Badge>
-        </div>
-        <div style={{ flex:1, padding:"20px", display:"flex", flexDirection:"column", justifyContent:"flex-end", gap:12, overflowY:"auto" }}>
-          <div style={{ alignSelf:"flex-start", maxWidth:"68%", padding:"12px 16px", borderRadius:"14px 14px 14px 4px", background:T.bg, border:`1px solid ${T.border}`, fontSize:14, color:T.bodyText, lineHeight:1.6 }}>{convos[selected]?.lastMsg}</div>
-          <div style={{ alignSelf:"flex-end", maxWidth:"68%", padding:"12px 16px", borderRadius:"14px 14px 4px 14px", background:T.teal, fontSize:14, color:"#fff", lineHeight:1.6 }}>Thanks for reaching out! We'll review your application and get back to you shortly.</div>
-        </div>
-        <div style={{ padding:"12px 16px", borderTop:`1px solid ${T.border}`, display:"flex", gap:8 }}>
-          <input placeholder="Type a message..." value={msg} onChange={e=>setMsg(e.target.value)}
-            onKeyDown={e => { if(e.key==="Enter" && msg.trim()) setMsg(""); }}
-            style={{ flex:1, padding:"10px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
-            onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
-          <button onClick={() => setMsg("")}
-            style={{ padding:"10px 18px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Send</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ─── SETTINGS TAB ───────────────────────────────────────────────────────── */
-const SettingsTab = ({ profile, onReset }) => {
-  const s3 = profile?.s3 || {};
-  const s4 = profile?.s4 || {};
-  const [notifs, setNotifs] = useState({
-    matches: s3.notifications !== false,
-    ai: s3.aiSuggest !== false,
-    apps: true,
-  });
-
-  const Toggle = ({ checked, onChange }) => (
-    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      style={{ width:62, height:34, borderRadius:999, border:"none", cursor:"pointer", background:checked ? T.teal : "#C4CDD6", position:"relative", transition:"background 0.25s ease", flexShrink:0, padding:0, outline:"none" }}>
-      <span style={{ position:"absolute", top:3, left:checked ? 31 : 3, width:28, height:28, borderRadius:"50%", background:"#fff", boxShadow:"0 2px 6px rgba(0,0,0,0.22)", transition:"left 0.22s cubic-bezier(0.4,0,0.2,1)", display:"block" }} />
+    <button onClick={onSelect} aria-pressed={selected}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: 12, padding: pad, borderRadius: 16,
+        border: `2px solid ${selected ? ET.teal : ET.border}`,
+        background: selected ? ET.tealLight : ET.white,
+        cursor: "pointer", transition: "all 0.18s",
+        boxShadow: selected ? `0 0 0 4px ${ET.tealLight}` : "none" }}>
+      <EIcon d={EICONS[icon]} color={selected ? ET.teal : ET.muted} size={24} />
+      <span style={{ fontSize: 14, fontWeight: selected ? 700 : 600, color: selected ? ET.teal : ET.bodyText }}>{label}</span>
     </button>
   );
+};
+
+// ── FIX 2: Renamed EmpInput (was `Input`) to avoid clash with worker's TextInput ─
+const EmpInput = ({ placeholder, value, onChange, multiline, rows = 4 }) => {
+  const base = { width: "100%", boxSizing: "border-box", padding: "14px 18px", borderRadius: 12,
+    border: `2px solid ${ET.border}`, fontSize: 15, fontFamily: "Arial, sans-serif",
+    background: ET.white, color: ET.navy, outline: "none",
+    transition: "border-color 0.2s, box-shadow 0.2s", resize: "none" };
+  const handlers = {
+    onFocus: e => { e.target.style.borderColor = ET.teal; e.target.style.boxShadow = `0 0 0 4px ${ET.tealLight}`; },
+    onBlur:  e => { e.target.style.borderColor = ET.border; e.target.style.boxShadow = "none"; },
+  };
+  return multiline
+    ? <textarea rows={rows} placeholder={placeholder} value={value} onChange={onChange} style={base} {...handlers} />
+    : <input type="text" placeholder={placeholder} value={value} onChange={onChange} style={base} {...handlers} />;
+};
+
+const EmpSectionLabel = ({ children }) => (
+  <div style={{ fontSize: 15, fontWeight: 800, color: ET.navy, marginBottom: 14, letterSpacing: "-0.1px" }}>{children}</div>
+);
+
+const EmpDivider = () => <div style={{ height: 1, background: ET.border, margin: "32px 0" }} />;
+
+/* ─── LEFT SIDEBAR ───────────────────────────────────────────────────────── */
+const EMP_STEPS = [
+  { id: 1, label: "Company Basics",   desc: "Tell us about your company"     },
+  { id: 2, label: "Hiring Needs",     desc: "What talent you're seeking"     },
+  { id: 3, label: "Inclusive Hiring", desc: "Build your inclusive workplace"  },
+  { id: 4, label: "Dashboard Setup",  desc: "Customize your experience"      },
+];
+
+const EmpSidebar = ({ step }) => (
+  <div style={{ width: 280, flexShrink: 0, background: ET.navy, minHeight: "100vh",
+    padding: "40px 28px", display: "flex", flexDirection: "column",
+    position: "sticky", top: 0, height: "100vh" }}>
+    <div style={{ marginBottom: 48, display: "flex", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 12, padding: "10px 18px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Image src="/images/logo.png" alt="InklusiJobs" width={140} height={40}
+          style={{ objectFit: "contain" }} priority />
+      </div>
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {EMP_STEPS.map((s) => {
+        const done = step > s.id;
+        const active = step === s.id;
+        return (
+          <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 14,
+            padding: "14px 16px", borderRadius: 12,
+            background: active ? "rgba(15,92,110,0.5)" : done ? "rgba(255,255,255,0.05)" : "transparent",
+            border: `1px solid ${active ? ET.tealMid : "transparent"}`, transition: "all 0.2s" }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 12, fontWeight: 800,
+              background: done ? ET.tealMid : active ? ET.teal : "rgba(255,255,255,0.1)",
+              color: "#fff", border: `2px solid ${done || active ? ET.tealMid : "rgba(255,255,255,0.2)"}` }}>
+              {done ? "✓" : s.id}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700,
+                color: active ? "#fff" : done ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)" }}>
+                {s.label}
+              </div>
+              <div style={{ fontSize: 12, marginTop: 2,
+                color: active ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}>
+                {s.desc}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+    <div style={{ marginTop: "auto", padding: "16px", background: "rgba(15,92,110,0.3)",
+      borderRadius: 12, border: "1px solid rgba(15,92,110,0.5)" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: ET.tealMid, marginBottom: 4 }}>♿ WCAG 2.1 AA Compliant</div>
+      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>Built for accessibility. Inclusive by design.</div>
+    </div>
+  </div>
+);
+
+/* ─── STEP 1 ─────────────────────────────────────────────────────────────── */
+const EmpStep1 = ({ data, set }) => {
+  const [showOtherIndustry, setShowOtherIndustry] = useState(false);
+  const [showCustomSize, setShowCustomSize] = useState(false);
+  const [showPosSpec, setShowPosSpec] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(data.logoPreview || null);
+  const logoInputRef = useRef(null);
+
+  const industries = [
+    { icon: "monitor",       label: "Technology"        },
+    { icon: "heart",         label: "Healthcare"        },
+    { icon: "barChart",      label: "Finance"           },
+    { icon: "retail",        label: "Retail"            },
+    { icon: "factory",       label: "Manufacturing"     },
+    { icon: "graduationCap", label: "Education"         },
+    { icon: "media",         label: "Media & Creative"  },
+    { icon: "landmark",      label: "Government"        },
+    { icon: "nonprofit",     label: "Non-profit"        },
+    { icon: "tool",          label: "Construction"      },
+    { icon: "zap",           label: "Energy & Utilities"},
+    { icon: "trending",      label: "Logistics"         },
+    { icon: "users",         label: "Human Resources"   },
+    { icon: "briefcase",     label: "Legal"             },
+    { icon: "home",          label: "Real Estate"       },
+    { icon: "sparkles",      label: "Tourism & Hotels"  },
+    { icon: "star",          label: "Food & Beverage"   },
+    { icon: "grid",          label: "Other"             },
+  ];
+
+  const sizes = ["1–10","11–50","51–200","201–500","501–1000","1001–5000","5000+"];
+  const posTypes = ["Full-time","Part-time","Contract","Freelance","Internship","Apprenticeship","Seasonal","Project-based","Volunteer","Commission-based","Remote-only","Hybrid","On-call","Job Share","Temporary"];
+
+  const togglePos = (t) => {
+    const c = data.posTypes || [];
+    set({ ...data, posTypes: c.includes(t) ? c.filter(x => x !== t) : [...c, t] });
+  };
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert("File too large. Please upload an image under 2MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const preview = ev.target.result;
+      setLogoPreview(preview);
+      set({ ...data, logoPreview: preview, logoFile: file.name });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleLogoUpload({ target: { files: [file] } });
+  };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:20, maxWidth:680 }}>
-      <Card>
-        <SectionHead>⚙️ Account Settings</SectionHead>
-        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {["Email Address","Phone Number","New Password"].map(f => (
-            <div key={f}>
-              <label style={{ fontSize:13, fontWeight:700, color:T.bodyText, display:"block", marginBottom:6 }}>{f}</label>
-              <input type={f.includes("Password") ? "password" : "text"} placeholder={f.includes("Password") ? "••••••••" : `Enter ${f.toLowerCase()}...`}
-                style={{ width:"100%", boxSizing:"border-box", padding:"11px 14px", borderRadius:10, border:`1.5px solid ${T.border}`, fontSize:14, fontFamily:"Arial, sans-serif", outline:"none" }}
-                onFocus={e=>e.target.style.borderColor=T.teal} onBlur={e=>e.target.style.borderColor=T.border} />
-            </div>
-          ))}
-          <button style={{ alignSelf:"flex-start", padding:"11px 24px", borderRadius:10, border:"none", background:T.teal, color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>Save Changes</button>
-        </div>
-      </Card>
+    <div>
+      <h2 style={{ fontSize: 42, fontWeight: 900, color: ET.navy, margin: "0 0 8px", letterSpacing: "-1px" }}>Build your <strong style={{ color: ET.teal }}>hiring profile</strong></h2>
+      <p style={{ fontSize: 15, color: ET.muted, margin: "0 0 32px" }}>Let's start with your <strong>company basics</strong></p>
 
-      <Card>
-        <SectionHead>🔔 Notification Preferences</SectionHead>
-        {[
-          { key:"matches", label:"New candidate matches",   sub:"Get notified when a new match is found" },
-          { key:"ai",      label:"AI recommendations",      sub:"Daily AI-powered candidate suggestions" },
-          { key:"apps",    label:"Application updates",     sub:"When candidates update their application status" },
-        ].map(item => (
-          <div key={item.key} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderBottom:`1px solid ${T.border}` }}>
-            <div>
-              <div style={{ fontSize:14, fontWeight:700, color:T.navy }}>{item.label}</div>
-              <div style={{ fontSize:12, color:T.muted, marginTop:3 }}>{item.sub}</div>
-            </div>
-            <Toggle checked={notifs[item.key]} onChange={v => setNotifs({...notifs, [item.key]: v})} />
-          </div>
+      <EmpSectionLabel>Company Name</EmpSectionLabel>
+      <EmpInput placeholder="e.g., InklusiJobs" value={data.company} onChange={e => set({ ...data, company: e.target.value })} />
+
+      <EmpDivider />
+
+      <EmpSectionLabel>What <strong style={{ color: ET.teal }}>industry</strong> are you in?</EmpSectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 8 }}>
+        {industries.map(ind => (
+          <EIconCard key={ind.label} icon={ind.icon} label={ind.label}
+            selected={data.industry === ind.label}
+            onSelect={() => {
+              if (ind.label === "Other") { setShowOtherIndustry(true); set({ ...data, industry: "Other" }); }
+              else { setShowOtherIndustry(false); set({ ...data, industry: ind.label, industryOther: "" }); }
+            }} />
         ))}
-      </Card>
+      </div>
+      {(showOtherIndustry || data.industry === "Other") && (
+        <input autoFocus placeholder="Please specify your industry..."
+          value={data.industryOther || ""}
+          onChange={e => set({ ...data, industry: "Other", industryOther: e.target.value })}
+          style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px", borderRadius: 12,
+            border: `2px solid ${ET.teal}`, fontSize: 15, fontFamily: "Arial, sans-serif",
+            background: ET.tealLight, color: ET.navy, outline: "none", marginTop: 8 }}
+        />
+      )}
 
-      <Card>
-        <SectionHead>📋 Onboarding Data</SectionHead>
-        <p style={{ fontSize:14, color:T.muted, margin:"0 0 16px", lineHeight:1.6 }}>
-          Your dashboard reflects your onboarding answers. Reset to update your company profile, industry, preferences, and accommodations.
-        </p>
-        <div style={{ padding:"14px 16px", background:T.warningBg, borderRadius:11, border:`1px solid ${T.warning}33`, marginBottom:16 }}>
-          <div style={{ fontSize:13, fontWeight:700, color:T.warning, marginBottom:4 }}>⚠️ Warning</div>
-          <div style={{ fontSize:13, color:T.bodyText }}>Resetting will clear all your onboarding data from local storage. Your dashboard will reload from scratch.</div>
+      <EmpDivider />
+
+      <EmpSectionLabel>Company <strong style={{ color: ET.teal }}>size</strong></EmpSectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+        {sizes.map(s => (
+          <button key={s} onClick={() => { setShowCustomSize(false); set({ ...data, size: s }); }}
+            style={{ padding: "14px 10px", borderRadius: 12,
+              border: `2px solid ${data.size === s ? ET.teal : ET.border}`,
+              background: data.size === s ? ET.tealLight : ET.white,
+              color: data.size === s ? ET.teal : ET.bodyText,
+              fontSize: 13, fontWeight: data.size === s ? 800 : 600, cursor: "pointer", transition: "all 0.15s" }}>
+            {s}
+          </button>
+        ))}
+      </div>
+      <button onClick={() => { setShowCustomSize(v => !v); if (!showCustomSize) set({ ...data, size: "Custom" }); }}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 18px", borderRadius: 10,
+          border: `2px solid ${showCustomSize ? ET.teal : ET.border}`,
+          background: showCustomSize ? ET.tealLight : ET.white,
+          color: showCustomSize ? ET.teal : ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        ✏️ Specify exact size
+      </button>
+      {showCustomSize && (
+        <input autoFocus
+          placeholder="e.g., Exactly 350 employees, or a specific department size..."
+          value={data.sizeCustom || ""}
+          onChange={e => set({ ...data, size: "Custom", sizeCustom: e.target.value })}
+          style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px", borderRadius: 12,
+            border: `2px solid ${ET.teal}`, fontSize: 15, fontFamily: "Arial, sans-serif",
+            background: ET.tealLight, color: ET.navy, outline: "none", marginTop: 10 }}
+        />
+      )}
+
+      <EmpDivider />
+
+      <EmpSectionLabel>What types of <strong style={{ color: ET.teal }}>positions</strong> do you hire for? <span style={{ fontWeight: 500, color: ET.muted, fontSize: 13 }}>(Select all that apply)</span></EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        {posTypes.map(t => <EChip key={t} label={t} selected={(data.posTypes || []).includes(t)} onToggle={() => togglePos(t)} />)}
+      </div>
+      <button onClick={() => setShowPosSpec(v => !v)}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 18px", borderRadius: 10,
+          border: `2px solid ${showPosSpec ? ET.teal : ET.border}`,
+          background: showPosSpec ? ET.tealLight : ET.white,
+          color: showPosSpec ? ET.teal : ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        📋 Add specific position details
+      </button>
+      {showPosSpec && (
+        <textarea autoFocus rows={4}
+          placeholder="Describe specific position requirements, e.g.: 'We need 3 senior React developers and 2 UX designers for a fintech project starting Q2...'"
+          value={data.posSpec || ""}
+          onChange={e => set({ ...data, posSpec: e.target.value })}
+          style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px", borderRadius: 12,
+            border: `2px solid ${ET.teal}`, fontSize: 15, fontFamily: "Arial, sans-serif",
+            background: ET.tealLight, color: ET.navy, outline: "none", resize: "vertical", marginTop: 10 }}
+        />
+      )}
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Company Logo <span style={{ fontWeight: 500, color: ET.muted, fontSize: 13 }}>(Optional)</span></EmpSectionLabel>
+      <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+        style={{ display: "none" }} onChange={handleLogoUpload} />
+      {logoPreview ? (
+        <div style={{ border: `2px solid ${ET.teal}`, borderRadius: 14, padding: "24px", textAlign: "center", background: ET.tealLight }}>
+          <img src={logoPreview} alt="Company logo preview"
+            style={{ maxHeight: 100, maxWidth: "100%", objectFit: "contain", borderRadius: 8 }} />
+          <div style={{ marginTop: 12, fontSize: 13, color: ET.teal, fontWeight: 700 }}>✓ Logo uploaded successfully</div>
+          <button onClick={() => { setLogoPreview(null); set({ ...data, logoPreview: null, logoFile: null }); }}
+            style={{ marginTop: 8, background: "none", border: `1.5px solid ${ET.teal}`, borderRadius: 8,
+              color: ET.teal, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "6px 14px" }}>
+            Remove &amp; re-upload
+          </button>
         </div>
-        <button onClick={onReset}
-          style={{ padding:"11px 22px", borderRadius:10, border:`1.5px solid ${T.danger}`, background:"#FEF2F2", color:T.danger, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"Arial, sans-serif" }}>
-          🔄 Reset & Redo Onboarding
-        </button>
-      </Card>
+      ) : (
+        <div onClick={() => logoInputRef.current?.click()} onDrop={handleLogoDrop}
+          onDragOver={e => e.preventDefault()}
+          style={{ border: `2px dashed ${ET.border}`, borderRadius: 14, padding: "36px 24px",
+            textAlign: "center", background: ET.bg, cursor: "pointer", transition: "all 0.2s" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = ET.teal; e.currentTarget.style.background = ET.tealLight; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = ET.border; e.currentTarget.style.background = ET.bg; }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={ET.muted}
+            strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 12 }}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+          </svg>
+          <div>
+            <span style={{ color: ET.teal, fontWeight: 700, fontSize: 15 }}>Click to upload logo</span>
+            <span style={{ color: ET.muted, fontSize: 15 }}> or drag and drop</span>
+          </div>
+          <div style={{ fontSize: 13, color: ET.muted, marginTop: 6 }}>PNG, JPG, SVG up to 2MB</div>
+        </div>
+      )}
     </div>
   );
 };
 
-/* ─── MAIN ───────────────────────────────────────────────────────────────── */
-export default function EmployerDashboard() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [profile, setProfile] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [loading, setLoading] = useState(true);
+/* ─── STEP 2 ─────────────────────────────────────────────────────────────── */
+const EmpStep2 = ({ data, set }) => {
+  const roles = ["Software Developer","Designer","Product Manager","Data Analyst","Marketing Specialist","Customer Support","Sales Representative","HR Manager","Content Writer","DevOps Engineer"];
+  const workSetup = [
+    { icon: "home",     label: "Remote"  },
+    { icon: "hybrid",   label: "Hybrid"  },
+    { icon: "building", label: "On-site" },
+  ];
+  const budgets = ["< ₱20k","₱20k–₱40k","₱40k–₱80k","₱80k–₱150k","₱150k+","Negotiable"];
+  const frequencies = ["Occasional","Regular","Frequent","Ongoing"];
+  const urgencies = ["Low","Medium","High","Urgent"];
+  const expLevels = ["Entry","Junior","Mid-Level","Senior","Lead/Manager"];
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("inklusijobs_employer");
-      if (!raw) { router.replace("/employer/onboarding"); return; }
-      setProfile(JSON.parse(raw));
-    } catch {
-      router.replace("/employer/onboarding");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [skillSearch, setSkillSearch] = useState("");
+  const [aiSkills, setAiSkills] = useState(false);
+  const [showCustomRole, setShowCustomRole] = useState(false);
+  const [customRoleInput, setCustomRoleInput] = useState("");
 
-  const handleReset = () => {
-    localStorage.removeItem("inklusijobs_employer");
-    router.replace("/employer/onboarding");
+  const filtered = skillSearch.length === 0 ? [] : (() => {
+    const q = skillSearch.toLowerCase();
+    const notAdded = SKILLS_LIST.filter(s => !(data.skills || []).includes(s));
+    const startsWith = notAdded.filter(s => s.toLowerCase().startsWith(q));
+    const contains   = notAdded.filter(s => !s.toLowerCase().startsWith(q) && s.toLowerCase().includes(q));
+    return [...startsWith, ...contains].slice(0, 8);
+  })();
+
+  const toggleRole = (r) => { const c = data.roles || []; set({ ...data, roles: c.includes(r) ? c.filter(x => x !== r) : [...c, r] }); };
+  const addSkill   = (s) => { if (!(data.skills || []).includes(s)) { set({ ...data, skills: [...(data.skills || []), s] }); setSkillSearch(""); } };
+  const removeSkill = (s) => set({ ...data, skills: (data.skills || []).filter(x => x !== s) });
+  const expIdx = expLevels.indexOf(data.expLevel || "Mid-Level");
+
+  const addCustomRole = () => {
+    const r = customRoleInput.trim();
+    if (!r) return;
+    const c = data.roles || [];
+    if (!c.includes(r)) set({ ...data, roles: [...c, r] });
+    setCustomRoleInput("");
+    setShowCustomRole(false);
   };
 
-  if (loading) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:T.bg, fontFamily:"Arial, sans-serif", color:T.navy, fontSize:16 }}>
-      Loading your dashboard…
+  return (
+    <div>
+      <h2 style={{ fontSize: 30, fontWeight: 900, color: ET.navy, margin: "0 0 6px", letterSpacing: "-0.5px" }}>What are you <strong style={{ color: ET.teal }}>looking for?</strong></h2>
+      <p style={{ fontSize: 15, color: ET.muted, margin: "0 0 32px" }}>Help us <strong>match you</strong> with the right talent</p>
+
+      <EmpSectionLabel>What <strong style={{ color: ET.teal }}>roles</strong> do you typically hire for?</EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        {roles.map(r => <EChip key={r} label={r} selected={(data.roles || []).includes(r)} onToggle={() => toggleRole(r)} />)}
+        {(data.roles || []).filter(r => !roles.includes(r)).map(r => (
+          <span key={r} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px",
+            borderRadius: 99, fontSize: 14, fontWeight: 700,
+            border: `2px solid ${ET.teal}`, background: ET.tealLight, color: ET.teal }}>
+            {r}
+            <button onClick={() => toggleRole(r)} style={{ background: "none", border: "none", cursor: "pointer", color: ET.teal, fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+          </span>
+        ))}
+      </div>
+      {showCustomRole ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+          <input autoFocus
+            placeholder="Type a custom role, e.g. Accessibility Consultant..."
+            value={customRoleInput}
+            onChange={e => setCustomRoleInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") addCustomRole(); if (e.key === "Escape") { setShowCustomRole(false); setCustomRoleInput(""); } }}
+            style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: `2px solid ${ET.teal}`,
+              fontSize: 15, fontFamily: "Arial, sans-serif", background: ET.tealLight, color: ET.navy, outline: "none" }}
+          />
+          <button onClick={addCustomRole}
+            style={{ padding: "11px 18px", borderRadius: 12, border: "none", background: ET.teal, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Add
+          </button>
+          <button onClick={() => { setShowCustomRole(false); setCustomRoleInput(""); }}
+            style={{ padding: "11px 14px", borderRadius: 12, border: `2px solid ${ET.border}`, background: ET.white, color: ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setShowCustomRole(true)}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 18px", borderRadius: 10,
+            border: `2px solid ${ET.border}`, background: ET.white, color: ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          ＋ Add custom role
+        </button>
+      )}
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Required <strong style={{ color: ET.teal }}>skills</strong></EmpSectionLabel>
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ET.muted} strokeWidth="2"
+          style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input placeholder="Search for skills..." value={skillSearch} onChange={e => setSkillSearch(e.target.value)}
+          style={{ width: "100%", boxSizing: "border-box", padding: "13px 16px 13px 44px", borderRadius: 12,
+            border: `2px solid ${ET.border}`, fontSize: 15, fontFamily: "Arial, sans-serif", background: ET.white, outline: "none" }}
+          onFocus={e => { e.target.style.borderColor = ET.teal; e.target.style.boxShadow = `0 0 0 4px ${ET.tealLight}`; }}
+          onBlur={e => { setTimeout(() => setSkillSearch(""), 150); e.target.style.borderColor = ET.border; e.target.style.boxShadow = "none"; }} />
+        {skillSearch && filtered.length > 0 && (
+          <div style={{ position: "absolute", top: "110%", left: 0, right: 0, background: ET.white,
+            border: `2px solid ${ET.border}`, borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", zIndex: 10, overflow: "hidden" }}>
+            {filtered.map((s, idx) => {
+              const q = skillSearch.toLowerCase();
+              const isStartMatch = s.toLowerCase().startsWith(q);
+              return (
+                <button key={s} onMouseDown={() => addSkill(s)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                    width: "100%", textAlign: "left", padding: "11px 18px", background: "none", border: "none",
+                    borderBottom: idx < filtered.length - 1 ? `1px solid ${ET.border}` : "none",
+                    cursor: "pointer", fontSize: 14, color: ET.bodyText, fontFamily: "Arial, sans-serif" }}
+                  onMouseEnter={e => e.currentTarget.style.background = ET.tealLight}
+                  onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  <span>
+                    <strong style={{ color: ET.teal }}>{s.slice(0, skillSearch.length)}</strong>{s.slice(skillSearch.length)}
+                  </span>
+                  {isStartMatch && <span style={{ fontSize: 11, color: ET.teal, fontWeight: 700, background: ET.tealLight, padding: "2px 7px", borderRadius: 99 }}>Best match</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {(data.skills || []).length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {(data.skills || []).map(s => (
+            <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px",
+              background: ET.tealLight, borderRadius: 99, fontSize: 13, fontWeight: 700,
+              color: ET.teal, border: `1.5px solid ${ET.teal}55` }}>
+              {s}
+              <button onClick={() => removeSkill(s)} style={{ background: "none", border: "none", cursor: "pointer", color: ET.teal, fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <button onClick={() => { setAiSkills(true); set({ ...data, skills: [...new Set([...(data.skills || []), "JavaScript", "Communication", "Problem Solving", "Accessibility", "Teamwork"])] }); }}
+        style={{ width: "100%", padding: "13px 18px", borderRadius: 12, border: `2px solid ${ET.teal}`,
+          background: ET.tealLight, color: ET.teal, fontSize: 15, fontWeight: 700, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <EIcon d={EICONS.sparkles} size={18} color={ET.teal} />
+        {aiSkills ? "✓ AI skills added" : "Add AI-suggested skills"}
+      </button>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Experience expectation: <strong style={{ color: ET.teal }}>{data.expLevel || "Mid-Level"}</strong></EmpSectionLabel>
+      <input type="range" min={0} max={4} step={1} value={expIdx < 0 ? 2 : expIdx}
+        onChange={e => set({ ...data, expLevel: expLevels[e.target.value] })}
+        style={{ width: "100%", accentColor: ET.teal, cursor: "pointer", height: 6 }} />
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        {["Entry","Junior","Mid-Level","Senior","Lead/Manager"].map(l => (
+          <span key={l} style={{ fontSize: 12, color: ET.muted, fontWeight: 600 }}>{l}</span>
+        ))}
+      </div>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Work <strong style={{ color: ET.teal }}>setup</strong></EmpSectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+        {workSetup.map(w => <EIconCard key={w.label} icon={w.icon} label={w.label} selected={data.workSetup === w.label} onSelect={() => set({ ...data, workSetup: w.label })} />)}
+      </div>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>💰 Budget range <strong style={{ color: ET.teal }}>(monthly)</strong></EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {budgets.map(b => <EChip key={b} label={b} selected={data.budget === b} onToggle={() => set({ ...data, budget: b })} />)}
+      </div>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>📅 Hiring <strong style={{ color: ET.teal }}>frequency</strong></EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {frequencies.map(f => <EChip key={f} label={f} selected={data.frequency === f} onToggle={() => set({ ...data, frequency: f })} />)}
+      </div>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>⚡ Urgency <strong style={{ color: ET.teal }}>level</strong></EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        {urgencies.map(u => <EChip key={u} label={u} selected={data.urgency === u} onToggle={() => set({ ...data, urgency: u })} />)}
+      </div>
     </div>
   );
+};
+
+/* ─── STEP 3 ─────────────────────────────────────────────────────────────── */
+const EmpStep3 = ({ data, set }) => {
+  const accommodations = ["Wheelchair Accessible","Flexible Hours","Remote Work Options","Assistive Technology","Sign Language Interpreter","Quiet Workspace","Screen Readers","Ergonomic Equipment","Braille Materials","Dedicated Parking","Modified Duties","Job Coaching"];
+  const sortOptions = [
+    { icon: "checkCircle", label: "Highest Verification Score" },
+    { icon: "star",        label: "Best Skill Match %"         },
+    { icon: "trending",    label: "Recently Active"            },
+    { icon: "briefcase",   label: "Portfolio Strength"         },
+  ];
+  const [rankItems, setRankItems] = useState(data.rankItems || RANK_ITEMS_DEFAULT);
+  const [dragging, setDragging] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+  const [showCustomAccom, setShowCustomAccom] = useState(false);
+  const [customAccomInput, setCustomAccomInput] = useState("");
+
+  const toggleAccom = (a) => { const c = data.accommodations || []; set({ ...data, accommodations: c.includes(a) ? c.filter(x => x !== a) : [...c, a] }); };
+
+  const addCustomAccom = () => {
+    const a = customAccomInput.trim();
+    if (!a) return;
+    const c = data.accommodations || [];
+    if (!c.includes(a)) set({ ...data, accommodations: [...c, a] });
+    setCustomAccomInput("");
+    setShowCustomAccom(false);
+  };
+
+  const handleDragDrop = (i) => {
+    if (dragging === null || dragging === i) { setDragging(null); setDragOver(null); return; }
+    const newItems = [...rankItems];
+    const [moved] = newItems.splice(dragging, 1);
+    newItems.splice(i, 0, moved);
+    setRankItems(newItems); set({ ...data, rankItems: newItems }); setDragging(null); setDragOver(null);
+  };
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:T.bg, fontFamily:"Arial, sans-serif" }}>
-      <Sidebar active={activeTab} onTab={setActiveTab} profile={profile} open={sidebarOpen} onToggle={() => setSidebarOpen(s => !s)} />
-      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        <Topbar profile={profile} activeTab={activeTab} onReset={handleReset} />
-        <main style={{ flex:1, overflowY:"auto", padding:"28px 32px" }}>
-          {activeTab === "overview"   && <OverviewTab   profile={profile} onTab={setActiveTab} />}
-          {activeTab === "candidates" && <CandidatesTab profile={profile} />}
-          {activeTab === "jobs"       && <JobsTab       profile={profile} />}
-          {activeTab === "profile"    && <ProfileTab    profile={profile} />}
-          {activeTab === "analytics"  && <AnalyticsTab  profile={profile} />}
-          {activeTab === "messages"   && <MessagesTab />}
-          {activeTab === "settings"   && <SettingsTab   profile={profile} onReset={handleReset} />}
-        </main>
+    <div>
+      <h2 style={{ fontSize: 30, fontWeight: 900, color: ET.navy, margin: "0 0 6px", letterSpacing: "-0.5px" }}>Build an <strong style={{ color: ET.teal }}>inclusive workplace</strong></h2>
+      <p style={{ fontSize: 15, color: ET.muted, margin: "0 0 32px" }}>Your <strong>hiring preferences</strong> and evaluation criteria</p>
+
+      <EmpSectionLabel>What <strong style={{ color: ET.teal }}>workplace accommodations</strong> can you provide?</EmpSectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        {accommodations.map(a => <EChip key={a} label={a} selected={(data.accommodations || []).includes(a)} onToggle={() => toggleAccom(a)} />)}
+        {(data.accommodations || []).filter(a => !accommodations.includes(a)).map(a => (
+          <span key={a} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 18px",
+            borderRadius: 99, fontSize: 14, fontWeight: 700,
+            border: `2px solid ${ET.teal}`, background: ET.tealLight, color: ET.teal }}>
+            {a}
+            <button onClick={() => toggleAccom(a)} style={{ background: "none", border: "none", cursor: "pointer", color: ET.teal, fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+          </span>
+        ))}
+      </div>
+      {showCustomAccom ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
+          <input autoFocus
+            placeholder="Describe a specific accommodation you can offer..."
+            value={customAccomInput}
+            onChange={e => setCustomAccomInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") addCustomAccom(); if (e.key === "Escape") { setShowCustomAccom(false); setCustomAccomInput(""); } }}
+            style={{ flex: 1, padding: "11px 16px", borderRadius: 12, border: `2px solid ${ET.teal}`,
+              fontSize: 15, fontFamily: "Arial, sans-serif", background: ET.tealLight, color: ET.navy, outline: "none" }}
+          />
+          <button onClick={addCustomAccom}
+            style={{ padding: "11px 18px", borderRadius: 12, border: "none", background: ET.teal, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Add
+          </button>
+          <button onClick={() => { setShowCustomAccom(false); setCustomAccomInput(""); }}
+            style={{ padding: "11px 14px", borderRadius: 12, border: `2px solid ${ET.border}`, background: ET.white, color: ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setShowCustomAccom(true)}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 18px", borderRadius: 10,
+            border: `2px solid ${ET.border}`, background: ET.white, color: ET.muted, fontSize: 14, fontWeight: 700, cursor: "pointer", marginBottom: 16 }}>
+          ＋ Add custom accommodation
+        </button>
+      )}
+
+      <ToggleRow label="Get inclusive hiring guidance" sublabel="Receive tips and best practices for building diverse, inclusive teams" checked={data.inclusiveGuidance !== false} onChange={v => set({ ...data, inclusiveGuidance: v })} />
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Rank what <strong style={{ color: ET.teal }}>matters most</strong> when hiring</EmpSectionLabel>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
+        {rankItems.map((item, i) => (
+          <div key={item} draggable
+            onDragStart={() => setDragging(i)}
+            onDragOver={e => { e.preventDefault(); setDragOver(i); }}
+            onDrop={() => handleDragDrop(i)}
+            style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
+              background: dragOver === i ? ET.tealLight : ET.white,
+              border: `2px solid ${dragOver === i ? ET.teal : ET.border}`,
+              borderRadius: 14, cursor: "grab", transition: "all 0.15s", userSelect: "none" }}>
+            <EIcon d={EICONS.gripVertical} size={18} color={ET.muted} />
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: ET.teal,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 800, color: "#fff", flexShrink: 0 }}>{i + 1}</div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: ET.bodyText }}>{item}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: 13, color: ET.muted, textAlign: "center" }}>Drag and drop to rank what matters most</p>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>How should we <strong style={{ color: ET.teal }}>sort candidates</strong> for you?</EmpSectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        {sortOptions.map(s => (
+          <EIconCard key={s.label} icon={s.icon} label={s.label}
+            selected={(data.sortBy || []).includes(s.label)}
+            onSelect={() => { const c = data.sortBy || []; set({ ...data, sortBy: c.includes(s.label) ? c.filter(x => x !== s.label) : [...c, s.label] }); }} />
+        ))}
+      </div>
+
+      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+        <ToggleRow label="AI auto-suggested candidates" sublabel="Get daily candidate recommendations based on your preferences" checked={data.aiSuggest !== false} onChange={v => set({ ...data, aiSuggest: v })} />
+        <ToggleRow label="Notification preferences" sublabel="Get notified when new matching candidates join" checked={data.notifications !== false} onChange={v => set({ ...data, notifications: v })} />
+      </div>
+    </div>
+  );
+};
+
+/* ─── STEP 4 ─────────────────────────────────────────────────────────────── */
+const EmpStep4 = ({ data, set }) => {
+  const dashboardFirst = [
+    { icon: "sparkles",  label: "Candidate Recommendations" },
+    { icon: "briefcase", label: "Job Posts"                 },
+    { icon: "search",    label: "Talent Search"             },
+    { icon: "analytics", label: "Analytics"                 },
+  ];
+  const toggleFirst = (label) => { const c = data.dashFirst || []; set({ ...data, dashFirst: c.includes(label) ? c.filter(x => x !== label) : [...c, label] }); };
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 30, fontWeight: 900, color: ET.navy, margin: "0 0 6px", letterSpacing: "-0.5px" }}>Customize your <strong style={{ color: ET.teal }}>dashboard</strong></h2>
+      <p style={{ fontSize: 15, color: ET.muted, margin: "0 0 32px" }}>Set up your preferred <strong>hiring workflow</strong></p>
+
+      <EmpSectionLabel>What would you like to see <strong style={{ color: ET.teal }}>first</strong> on your dashboard?</EmpSectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        {dashboardFirst.map(d => (
+          <EIconCard key={d.label} icon={d.icon} label={d.label}
+            selected={(data.dashFirst || []).includes(d.label)}
+            onSelect={() => toggleFirst(d.label)} size="sm" />
+        ))}
+      </div>
+
+      <EmpDivider />
+
+      <EmpSectionLabel>Company <strong style={{ color: ET.teal }}>mission statement</strong> <span style={{ fontWeight: 500, color: ET.muted, fontSize: 13 }}>(Optional)</span></EmpSectionLabel>
+      <EmpInput multiline rows={5}
+        placeholder="Share your company's values and what makes your workplace special..."
+        value={data.mission || ""} onChange={e => set({ ...data, mission: e.target.value })} />
+      <p style={{ fontSize: 13, color: ET.muted, marginTop: 8 }}>This will be shown to candidates viewing your profile</p>
+
+      <EmpDivider />
+
+      <ToggleRow label="Profile visibility" sublabel="Your company profile is visible to all candidates" checked={data.visible !== false} onChange={v => set({ ...data, visible: v })} />
+
+      <div style={{ marginTop: 24, padding: "22px 24px", background: ET.tealLight, borderRadius: 16, border: `2px solid ${ET.teal}33` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <EIcon d={EICONS.grid} size={20} color={ET.teal} />
+          <span style={{ fontSize: 16, fontWeight: 800, color: ET.navy }}>Your dashboard will include:</span>
+        </div>
+        {["AI-powered candidate matching based on your preferences","Inclusive Employer badge on your profile","Custom job templates tailored to your industry","Analytics on your hiring diversity metrics"].map(item => (
+          <div key={item} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <span style={{ color: ET.teal, fontSize: 16 }}>✓</span>
+            <span style={{ fontSize: 14, color: ET.teal, fontWeight: 600 }}>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ─── COMPLETE SCREEN ────────────────────────────────────────────────────── */
+const EmpCompleteScreen = () => (
+  <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
+    <EmpSidebar step={5} />
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: ET.bg, padding: "40px" }}>
+      <div style={{ width: "100%", maxWidth: 600, background: ET.white, borderRadius: 24,
+        padding: "56px 48px", boxShadow: "0 8px 40px rgba(0,0,0,0.08)", textAlign: "center" }}>
+        <div style={{ width: 88, height: 88, borderRadius: "50%",
+          background: `linear-gradient(135deg, ${ET.teal}, ${ET.tealMid})`,
+          margin: "0 auto 32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <EIcon d={EICONS.check} size={40} color="#fff" strokeWidth={2.5} />
+        </div>
+        <h2 style={{ fontSize: 28, fontWeight: 900, color: ET.navy, margin: "0 0 14px", letterSpacing: "-0.5px" }}>
+          Your <strong style={{ color: ET.teal }}>Inclusive Hiring Dashboard</strong> is Ready! 🎉
+        </h2>
+        <p style={{ fontSize: 16, color: ET.muted, margin: "0 0 36px", lineHeight: 1.7 }}>
+          You're all set to discover amazing talent and <strong>build a more inclusive team.</strong>
+        </p>
+        <a href="/employer/dashboard"
+          style={{ display: "inline-block", padding: "16px 44px", borderRadius: 14,
+            background: `linear-gradient(135deg, ${ET.teal}, ${ET.tealMid})`,
+            color: "#fff", fontSize: 16, fontWeight: 800, textDecoration: "none",
+            boxShadow: `0 8px 24px ${ET.teal}55`, letterSpacing: "-0.2px" }}>
+          Go to Dashboard →
+        </a>
+        <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <EIcon d={EICONS.checkCircle} size={18} color={ET.success} />
+          <span style={{ fontSize: 14, color: ET.success, fontWeight: 700 }}>Inclusive Employer Badge earned!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── MAIN WIZARD ────────────────────────────────────────────────────────── */
+export default function EmployerOnboarding() {
+  const [step, setStep] = useState(1);
+  const [complete, setComplete] = useState(false);
+  const contentRef = useRef(null);
+
+  const [s1, setS1] = useState({ company: "", industry: "", size: "", posTypes: [] });
+  const [s2, setS2] = useState({ roles: [], skills: [], expLevel: "Mid-Level", workSetup: "Remote", budget: "", frequency: "", urgency: "" });
+  const [s3, setS3] = useState({ pwdOpenness: "Actively Looking", accommodations: [], inclusiveGuidance: true, rankItems: RANK_ITEMS_DEFAULT, sortBy: [], aiSuggest: true, notifications: true });
+  const [s4, setS4] = useState({ dashFirst: ["Candidate Recommendations","Job Posts"], mission: "", visible: true });
+
+  const canNext = () => {
+    if (step === 1) return s1.company.trim().length > 0 && s1.industry;
+    return true;
+  };
+
+  const handleStep = (dir) => {
+    if (dir > 0 && !canNext()) return;
+    setStep(s => s + dir);
+    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleComplete = () => {
+    let authUser = {};
+    try { authUser = JSON.parse(localStorage.getItem("ij_current_user") || "{}"); } catch {}
+    const profile = {
+      s1: { ...s1, firstName: authUser.firstName || "", lastName: authUser.lastName || "", email: authUser.email || "" },
+      s2, s3, s4,
+      s5: { theme: "navy", layout: "Comfortable", widgets: s4.dashFirst || [], teammates: [] },
+      completedAt: Date.now()
+    };
+    localStorage.setItem("inklusijobs_employer", JSON.stringify(profile));
+    setComplete(true);
+  };
+
+  if (complete) return <EmpCompleteScreen />;
+
+  const pct = (step / EMP_STEPS.length) * 100;
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Arial, sans-serif" }}>
+      <EmpSidebar step={step} />
+
+      <div ref={contentRef} style={{ flex: 1, overflowY: "auto", background: ET.bg, display: "flex", flexDirection: "column" }}>
+        {/* Top progress bar */}
+        <div style={{ height: 5, background: ET.border, flexShrink: 0 }}>
+          <div style={{ height: "100%", width: `${pct}%`,
+            background: `linear-gradient(90deg, ${ET.teal}, ${ET.tealMid})`,
+            transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)" }} />
+        </div>
+
+        {/* Step header */}
+        <div style={{ padding: "32px 56px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: ET.muted }}>
+            Step {step} of {EMP_STEPS.length} — <strong style={{ color: ET.teal }}>{Math.round(pct)}% complete</strong>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {EMP_STEPS.map(s => (
+              <div key={s.id} style={{ width: step >= s.id ? 28 : 8, height: 8, borderRadius: 99,
+                background: step >= s.id ? ET.teal : ET.border, transition: "all 0.3s" }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Form content */}
+        <div style={{ flex: 1, padding: "32px 56px 0" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto" }}>
+            {step === 1 && <EmpStep1 data={s1} set={setS1} />}
+            {step === 2 && <EmpStep2 data={s2} set={setS2} />}
+            {step === 3 && <EmpStep3 data={s3} set={setS3} />}
+            {step === 4 && <EmpStep4 data={s4} set={setS4} />}
+          </div>
+        </div>
+
+        {/* Footer nav */}
+        <div style={{ position: "sticky", bottom: 0, background: ET.white,
+          borderTop: `1px solid ${ET.border}`, padding: "20px 56px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+          <button onClick={() => handleStep(-1)} disabled={step === 1}
+            style={{ padding: "12px 24px", borderRadius: 12, border: `2px solid ${ET.border}`,
+              background: ET.white, color: step === 1 ? ET.muted : ET.bodyText,
+              fontSize: 15, fontWeight: 700, cursor: step === 1 ? "not-allowed" : "pointer",
+              opacity: step === 1 ? 0.4 : 1, fontFamily: "Arial, sans-serif" }}>
+            ‹ Back
+          </button>
+
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {step === 2 && (
+              <button onClick={() => handleStep(1)}
+                style={{ padding: "12px 24px", borderRadius: 12, border: `2px solid ${ET.border}`,
+                  background: ET.white, color: ET.muted, fontSize: 15, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "Arial, sans-serif" }}>
+                Skip ⏭
+              </button>
+            )}
+            {step < 4 ? (
+              <button onClick={() => handleStep(1)}
+                style={{ padding: "12px 28px", borderRadius: 12, border: "none",
+                  background: canNext() ? `linear-gradient(135deg, ${ET.teal}, ${ET.tealMid})` : ET.border,
+                  color: canNext() ? "#fff" : ET.muted,
+                  fontSize: 15, fontWeight: 800, cursor: canNext() ? "pointer" : "not-allowed",
+                  boxShadow: canNext() ? `0 6px 18px ${ET.teal}44` : "none",
+                  transition: "all 0.2s", fontFamily: "Arial, sans-serif" }}>
+                Continue ›
+              </button>
+            ) : (
+              <button onClick={handleComplete}
+                style={{ padding: "12px 28px", borderRadius: 12, border: "none",
+                  background: `linear-gradient(135deg, ${ET.teal}, ${ET.tealMid})`,
+                  color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer",
+                  boxShadow: `0 6px 18px ${ET.teal}44`, fontFamily: "Arial, sans-serif" }}>
+                Complete Setup ›
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
