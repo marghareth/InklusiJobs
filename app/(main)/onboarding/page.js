@@ -23,7 +23,13 @@ const Label = ({ children, required }) => (
     {children}{required && <span style={{ color: C.error, marginLeft: 3 }}>*</span>}
   </div>
 );
-const inputBase = { width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", background: "#FAFAFA", outline: "none", boxSizing: "border-box", color: C.navy };
+
+const inputBase = {
+  width: "100%", padding: "10px 14px", borderRadius: 10,
+  border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit",
+  background: "#FAFAFA", outline: "none", boxSizing: "border-box", color: C.navy,
+};
+
 const Input = ({ placeholder, value, onChange, type = "text", min, max }) => (
   <input type={type} placeholder={placeholder} value={value} onChange={onChange} min={min} max={max} style={inputBase}
     onFocus={e => e.target.style.borderColor = C.accent} onBlur={e => e.target.style.borderColor = C.border} />
@@ -46,6 +52,18 @@ const ChipSelect = ({ options, selected, onToggle, max }) => (
 const Field = ({ label, required, children }) => <div style={{ marginBottom: 16 }}><Label required={required}>{label}</Label>{children}</div>;
 const Row = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
 
+const Field = ({ label, required, children }) => (
+  <div style={{ marginBottom: 16 }}>
+    <Label required={required}>{label}</Label>
+    {children}
+  </div>
+);
+
+const Row = ({ children }) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>
+);
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
 const Step1 = ({ data, set }) => {
   const edOptions = ["Some Elementary","Elementary Graduate","Some High School","High School Graduate","Some College","College Graduate","Some/Completed Master's Degree","Master's Graduate","Vocational/TVET"];
   return (
@@ -115,7 +133,9 @@ const Step3 = ({ data, set }) => {
     <div>
       <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 6 }}>Disability information</h2>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>Helps us match you with inclusive employers and suitable accommodations.</p>
-      <div style={{ background: C.light, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "9px 12px", marginBottom: 16, fontSize: 12, color: C.accentDim, fontWeight: 500 }}>🔒 This information is kept confidential and only shared with employers you apply to.</div>
+      <div style={{ background: C.light, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "9px 12px", marginBottom: 16, fontSize: 12, color: C.accentDim, fontWeight: 500 }}>
+        🔒 This information is kept confidential and only shared with employers you apply to.
+      </div>
       <Field label="Type of Disability">
         <ChipSelect options={disabilityTypes} selected={data.disabilityTypes || []} onToggle={opt => { const c = data.disabilityTypes || []; set({ ...data, disabilityTypes: c.includes(opt) ? c.filter(d => d !== opt) : [...c, opt] }); }} />
       </Field>
@@ -279,11 +299,11 @@ export default function OnboardingPage() {
         </div>
       </div>
 
+      {/* Content */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
         <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center", padding: "40px 32px" }}>
           <div style={{ width: "100%", maxWidth: 480, background: C.card, borderRadius: 16, padding: "36px 40px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignSelf: "flex-start" }}>
             {stepContent()}
-            {error && <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: "#FEF2F2", border: `1px solid ${C.error}`, color: C.error, fontSize: 13 }}>{error}</div>}
           </div>
         </div>
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: C.card, flexShrink: 0 }}>

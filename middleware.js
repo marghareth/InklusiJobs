@@ -48,15 +48,21 @@ const ADMIN_ROUTES = ["/admin"];
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
+  // ✅ DEV BYPASS — lets you visit any page freely while building
+  // ❌ Remove this block before deploying to production!
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   // Get auth cookies
-  const token    = request.cookies.get("firebase_token")?.value;
-  const role     = request.cookies.get("ij_role")?.value;
+  const token     = request.cookies.get("firebase_token")?.value;
+  const role      = request.cookies.get("ij_role")?.value;
   const onboarded = request.cookies.get("ij_onboarded")?.value;
 
-  const isLoggedIn   = !!token;
-  const isWorker     = role === "worker";
-  const isEmployer   = role === "employer";
-  const isOnboarded  = onboarded === "true";
+  const isLoggedIn  = !!token;
+  const isWorker    = role === "worker";
+  const isEmployer  = role === "employer";
+  const isOnboarded = onboarded === "true";
 
   // Allow public routes always
   if (PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"))) {
