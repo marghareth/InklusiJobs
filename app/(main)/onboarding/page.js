@@ -169,22 +169,6 @@ const TextArea = ({ placeholder, value, onChange, rows = 4 }) => (
     onFocus={e => { e.target.style.borderColor = T.teal; e.target.style.boxShadow = `0 0 0 4px ${T.tealLight}`; }}
     onBlur={e => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
   />
-const ChipSelect = ({ options, selected, onToggle, max }) => (
-  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-    {options.map(opt => {
-      const active = selected.includes(opt);
-      const disabled = !active && max && selected.length >= max;
-      return <button key={opt} onClick={() => !disabled && onToggle(opt)} style={{ padding: "5px 11px", borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1.5px solid ${active ? C.accent : C.border}`, background: active ? C.light : C.card, color: active ? C.navy : C.muted, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.15s" }}>{opt}</button>;
-    })}
-  </div>
-);
-
-// ── Single definitions of Field and Row ───────────────────────────────────────
-const Field = ({ label, required, children }) => (
-  <div style={{ marginBottom: 16 }}>
-    <Label required={required}>{label}</Label>
-    {children}
-  </div>
 );
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -799,7 +783,6 @@ export default function OnboardingPage() {
 
       document.cookie = "ij_onboarded=true; path=/; max-age=31536000";
       setComplete(true);
-      router.push("/job-select");
     } catch (err) {
       console.error("Failed to save onboarding:", err);
       setError("Something went wrong saving your info. Please try again.");
