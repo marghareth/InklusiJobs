@@ -15,12 +15,23 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
+function setCookie(name, value, days = 30) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+}
+function deleteCookie(name) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+}
+
 // ─── Google Provider (singleton) ─────────────────────────────────────────────
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useAuthModal() {
@@ -268,7 +279,7 @@ function friendlyError(code) {
     case "auth/weak-password":           return "Password must be at least 6 characters.";
     case "auth/user-not-found":          return "No account found with that email. Please sign up first.";
     case "auth/wrong-password":          return "Incorrect password. Please try again.";
-    case "auth/invalid-credential":      return "Incorrect email or password. Please try again.";
+    case "auth/invalid-credential":      return "Incorrect email or password. If you signed up with Google and want to use email/password too, click \"Forgot password?\" to set one.";
     case "auth/too-many-requests":       return "Too many attempts. Please wait a moment and try again.";
     case "auth/network-request-failed":  return "Network error. Please check your connection.";
     default:                             return "Something went wrong. Please try again.";
@@ -300,6 +311,7 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -328,7 +340,8 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
         Don&apos;t have an account?{" "}
         <button type="button" onClick={() => onSwitchTab("signup")}>Sign up free</button>
       </p>
-      {error && <div className="am-error">{error}</div>}
+      {error   && <div className="am-error">{error}</div>}
+      {success && <div className="am-success">{success}</div>}
       <form className="am-form" onSubmit={handleSubmit}>
         <div className="am-field">
           <label className="am-label" htmlFor="si-email">Email</label>
@@ -345,7 +358,19 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
         </div>
         <div className="am-row">
           <label className="am-remember"><input type="checkbox" /> Remember me</label>
-          <button type="button" className="am-forgot">Forgot password?</button>
+          <button type="button" className="am-forgot" onClick={async () => {
+            const emailEl = document.getElementById("si-email");
+            const email = emailEl?.value?.trim();
+            if (!email) { setError("Enter your email above first, then click Forgot password."); setSuccess(""); return; }
+            try {
+              await sendPasswordResetEmail(auth, email);
+              setError("");
+              setSuccess("✅ Reset email sent! Check your inbox to set your password.");
+            } catch (err) {
+              setSuccess("");
+              setError(friendlyError(err.code));
+            }
+          }}>Forgot password?</button>
         </div>
         <button type="submit" className="am-submit" disabled={loading}>
           {loading ? "Signing in…" : "Sign In"}
@@ -479,29 +504,47 @@ export default function AuthModal({
 
   const router = useRouter();
 
-  // Save role to localStorage so we can read it after Google redirect too
-  const redirectByRole = (userRole) => {
+  const redirectByRole = async (firebaseUser, userRole) => {
     const resolvedRole = userRole || role || "worker";
+
+    // Set Firebase token cookie for middleware auth
+    const token = await firebaseUser.getIdToken();
+    setCookie("firebase_token", token, 7);
+    setCookie("ij_role", resolvedRole, 30);
     localStorage.setItem("ij_role", resolvedRole);
+
     onClose?.();
+
     if (resolvedRole === "employer") {
-      router.push("/employer/dashboard");
+      // Check if employer has completed onboarding
+      const empOnboarded = localStorage.getItem("ij_emp_onboarded");
+      if (empOnboarded === "true") {
+        router.push("/employer/dashboard");
+      } else {
+        router.push("/employer/onboarding");
+      }
     } else {
-      router.push("/dashboard/worker");
+      // Worker — always start onboarding flow after signup
+      // On sign IN, check if already onboarded
+      const workerOnboarded = localStorage.getItem("ij_onboarded");
+      if (workerOnboarded === "true") {
+        setCookie("ij_onboarded", "true", 30);
+        router.push("/dashboard/worker");
+      } else {
+        router.push("/onboarding");
+      }
     }
   };
 
-  const handleSignIn = (firebaseUser) => {
-    // On sign in, read saved role (set during signup)
+  const handleSignIn = async (firebaseUser) => {
     const savedRole = localStorage.getItem("ij_role") || role || "worker";
     onSignInComplete?.(savedRole);
-    redirectByRole(savedRole);
+    await redirectByRole(firebaseUser, savedRole);
   };
 
-  const handleSignUp = (firebaseUser) => {
-    // On sign up, role comes from the modal prop (set by RoleSelector)
+  const handleSignUp = async (firebaseUser) => {
     onSignUpComplete?.(role || "worker");
-    redirectByRole(role || "worker");
+    await redirectByRole(firebaseUser, role || "worker");
   };
 
   if (!isOpen) return null;
