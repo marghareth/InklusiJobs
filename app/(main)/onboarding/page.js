@@ -26,14 +26,14 @@ const STEPS = [
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Label = ({ children, required }) => (
-  <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 5, letterSpacing: "0.01em" }}>
+  <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6, letterSpacing: "0.04em", textTransform: "uppercase" }}>
     {children}{required && <span style={{ color: C.error, marginLeft: 3 }}>*</span>}
   </div>
 );
 
 const inputBase = {
-  width: "100%", padding: "9px 12px", borderRadius: 8,
-  border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit",
+  width: "100%", padding: "10px 14px", borderRadius: 10,
+  border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit",
   background: "#FAFAFA", outline: "none", boxSizing: "border-box", color: C.navy,
 };
 
@@ -72,7 +72,7 @@ const ChipSelect = ({ options, selected, onToggle, max }) => (
 );
 
 const Field = ({ label, required, children }) => (
-  <div style={{ marginBottom: 14 }}>
+  <div style={{ marginBottom: 16 }}>
     <Label required={required}>{label}</Label>
     {children}
   </div>
@@ -87,8 +87,8 @@ const Step1 = ({ data, set }) => {
   const edOptions = ["Some Elementary","Elementary Graduate","Some High School","High School Graduate","Some College","College Graduate","Some/Completed Master's Degree","Master's Graduate","Vocational/TVET"];
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 3 }}>Tell us about yourself</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>We'll personalize your InklusiJobs experience just for you.</p>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 6 }}>Tell us about yourself</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>We'll personalize your InklusiJobs experience just for you.</p>
       <Row>
         <Field label="First Name" required><Input placeholder="Juan" value={data.firstName} onChange={e => set({ ...data, firstName: e.target.value })} /></Field>
         <Field label="Last Name" required><Input placeholder="Dela Cruz" value={data.lastName} onChange={e => set({ ...data, lastName: e.target.value })} /></Field>
@@ -113,8 +113,8 @@ const Step2 = ({ data, set }) => {
 
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 3 }}>Your work preferences</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>Help us match you to jobs that fit your lifestyle and goals.</p>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 6 }}>Your work preferences</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>Help us match you to jobs that fit your lifestyle and goals.</p>
       <Field label="Preferred Work Setup" required>
         <div style={{ display: "flex", gap: 8 }}>
           {workTypes.map(t => (
@@ -171,8 +171,8 @@ const Step3 = ({ data, set }) => {
 
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 3 }}>Disability information</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.5 }}>Helps us match you with inclusive employers and suitable accommodations.</p>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 6 }}>Disability information</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>Helps us match you with inclusive employers and suitable accommodations.</p>
       <div style={{ background: C.light, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "9px 12px", marginBottom: 16, fontSize: 12, color: C.accentDim, fontWeight: 500 }}>
         🔒 This information is kept confidential and only shared with employers you apply to.
       </div>
@@ -227,8 +227,8 @@ const Step4 = ({ data, set }) => {
 
   return (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: C.navy, marginBottom: 3 }}>Personalize your dashboard</h2>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20, lineHeight: 1.5 }}>Choose how your InklusiJobs workspace looks and feels.</p>
+      <h2 style={{ fontSize: 22, fontWeight: 800, color: C.navy, marginBottom: 6 }}>Personalize your dashboard</h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>Choose how your InklusiJobs workspace looks and feels.</p>
       <Field label="Dashboard Theme">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
           {themes.map(t => (
@@ -370,9 +370,11 @@ export default function BasicInformation({ onSubmit, initialData = {} }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "36px 40px 16px", maxWidth: 600, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-          {stepContent()}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center", padding: "40px 32px" }}>
+          <div style={{ width: "100%", maxWidth: 480, background: C.card, borderRadius: 16, padding: "36px 40px", boxShadow: "0 2px 16px rgba(0,0,0,0.06)", alignSelf: "flex-start" }}>
+            {stepContent()}
+          </div>
         </div>
 
         {/* Footer */}
