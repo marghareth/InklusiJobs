@@ -337,12 +337,48 @@ function DocumentUploadStep({ onNext }) {
 
 // ─── Step 2: AI Analysis ──────────────────────────────────────────────────────
 const CHECKS = [
-  { label: "OCR Text Extraction",        detail: "Reading ID number, name, LGU, and disability category from your PWD ID…",                 duration: 1800 },
-  { label: "PSGC Format Validation",     detail: "Verifying the ID number follows the Philippine Standard Geographic Code format…",           duration: 2000 },
-  { label: "LGU Designation Check",      detail: "Confirming your issuing office is correctly labeled as a City or Municipality…",            duration: 1600 },
-  { label: "NCDA Disability Category",   detail: "Checking that your disability falls under one of the 9 NCDA-recognized categories…",       duration: 1900 },
-  { label: "Visual Forgery Detection",   detail: "Scanning for signs of tampering, photo substitution, or Recto forgery patterns…",          duration: 2200 },
-  { label: "Cross-Document Consistency", detail: "Matching your name and disability type across all submitted documents…",                    duration: 1700 },
+  {
+    label:    "OCR Text Extraction",
+    icon:     "🔍",
+    short:    "Reading text from your PWD ID…",
+    detail:   "Gemini Vision is scanning every field on your PWD ID — extracting your full name, ID number, issuing LGU, disability category, date of issue, and expiry date. This is the foundation for all checks that follow.",
+    duration: 2200,
+  },
+  {
+    label:    "PSGC Format Validation",
+    icon:     "🗺️",
+    short:    "Checking the ID number format…",
+    detail:   "Your PWD ID number encodes a Philippine Standard Geographic Code (PSGC) that identifies the region, province, and city where it was issued. We're verifying that code is real and matches a known LGU in our database.",
+    duration: 2000,
+  },
+  {
+    label:    "LGU Designation Check",
+    icon:     "🏙️",
+    short:    "Verifying City vs Municipality label…",
+    detail:   "Philippine LGUs are either Cities or Municipalities — and their PWD ID templates differ. We're confirming that the designation printed on your ID matches the official classification of your issuing office under the DILG.",
+    duration: 1800,
+  },
+  {
+    label:    "NCDA Disability Category",
+    icon:     "♿",
+    short:    "Confirming your disability category…",
+    detail:   "The National Council on Disability Affairs (NCDA) recognizes exactly 9 disability categories. We're verifying that the disability listed on your ID matches one of these official categories and is consistent with your supporting document.",
+    duration: 2000,
+  },
+  {
+    label:    "Visual Forgery Detection",
+    icon:     "🛡️",
+    short:    "Scanning for signs of tampering…",
+    detail:   "AI is analyzing your ID image for visual inconsistencies — altered fonts, mismatched ink colors, photo substitution markers, or layout deviations from known official PWD ID templates across different LGUs. This catches common Recto forgery patterns.",
+    duration: 2400,
+  },
+  {
+    label:    "Cross-Document Consistency",
+    icon:     "📋",
+    short:    "Comparing across all your documents…",
+    detail:   "We're cross-referencing your PWD ID against your supporting document — checking that your name, birthdate, and disability category are consistent across both. Any mismatch is flagged for human review.",
+    duration: 1900,
+  },
 ];
 
 function Spinner({ size = 16, color = "white" }) {
@@ -422,54 +458,101 @@ function AIAnalysisStep({ documents, onComplete }) {
         Gemini Vision is analyzing your documents using Philippine-specific fraud detection rules.
       </p>
 
-      {/* Active check description */}
-      {status === "running" && activeIndex < CHECKS.length && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.tealLight, border: `1px solid ${T.cyan}40`, borderRadius: 12, padding: "12px 14px" }}>
-          <Spinner size={16} color={T.teal} />
-          <span style={{ fontSize: 12, color: T.teal, fontWeight: 500, lineHeight: 1.5 }}>{CHECKS[activeIndex]?.detail}</span>
-        </div>
-      )}
-
       {/* Check list */}
-      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {checks.map((check, i) => {
-          const s = getResultStyle(check, i);
-          const isActive = i === activeIndex && status === "running";
+          const done    = check.result !== null;
+          const active  = i === activeIndex && status === "running";
+          const pending = !done && !active;
+
           return (
             <div key={i} style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "14px 16px",
-              background: isActive ? T.tealLight : check.result === "fail" ? T.redBg : T.white,
-              borderBottom: i < checks.length - 1 ? `1px solid ${T.border}` : "none",
-              transition: "background 0.3s",
+              borderRadius: 14,
+              border: `1.5px solid ${
+                check.result === "fail" ? T.redBorder
+                : check.result === "warn" ? T.amberBorder
+                : active ? T.teal + "50"
+                : done ? T.greenBorder
+                : T.border}`,
+              background: active ? T.tealLight : check.result === "fail" ? T.redBg : T.white,
+              overflow: "hidden",
+              transition: "all 0.3s ease",
             }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 10, background: s.bg,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0, fontSize: 13, fontWeight: 700, color: s.color,
-                transition: "all 0.3s",
-              }}>
-                {s.spinning ? <Spinner size={14} color="white" /> : s.icon}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: check.result === "fail" ? T.red : check.result === "pass" ? T.teal : isActive ? T.tealMid : i < activeIndex ? T.teal : "#94A3B8", marginBottom: 2 }}>
-                  {check.label}
+              {/* Row header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: active ? "14px 16px 10px" : "12px 16px" }}>
+                {/* Icon */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background:
+                    check.result === "pass" ? T.teal
+                    : check.result === "fail" ? T.red
+                    : check.result === "warn" ? T.amber
+                    : active ? T.tealMid : "#F1F5F9",
+                  transition: "all 0.3s",
+                }}>
+                  {check.result === "pass" ? <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>✓</span>
+                   : check.result === "fail" ? <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>✗</span>
+                   : check.result === "warn" ? <span style={{ color: "white", fontWeight: 700, fontSize: 15 }}>!</span>
+                   : active ? <Spinner size={16} color="white" />
+                   : <span style={{ color: "#94A3B8", fontWeight: 700, fontSize: 11 }}>{i + 1}</span>}
                 </div>
-                {(check.result || isActive) && (
-                  <div style={{ fontSize: 11, color: check.result === "fail" ? T.red : T.muted, lineHeight: 1.4 }}>
-                    {check.detail}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: check.result === "fail" ? T.red
+                      : check.result === "warn" ? T.amber
+                      : done || active ? T.teal : "#94A3B8",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <span>{check.icon}</span><span>{check.label}</span>
                   </div>
+                  {/* Compact result after done */}
+                  {done && (
+                    <div style={{ fontSize: 11, color: check.result === "fail" ? T.red : T.muted, marginTop: 2, lineHeight: 1.4 }}>
+                      {check.detail}
+                    </div>
+                  )}
+                  {/* Short running hint */}
+                  {active && (
+                    <div style={{ fontSize: 11, color: T.tealMid, marginTop: 2, fontStyle: "italic" }}>{check.short}</div>
+                  )}
+                </div>
+
+                {/* Status pill */}
+                {done && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 99, flexShrink: 0,
+                    background: check.result === "pass" ? T.greenBg : check.result === "fail" ? T.redBg : T.amberBg,
+                    color:      check.result === "pass" ? T.green   : check.result === "fail" ? T.red   : T.amber,
+                    border: `1px solid ${check.result === "pass" ? T.greenBorder : check.result === "fail" ? T.redBorder : T.amberBorder}`,
+                  }}>
+                    {check.result === "pass" ? "✓ Pass" : check.result === "fail" ? "✗ Fail" : "⚠ Warn"}
+                  </span>
+                )}
+                {active && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: T.tealLight, color: T.teal, border: `1px solid ${T.teal}30`, flexShrink: 0 }}>
+                    Analyzing…
+                  </span>
                 )}
               </div>
-              {/* Right status pill */}
-              {check.result && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
-                  background: check.result === "pass" ? T.greenBg : check.result === "fail" ? T.redBg : T.amberBg,
-                  color: check.result === "pass" ? T.green : check.result === "fail" ? T.red : T.amber,
-                  border: `1px solid ${check.result === "pass" ? T.greenBorder : check.result === "fail" ? T.redBorder : T.amberBorder}`,
-                }}>
-                  {check.result === "pass" ? "Pass" : check.result === "fail" ? "Fail" : "Warn"}
-                </span>
+
+              {/* Expanded description — only on active step */}
+              {active && (
+                <div style={{ margin: "0 16px 14px 64px", background: "white", border: `1px solid ${T.teal}20`, borderRadius: 10, padding: "12px 14px" }}>
+                  <p style={{ fontSize: 12, color: T.muted, lineHeight: 1.8, margin: "0 0 10px" }}>
+                    {check.detail}
+                  </p>
+                  {/* Animated progress bar */}
+                  <div style={{ background: T.tealLight, borderRadius: 99, height: 4, overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 99, width: "0%",
+                      background: `linear-gradient(90deg, ${T.teal}, ${T.tealMid})`,
+                      animation: `ij-progress ${check.duration}ms linear forwards`,
+                    }} />
+                  </div>
+                </div>
               )}
             </div>
           );
@@ -951,6 +1034,7 @@ export default function VerificationPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         @keyframes ij-spin { to { transform: rotate(360deg); } }
+        @keyframes ij-progress { from { width: 0% } to { width: 100% } }
         * { box-sizing: border-box; }
       `}</style>
 
@@ -1013,3 +1097,22 @@ export default function VerificationPage() {
     </div>
   );
 }
+
+<button
+  onClick={() => router.push("/dashboard")}
+  style={{
+    background: "none",
+    border: "none",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: "0.88rem",
+    fontWeight: 600,
+    color: "#7a9b97",
+    cursor: "pointer",
+    padding: "0.4rem",
+    transition: "color 0.15s ease",
+  }}
+  onMouseOver={e => e.target.style.color = "#4a6360"}
+  onMouseOut={e => e.target.style.color = "#7a9b97"}
+>
+  Skip for now
+</button>

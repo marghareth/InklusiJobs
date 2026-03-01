@@ -147,8 +147,12 @@ export default function AssessmentPage() {
         }),
       });
 
-      if (!res.ok) throw new Error("Scoring failed");
-      const data = await res.json();
+      // AFTER
+if (!res.ok) {
+  const errData = await res.json().catch(() => ({}));
+  throw new Error(errData.detail || errData.error || "Scoring failed");
+}
+const data = await res.json();
 
       // Save results to localStorage for results page to read
       localStorage.setItem("inklusijobs_results", JSON.stringify(data));
