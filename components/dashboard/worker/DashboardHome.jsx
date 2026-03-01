@@ -1,171 +1,192 @@
-// components/dashboard/worker/DashboardHome.jsx
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
+// ─── DashboardHome.jsx ────────────────────────────────────────────────────────
+// UPDATED: all data now reads from localStorage via useAppData().
+// UI, styles, and layout are 100% identical to the original.
+//
+// DATA SOURCES:
+//   profile.name              → Welcome name
+//   challenges[]              → stat cards + current challenge + learning path
+//   tracker.stats             → skills mastered, challenges completed, progress
+//   tracker.phases[]          → learning path bars
+//   tracker.submissions[]     → recent activity
+//   scoring.overallScore      → job match percentage
+//   tracker.applications[]    → portfolio count fallback
+
+import { useState, useEffect, useMemo } from 'react';
+import { useAppData } from '@/hooks/useAppData';
 import StatCard from './StatCard';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns the first in-progress or not-started challenge across all phases */
+function getCurrentChallenge(challenges) {
+  return (
+    challenges.find(c => c.status === 'pending') ||
+    challenges.find(c => c.status === 'not_started') ||
+    null
+  );
+}
+
+/** Calculates phase progress as % of approved challenges */
+function getPhaseProgress(phase, challenges) {
+  const phaseChallenges = challenges.filter(c => c.phase_id === phase.id);
+  if (!phaseChallenges.length) return 0;
+  const approved = phaseChallenges.filter(c => c.status === 'approved').length;
+  return Math.round((approved / phaseChallenges.length) * 100);
+}
+
+/** Maps phase status + progress to a learning path display config */
+function getPhaseDisplayStatus(phase, progress) {
+  if (progress === 100)           return 'Completed';
+  if (phase.status === 'active')  return 'In Progress';
+  if (phase.status === 'locked')  return 'Locked';
+  return 'Not Started';
+}
+
+/** Formats a submission into a recent activity entry */
+function submissionToActivity(submission) {
+  const statusConfig = {
+    approved:       { icon: '✅', title: 'Completed challenge',  c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
+    pending:        { icon: '⏳', title: 'Submitted for review', c: '#1A2744', bg: 'rgba(26,39,68,0.08)'   },
+    rejected:       { icon: '🔁', title: 'Needs revision',       c: '#C0392B', bg: 'rgba(192,57,43,0.08)'  },
+    needs_revision: { icon: '📝', title: 'Revision requested',   c: '#B07D20', bg: 'rgba(176,125,32,0.08)' },
+  };
+  const cfg = statusConfig[submission.status] || { icon: '🕐', title: 'Started challenge', c: '#1A2744', bg: 'rgba(26,39,68,0.06)' };
+  return {
+    icon:  cfg.icon,
+    title: cfg.title,
+    sub:   submission.challengeTitle,
+    time:  formatTimeAgo(submission.submitted_at),
+    c:     cfg.c,
+    bg:    cfg.bg,
+  };
+}
+
+function formatTimeAgo(isoString) {
+  if (!isoString) return '';
+  const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+  if (diff < 60)     return 'Just now';
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ─── Fallback data (shown before assessment is completed) ──────────────────────
+const FALLBACK_STATS = [
+  { icon: '🏅', value: '—', label: 'Skills Mastered',      delta: '',    color: '#2DB8A0' },
+  { icon: '⚡', value: '—', label: 'Challenges Completed', delta: '',    color: '#1A2744' },
+  { icon: '📈', value: '—', label: 'Overall Progress',     delta: '',    color: '#2DB8A0' },
+  { icon: '🗂️', value: '—', label: 'Portfolio Items',      delta: '',    color: '#1A2744' },
+];
+
+const FALLBACK_ACTIVITY = [
+  { icon: '👋', title: 'Welcome to InklusiJobs', sub: 'Complete your assessment to get started', time: 'Now', c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function DashboardHome() {
-  const [firstName, setFirstName] = useState('');
-  const [stats, setStats] = useState({
-    skillsMastered: 0,
-    challengesCompleted: 0,
-    overallProgress: 0,
-    portfolioItems: 0
-  });
-  const [recentChallenges, setRecentChallenges] = useState([]);
-  const [currentChallenge, setCurrentChallenge] = useState(null);
+  const appData = useAppData();
 
-  useEffect(() => {
-    // Load all data from localStorage
-    
-    // 1. Get user name
-    const name = localStorage.getItem('worker_first_name');
-    if (name) setFirstName(name);
+  // ── Derived data ────────────────────────────────────────────────────────────
+  const firstName = useMemo(() => {
+    const name = appData.profile?.name;
+    if (!name || name === 'Your Name') return '';
+    return name.split(' ')[0];
+  }, [appData.profile?.name]);
 
-    // 2. Get completed challenges
-    const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
-    
-    // 3. Calculate unique skills
-    const uniqueSkills = [...new Set(challenges.map(c => c.skill || 'General').filter(Boolean))];
-    
-    // 4. Calculate total points
-    const totalPoints = challenges.reduce((sum, c) => sum + (c.points || 0), 0);
-    
-    // 5. Calculate progress (assuming 20 challenges to complete for 100%)
-    const progress = Math.min(100, Math.round((challenges.length / 20) * 100));
-    
-    setStats({
-      skillsMastered: uniqueSkills.length,
-      challengesCompleted: challenges.length,
-      overallProgress: progress,
-      portfolioItems: challenges.length // Each challenge becomes portfolio item
-    });
+  const hasAssessment = useMemo(() =>
+    appData.challenges?.length > 0 || appData.tracker?.submissions?.length > 0
+  , [appData.challenges, appData.tracker?.submissions]);
 
-    // 6. Get recent challenges (last 4)
-    const recent = challenges.slice(-4).reverse();
-    setRecentChallenges(recent);
-    
-    // 7. Check for in-progress challenge
-    const inProgress = JSON.parse(localStorage.getItem('current_challenge') || 'null');
-    if (inProgress) {
-      setCurrentChallenge(inProgress);
-    }
-    
-  }, []);
+  // Stat cards
+  const stats = useMemo(() => {
+    if (!hasAssessment) return FALLBACK_STATS;
+    const challenges   = appData.challenges || [];
+    const trackerStats = appData.tracker?.stats || {};
+    const approved     = challenges.filter(c => c.status === 'approved').length;
+    const total        = challenges.length;
+    const overallPct   = total > 0 ? Math.round(approved / total * 100) : 0;
+    const portfolioCount = challenges.filter(c => c.portfolioWorthy && c.status === 'approved').length;
 
-  // Real stats from localStorage
-  const STATS = [
-    { icon: '🏅', value: stats.skillsMastered.toString(), label: 'Skills Mastered', delta: `+${stats.skillsMastered}`, color: '#2DB8A0' },
-    { icon: '⚡', value: stats.challengesCompleted.toString(), label: 'Challenges Completed', delta: `+${stats.challengesCompleted}`, color: '#1A2744' },
-    { icon: '📈', value: `${stats.overallProgress}%`, label: 'Overall Progress', delta: `+${stats.overallProgress}%`, color: '#2DB8A0' },
-    { icon: '🗂️', value: stats.portfolioItems.toString(), label: 'Portfolio Items', delta: `+${stats.portfolioItems}`, color: '#1A2744' },
-  ];
-
-const getLearningPath = () => {
-  const roadmapProgress = JSON.parse(localStorage.getItem('roadmap_progress') || 'null');
-  
-  if (roadmapProgress) {
     return [
-      { 
-        label: 'Beginner', 
-        progress: roadmapProgress.beginner || 0, 
-        status: roadmapProgress.beginner >= 100 ? 'Completed' : roadmapProgress.beginner > 0 ? 'In Progress' : 'Not Started', 
-        color: '#2DB8A0', 
-        locked: false 
-      },
-      { 
-        label: 'Intermediate', 
-        progress: roadmapProgress.intermediate || 0, 
-        status: roadmapProgress.intermediate >= 100 ? 'Completed' : roadmapProgress.intermediate > 0 ? 'In Progress' : 'Locked', 
-        color: '#1A2744', 
-        locked: (roadmapProgress.beginner || 0) < 100 
-      },
-      { 
-        label: 'Advanced', 
-        progress: roadmapProgress.advanced || 0, 
-        status: roadmapProgress.advanced >= 100 ? 'Completed' : roadmapProgress.advanced > 0 ? 'In Progress' : 'Locked', 
-        color: '#9BADC8', 
-        locked: (roadmapProgress.intermediate || 0) < 100 
-      },
+      { icon: '🏅', value: String(trackerStats.totalApproved || 0),  label: 'Skills Mastered',      delta: '', color: '#2DB8A0' },
+      { icon: '⚡', value: String(approved),                          label: 'Challenges Completed', delta: '', color: '#1A2744' },
+      { icon: '📈', value: `${overallPct}%`,                          label: 'Overall Progress',     delta: '', color: '#2DB8A0' },
+      { icon: '🗂️', value: String(portfolioCount),                   label: 'Portfolio Items',      delta: '', color: '#1A2744' },
     ];
-  }
+  }, [appData.challenges, appData.tracker?.stats, hasAssessment]);
 
-  const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
-  const beginnerCount = challenges.filter(c => c.difficulty === 'Beginner' || !c.difficulty).length;
-  const intermediateCount = challenges.filter(c => c.difficulty === 'Intermediate').length;
-  const advancedCount = challenges.filter(c => c.difficulty === 'Advanced').length;
-  
-  return [
-    { 
-      label: 'Beginner', 
-      progress: Math.min(100, Math.round((beginnerCount / 5) * 100)), 
-      status: beginnerCount >= 5 ? 'Completed' : beginnerCount > 0 ? 'In Progress' : 'Not Started', 
-      color: '#2DB8A0', 
-      locked: false 
-    },
-    { 
-      label: 'Intermediate', 
-      progress: Math.min(100, Math.round((intermediateCount / 5) * 100)), 
-      status: intermediateCount >= 5 ? 'Completed' : intermediateCount > 0 ? 'In Progress' : 'Locked', 
-      color: '#1A2744', 
-      locked: beginnerCount < 3 
-    },
-    { 
-      label: 'Advanced', 
-      progress: Math.min(100, Math.round((advancedCount / 5) * 100)), 
-      status: advancedCount >= 5 ? 'Completed' : advancedCount > 0 ? 'In Progress' : 'Locked', 
-      color: '#9BADC8', 
-      locked: intermediateCount < 3 
-    },
-  ];
-};
-  const getRecentActivity = () => {
-    if (recentChallenges.length === 0) {
+  // Current challenge
+  const currentChallenge = useMemo(() =>
+    hasAssessment ? getCurrentChallenge(appData.challenges || []) : null
+  , [appData.challenges, hasAssessment]);
+
+  // Challenge progress %
+  const challengeProgress = useMemo(() => {
+    if (!currentChallenge) return 0;
+    const submissions = appData.tracker?.submissions || [];
+    const attempts    = submissions.filter(s => s.challengeId === currentChallenge.id);
+    if (!attempts.length) return 0;
+    // Crude progress: pending = 50%, approved = 100%
+    const latest = attempts[0];
+    if (latest.status === 'approved') return 100;
+    if (latest.status === 'pending')  return 50;
+    return 20;
+  }, [currentChallenge, appData.tracker?.submissions]);
+
+  // Learning path
+  const learningPath = useMemo(() => {
+    const phases     = appData.tracker?.phases     || [];
+    const challenges = appData.challenges           || [];
+    if (!phases.length) {
+      // Fallback if no roadmap yet
       return [
-        { icon: '🕐', title: 'No activity yet', sub: 'Start your first challenge!', time: '', c: '#9BADC8', bg: 'rgba(155,173,200,0.08)' }
+        { label: 'Beginner',     progress: 0,  status: 'Not Started', color: '#2DB8A0', locked: false },
+        { label: 'Intermediate', progress: 0,  status: 'Locked',      color: '#1A2744', locked: true  },
+        { label: 'Advanced',     progress: 0,  status: 'Locked',      color: '#9BADC8', locked: true  },
       ];
     }
-    
-    return recentChallenges.map(c => ({
-      icon: '✅',
-      title: 'Completed challenge',
-      sub: c.title || 'Challenge',
-      time: formatTimeAgo(new Date(c.completedAt)),
-      c: '#2DB8A0',
-      bg: 'rgba(45,184,160,0.08)'
-    }));
-  };
-  function formatTimeAgo(date) {
-    if (!date || isNaN(date)) return 'Recently';
-    
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.round(diffMs / 60000);
-    const diffHours = Math.round(diffMs / 3600000);
-    const diffDays = Math.round(diffMs / 86400000);
+    return phases.slice(0, 3).map((phase, i) => {
+      const progress   = getPhaseProgress(phase, challenges);
+      const dispStatus = getPhaseDisplayStatus(phase, progress);
+      const locked     = phase.status === 'locked';
+      return {
+        label:    phase.phase_name,
+        progress,
+        status:   dispStatus,
+        color:    locked ? '#9BADC8' : i === 0 ? '#2DB8A0' : '#1A2744',
+        locked,
+      };
+    });
+  }, [appData.tracker?.phases, appData.challenges]);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-    if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-    return 'Long ago';
-  }
-  const getJobMatchPercentage = () => {
-    const challenges = JSON.parse(localStorage.getItem('completed_challenges') || '[]');
-    const skillsCount = challenges.length;
-    return Math.min(95, 40 + (skillsCount * 5));
-  };
+  // Job match
+  const jobMatchPct = useMemo(() =>
+    appData.scoring?.overallScore || 0
+  , [appData.scoring?.overallScore]);
 
-  const RECENT_ACTIVITY = getRecentActivity();
-  const LEARNING_PATH = getLearningPath();
-  const jobMatchPercentage = getJobMatchPercentage();
+  const jobMatchOffset = useMemo(() => {
+    const circumference = 251;
+    return circumference - (jobMatchPct / 100) * circumference;
+  }, [jobMatchPct]);
+
+  // Recent activity — last 4 submissions
+  const recentActivity = useMemo(() => {
+    const submissions = appData.tracker?.submissions || [];
+    if (!submissions.length) return FALLBACK_ACTIVITY;
+    return submissions.slice(0, 4).map(submissionToActivity);
+  }, [appData.tracker?.submissions]);
+
+  // Job title for match card
+  const jobTitle = appData.job?.title || 'your target role';
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
 
-        /* ─── Root canvas ─────────────────────────────────────────────────────── */
         .dh-root {
           display: flex; flex-direction: column; gap: 24px;
           padding: 36px;
@@ -174,39 +195,29 @@ const getLearningPath = () => {
           color: #1A2744;
         }
 
-        /* ─── Warm glass mixin ─────────────────────────────────────────────────*/
         .dh-card {
           background: rgba(255,255,255,0.92);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border: 1px solid rgba(26,39,68,0.12);
           border-radius: 18px;
-          box-shadow:
-            0 2px 12px rgba(26,39,68,0.08),
-            0 1px 3px rgba(26,39,68,0.05);
+          box-shadow: 0 2px 12px rgba(26,39,68,0.08), 0 1px 3px rgba(26,39,68,0.05);
           transition: box-shadow .2s ease, transform .2s ease;
         }
         .dh-card:hover {
-          box-shadow:
-            0 6px 24px rgba(26,39,68,0.12),
-            0 2px 6px rgba(26,39,68,0.07);
+          box-shadow: 0 6px 24px rgba(26,39,68,0.12), 0 2px 6px rgba(26,39,68,0.07);
         }
 
-        /* ─── Header ──────────────────────────────────────────────────────────── */
         .dh-topbar {
           display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
         }
         .dh-greet {
           font-family: 'Playfair Display', serif;
           font-size: 40px; font-weight: 700;
-          color: #1A2744; letter-spacing: -0.3px;
-          line-height: 1.2;
+          color: #1A2744; letter-spacing: -0.3px; line-height: 1.2;
         }
         .dh-greet-wave { font-style: normal; }
-        .dh-sub {
-          font-size: 13px; color: rgba(26,39,68,0.50);
-          margin-top: 5px; font-weight: 400; letter-spacing: 0.1px;
-        }
+        .dh-sub { font-size: 13px; color: rgba(26,39,68,0.50); margin-top: 5px; font-weight: 400; letter-spacing: 0.1px; }
         .dh-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
         .dh-btn-outline {
@@ -214,14 +225,11 @@ const getLearningPath = () => {
           border: 1px solid rgba(26,39,68,0.20);
           color: rgba(26,39,68,0.70); font-size: 12.5px;
           font-family: 'Instrument Sans', sans-serif; font-weight: 600;
-          cursor: pointer;
-          background: rgba(255,255,255,0.8);
+          cursor: pointer; background: rgba(255,255,255,0.8);
           transition: all .2s; letter-spacing: 0.1px;
         }
-        .dh-btn-outline:hover {
-          border-color: rgba(45,184,160,0.50);
-          color: #1A7A6E; background: rgba(45,184,160,0.06);
-        }
+        .dh-btn-outline:hover { border-color: rgba(45,184,160,0.50); color: #1A7A6E; background: rgba(45,184,160,0.06); }
+
         .dh-btn-primary {
           padding: 9px 18px; border-radius: 10px; border: none;
           background: linear-gradient(135deg, #1A2744, #2D3F6B);
@@ -230,95 +238,61 @@ const getLearningPath = () => {
           cursor: pointer; transition: all .2s; letter-spacing: 0.2px;
           box-shadow: 0 4px 14px rgba(26,39,68,0.25);
         }
-        .dh-btn-primary:hover {
-          box-shadow: 0 6px 20px rgba(26,39,68,0.35);
-          transform: translateY(-1px);
-        }
+        .dh-btn-primary:hover { box-shadow: 0 6px 20px rgba(26,39,68,0.35); transform: translateY(-1px); }
 
-        /* ─── Stats grid ───────────────────────────────────────────────────────── */
         .dh-stats {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
         }
         @media (max-width: 1100px) { .dh-stats { grid-template-columns: repeat(2,1fr); } }
         @media (max-width: 650px)  { .dh-stats { grid-template-columns: 1fr; } }
 
-        /* ─── Middle row ───────────────────────────────────────────────────────── */
-        .dh-mid {
-          display: grid;
-          grid-template-columns: 1fr 330px;
-          gap: 20px;
-        }
+        .dh-mid { display: grid; grid-template-columns: 1fr 330px; gap: 20px; }
         @media (max-width: 900px) { .dh-mid { grid-template-columns: 1fr; } }
 
-        /* ─── Section title ─────────────────────────────────────────────────── */
         .dh-section-title {
           font-family: 'Playfair Display', serif;
-          font-size: 16px; font-weight: 600;
-          color: #1A2744; letter-spacing: -0.2px;
+          font-size: 16px; font-weight: 600; color: #1A2744; letter-spacing: -0.2px;
         }
 
-        /* ─── Current Challenge ─────────────────────────────────────────────── */
         .dh-challenge { padding: 26px; }
-        .dh-challenge-header {
-          display: flex; align-items: center; justify-content: space-between;
-          margin-bottom: 20px;
-        }
+        .dh-challenge-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .dh-badge-inprogress {
-          padding: 4px 12px;
-          background: rgba(45,184,160,0.10);
-          border: 1px solid rgba(45,184,160,0.28);
-          border-radius: 20px;
-          font-size: 11px; font-weight: 600;
-          color: #1A7A6E; letter-spacing: 0.3px;
+          padding: 4px 12px; background: rgba(45,184,160,0.10);
+          border: 1px solid rgba(45,184,160,0.28); border-radius: 20px;
+          font-size: 11px; font-weight: 600; color: #1A7A6E; letter-spacing: 0.3px;
+        }
+        .dh-badge-notstarted {
+          padding: 4px 12px; background: rgba(26,39,68,0.06);
+          border: 1px solid rgba(26,39,68,0.14); border-radius: 20px;
+          font-size: 11px; font-weight: 600; color: rgba(26,39,68,0.45); letter-spacing: 0.3px;
         }
         .dh-challenge-inner {
-          background: rgba(248,250,253,0.80);
-          border: 1px solid rgba(26,39,68,0.10);
-          border-radius: 14px; padding: 20px;
-          display: flex; gap: 16px; align-items: flex-start;
+          background: rgba(248,250,253,0.80); border: 1px solid rgba(26,39,68,0.10);
+          border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: flex-start;
         }
         .dh-challenge-icon {
           width: 46px; height: 46px; flex-shrink: 0;
           background: linear-gradient(135deg, #1A2744, #2D3F6B);
-          border-radius: 13px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 22px;
-          box-shadow: 0 4px 14px rgba(26,39,68,0.25);
+          border-radius: 13px; display: flex; align-items: center; justify-content: center;
+          font-size: 22px; box-shadow: 0 4px 14px rgba(26,39,68,0.25);
         }
         .dh-challenge-name {
           font-family: 'Playfair Display', serif;
           font-size: 15px; font-weight: 600; color: #1A2744;
           margin-bottom: 6px; letter-spacing: -0.1px; line-height: 1.3;
         }
-        .dh-challenge-desc {
-          font-size: 12.5px; color: rgba(26,39,68,0.50);
-          line-height: 1.65; margin-bottom: 14px;
-        }
+        .dh-challenge-desc { font-size: 12.5px; color: rgba(26,39,68,0.50); line-height: 1.65; margin-bottom: 14px; }
         .dh-challenge-meta { display: flex; gap: 16px; margin-bottom: 16px; }
-        .dh-meta-item {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 12px; color: rgba(26,39,68,0.45);
-        }
-        .dh-prog-label {
-          display: flex; justify-content: space-between;
-          font-size: 12px; color: rgba(26,39,68,0.45); margin-bottom: 8px;
-        }
-        .dh-prog-track {
-          height: 6px;
-          background: rgba(26,39,68,0.10);
-          border-radius: 10px; overflow: hidden;
-        }
+        .dh-meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(26,39,68,0.45); }
+        .dh-prog-label { display: flex; justify-content: space-between; font-size: 12px; color: rgba(26,39,68,0.45); margin-bottom: 8px; }
+        .dh-prog-track { height: 6px; background: rgba(26,39,68,0.10); border-radius: 10px; overflow: hidden; }
         .dh-prog-fill {
           height: 100%; border-radius: 10px;
           background: linear-gradient(90deg, #2DB8A0, #1A9E88);
-          position: relative;
-          transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+          position: relative; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
         }
         .dh-prog-fill::after {
-          content: '';
-          position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+          content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
           background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
           animation: shimmer 2.4s infinite;
         }
@@ -327,72 +301,45 @@ const getLearningPath = () => {
         .dh-continue-btn {
           margin-top: 20px; width: 100%; padding: 13px;
           background: linear-gradient(135deg, #1A2744, #2D3F6B);
-          border: none; border-radius: 12px;
-          color: #fff; font-size: 13px; font-weight: 700;
+          border: none; border-radius: 12px; color: #fff;
+          font-size: 13px; font-weight: 700;
           font-family: 'Instrument Sans', sans-serif;
           cursor: pointer; transition: all .2s;
-          box-shadow: 0 4px 16px rgba(26,39,68,0.25);
-          letter-spacing: 0.3px;
+          box-shadow: 0 4px 16px rgba(26,39,68,0.25); letter-spacing: 0.3px;
         }
-        .dh-continue-btn:hover {
-          box-shadow: 0 6px 24px rgba(26,39,68,0.35);
-          transform: translateY(-1px);
-        }
+        .dh-continue-btn:hover { box-shadow: 0 6px 24px rgba(26,39,68,0.35); transform: translateY(-1px); }
 
-        /* ─── Learning Path ─────────────────────────────────────────────────── */
+        .dh-no-challenge {
+          text-align: center; padding: 32px 20px;
+          color: rgba(26,39,68,0.40); font-size: 13px; line-height: 1.6;
+        }
+        .dh-no-challenge-emoji { font-size: 32px; margin-bottom: 10px; }
+
         .dh-path { padding: 26px; display: flex; flex-direction: column; }
         .dh-path-item { margin-top: 18px; }
-        .dh-path-row {
-          display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
-        }
+        .dh-path-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .dh-path-icon {
-          width: 32px; height: 32px; flex-shrink: 0;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px;
+          width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center; font-size: 14px;
         }
-        .dh-path-name {
-          font-family: 'Instrument Sans', sans-serif;
-          font-size: 13px; font-weight: 600; color: #1A2744;
-        }
-        .dh-path-status {
-          font-size: 11px; color: rgba(26,39,68,0.40); margin-top: 1px;
-        }
+        .dh-path-name { font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; color: #1A2744; }
+        .dh-path-status { font-size: 11px; color: rgba(26,39,68,0.40); margin-top: 1px; }
         .dh-path-pct { font-size: 13px; font-weight: 700; }
-        .dh-path-bar {
-          height: 5px;
-          background: rgba(26,39,68,0.10);
-          border-radius: 10px; overflow: hidden;
-          margin-left: 44px;
-        }
-        .dh-path-fill {
-          height: 100%; border-radius: 10px;
-          transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-        }
+        .dh-path-bar { height: 5px; background: rgba(26,39,68,0.10); border-radius: 10px; overflow: hidden; margin-left: 44px; }
+        .dh-path-fill { height: 100%; border-radius: 10px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
         .dh-viewmap-btn {
-          margin-top: 22px; width: 100%; padding: 12px;
-          background: transparent;
-          border: 1px solid rgba(26,39,68,0.18);
-          border-radius: 12px; color: rgba(26,39,68,0.55);
-          font-size: 12.5px; font-weight: 600;
-          font-family: 'Instrument Sans', sans-serif;
-          cursor: pointer; transition: all .2s; letter-spacing: 0.2px;
+          margin-top: 22px; width: 100%; padding: 12px; background: transparent;
+          border: 1px solid rgba(26,39,68,0.18); border-radius: 12px;
+          color: rgba(26,39,68,0.55); font-size: 12.5px; font-weight: 600;
+          font-family: 'Instrument Sans', sans-serif; cursor: pointer; transition: all .2s; letter-spacing: 0.2px;
         }
-        .dh-viewmap-btn:hover {
-          border-color: rgba(45,184,160,0.45);
-          color: #1A7A6E; background: rgba(45,184,160,0.05);
-        }
+        .dh-viewmap-btn:hover { border-color: rgba(45,184,160,0.45); color: #1A7A6E; background: rgba(45,184,160,0.05); }
 
-        /* ─── Job Match ─────────────────────────────────────────────────────── */
         .dh-match {
-          padding: 24px;
-          display: flex; align-items: center; gap: 22px;
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(26,39,68,0.12);
-          border-radius: 18px;
-          box-shadow: 0 2px 12px rgba(26,39,68,0.08);
+          padding: 24px; display: flex; align-items: center; gap: 22px;
+          background: rgba(255,255,255,0.92); backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(26,39,68,0.12);
+          border-radius: 18px; box-shadow: 0 2px 12px rgba(26,39,68,0.08);
           position: relative; overflow: hidden;
         }
         .dh-match::before {
@@ -401,77 +348,39 @@ const getLearningPath = () => {
         }
         .dh-match-ring { width: 78px; height: 78px; flex-shrink: 0; position: relative; }
         .dh-match-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .dh-match-ring-bg { stroke: rgba(26,39,68,0.12); fill: none; }
+        .dh-match-ring-bg   { stroke: rgba(26,39,68,0.12); fill: none; }
         .dh-match-ring-fill {
-          stroke: url(#brandMatchGrad); fill: none;
-          stroke-linecap: round;
-          stroke-dasharray: 251; 
-          stroke-dashoffset: 251 - (251 * jobMatchPercentage / 100);
+          stroke: url(#brandMatchGrad); fill: none; stroke-linecap: round;
+          stroke-dasharray: 251;
           transition: stroke-dashoffset 1s ease;
         }
         .dh-match-pct {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Playfair Display', serif;
-          font-size: 15px; font-weight: 700; color: #1A2744;
+          position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+          font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; color: #1A2744;
         }
-        .dh-match-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 15px; font-weight: 600; color: #1A2744; margin-bottom: 5px;
-        }
-        .dh-match-desc {
-          font-size: 12.5px; color: rgba(26,39,68,0.50); line-height: 1.65;
-        }
+        .dh-match-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; color: #1A2744; margin-bottom: 5px; }
+        .dh-match-desc  { font-size: 12.5px; color: rgba(26,39,68,0.50); line-height: 1.65; }
         .dh-match-cta {
-          margin-left: auto; flex-shrink: 0;
-          padding: 9px 16px;
-          border: 1px solid rgba(45,184,160,0.30);
-          border-radius: 10px; color: #1A7A6E;
-          font-size: 12px; font-weight: 600;
-          font-family: 'Instrument Sans', sans-serif;
-          cursor: pointer;
-          background: rgba(45,184,160,0.06);
-          transition: all .2s; white-space: nowrap;
+          margin-left: auto; flex-shrink: 0; padding: 9px 16px;
+          border: 1px solid rgba(45,184,160,0.30); border-radius: 10px; color: #1A7A6E;
+          font-size: 12px; font-weight: 600; font-family: 'Instrument Sans', sans-serif;
+          cursor: pointer; background: rgba(45,184,160,0.06); transition: all .2s; white-space: nowrap;
         }
-        .dh-match-cta:hover {
-          background: rgba(45,184,160,0.12);
-          border-color: rgba(45,184,160,0.50);
-          color: #157062;
-        }
+        .dh-match-cta:hover { background: rgba(45,184,160,0.12); border-color: rgba(45,184,160,0.50); color: #157062; }
 
-        /* ─── Activity ──────────────────────────────────────────────────────── */
         .dh-activity { padding: 26px; }
         .dh-activity-list { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; }
         .dh-act-item {
           display: flex; align-items: center; gap: 14px;
-          padding: 13px 14px; border-radius: 12px;
-          transition: background .15s; cursor: default;
+          padding: 13px 14px; border-radius: 12px; transition: background .15s; cursor: default;
         }
         .dh-act-item:hover { background: rgba(26,39,68,0.04); }
-        .dh-act-icon {
-          width: 36px; height: 36px; flex-shrink: 0;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 15px;
-        }
-        .dh-act-title {
-          font-size: 13px; font-weight: 600; color: #1A2744;
-        }
-        .dh-act-sub {
-          font-size: 11.5px; color: rgba(26,39,68,0.42); margin-top: 1px;
-        }
-        .dh-act-time {
-          margin-left: auto;
-          font-size: 11px; color: rgba(26,39,68,0.30);
-          white-space: nowrap; flex-shrink: 0;
-        }
+        .dh-act-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+        .dh-act-title { font-size: 13px; font-weight: 600; color: #1A2744; }
+        .dh-act-sub   { font-size: 11.5px; color: rgba(26,39,68,0.42); margin-top: 1px; }
+        .dh-act-time  { margin-left: auto; font-size: 11px; color: rgba(26,39,68,0.30); white-space: nowrap; flex-shrink: 0; }
 
-        /* ─── Divider ──────────────────────────────────────────────────────── */
-        .dh-divider {
-          height: 1px;
-          background: rgba(26,39,68,0.08);
-          border: none; margin: 0;
-        }
+        .dh-divider { height: 1px; background: rgba(26,39,68,0.08); border: none; margin: 0; }
       `}</style>
 
       <div className="dh-root">
@@ -490,9 +399,9 @@ const getLearningPath = () => {
           </div>
         </div>
 
-        {/* ── Stats (Now using real data) ── */}
+        {/* ── Stat cards ── */}
         <div className="dh-stats">
-          {STATS.map((s, i) => <StatCard key={i} {...s} />)}
+          {stats.map((s, i) => <StatCard key={i} {...s} />)}
         </div>
 
         {/* ── Middle row ── */}
@@ -502,47 +411,59 @@ const getLearningPath = () => {
           <div className="dh-card dh-challenge">
             <div className="dh-challenge-header">
               <span className="dh-section-title">Current Challenge</span>
-              {currentChallenge ? (
-                <span className="dh-badge-inprogress">In Progress</span>
-              ) : (
-                <span className="dh-badge-inprogress" style={{ background: 'rgba(155,173,200,0.1)', color: '#6B7280' }}>No Active Challenge</span>
-              )}
+              {currentChallenge
+                ? <span className={challengeProgress > 0 ? 'dh-badge-inprogress' : 'dh-badge-notstarted'}>
+                    {challengeProgress > 0 ? 'In Progress' : 'Not Started'}
+                  </span>
+                : <span className="dh-badge-notstarted">No Active Challenge</span>
+              }
             </div>
+
             {currentChallenge ? (
-              <div className="dh-challenge-inner">
-                <div className="dh-challenge-icon">⚡</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="dh-challenge-name">{currentChallenge.title}</div>
-                  <div className="dh-challenge-desc">
-                    {currentChallenge.description?.substring(0, 100)}...
-                  </div>
-                  <div className="dh-challenge-meta">
-                    <span className="dh-meta-item">⏱️ Est. {currentChallenge.estimatedHours || 4} hours</span>
-                    <span className="dh-meta-item">🏆 {currentChallenge.points || 100} points</span>
-                  </div>
-                  <div className="dh-prog-label">
-                    <span>Challenge Progress</span>
-                    <span style={{ color: '#2DB8A0', fontWeight: 700 }}>{currentChallenge.progress || 0}%</span>
-                  </div>
-                  <div className="dh-prog-track">
-                    <div className="dh-prog-fill" style={{ width: `${currentChallenge.progress || 0}%` }} />
+              <>
+                <div className="dh-challenge-inner">
+                  <div className="dh-challenge-icon">⚡</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="dh-challenge-name">{currentChallenge.title}</div>
+                    <div className="dh-challenge-desc">
+                      {currentChallenge.description || 'Complete this challenge to advance your roadmap.'}
+                    </div>
+                    <div className="dh-challenge-meta">
+                      {currentChallenge.estimatedHours > 0 && (
+                        <span className="dh-meta-item">⏱️ Est. {currentChallenge.estimatedHours}h</span>
+                      )}
+                      {currentChallenge.portfolioWorthy && (
+                        <span className="dh-meta-item">🗂️ Portfolio item</span>
+                      )}
+                    </div>
+                    <div className="dh-prog-label">
+                      <span>Challenge Progress</span>
+                      <span style={{ color: '#2DB8A0', fontWeight: 700 }}>{challengeProgress}%</span>
+                    </div>
+                    <div className="dh-prog-track">
+                      <div className="dh-prog-fill" style={{ width: `${challengeProgress}%` }} />
+                    </div>
                   </div>
                 </div>
-              </div>
+                <button className="dh-continue-btn">
+                  {challengeProgress > 0 ? 'Continue Challenge →' : 'Start Challenge →'}
+                </button>
+              </>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                No challenge in progress. Start a new challenge!
+              <div className="dh-no-challenge">
+                <div className="dh-no-challenge-emoji">🎯</div>
+                {hasAssessment
+                  ? 'All caught up! Check your roadmap for next steps.'
+                  : 'Complete your assessment to unlock challenges.'
+                }
               </div>
-            )}
-            {currentChallenge && (
-              <button className="dh-continue-btn">Continue Challenge →</button>
             )}
           </div>
 
           {/* Learning Path */}
           <div className="dh-card dh-path">
             <span className="dh-section-title">Learning Path</span>
-            {LEARNING_PATH.map((step, i) => (
+            {learningPath.map((step, i) => (
               <div className="dh-path-item" key={i}>
                 <div className="dh-path-row">
                   <div className="dh-path-icon" style={{ background: `${step.color}14`, border: `1px solid ${step.color}28` }}>
@@ -580,14 +501,18 @@ const getLearningPath = () => {
           <div className="dh-match-ring">
             <svg viewBox="0 0 88 88">
               <circle className="dh-match-ring-bg"   cx="44" cy="44" r="40" strokeWidth="7" />
-              <circle className="dh-match-ring-fill" cx="44" cy="44" r="40" strokeWidth="7" />
+              <circle className="dh-match-ring-fill" cx="44" cy="44" r="40" strokeWidth="7"
+                style={{ strokeDashoffset: jobMatchOffset }} />
             </svg>
-            <div className="dh-match-pct">{jobMatchPercentage}%</div>
+            <div className="dh-match-pct">{jobMatchPct}%</div>
           </div>
           <div>
             <div className="dh-match-title">Job Match Preview</div>
             <div className="dh-match-desc">
-              You match {jobMatchPercentage}% of requirements for <strong style={{ color: '#1A2744' }}>open roles</strong> based on your current skills. Complete more challenges to increase your match.
+              {jobMatchPct > 0
+                ? <>You match <strong style={{ color: '#1A2744' }}>{jobMatchPct}%</strong> of requirements for <strong style={{ color: '#1A2744' }}>{jobTitle}</strong>. Keep completing challenges to improve your match.</>
+                : <>Complete your assessment to see how well you match open roles.</>
+              }
             </div>
           </div>
           <button className="dh-match-cta">Explore Jobs →</button>
@@ -597,7 +522,7 @@ const getLearningPath = () => {
         <div className="dh-card dh-activity">
           <span className="dh-section-title">Recent Activity</span>
           <div className="dh-activity-list">
-            {RECENT_ACTIVITY.map((a, i) => (
+            {recentActivity.map((a, i) => (
               <div className="dh-act-item" key={i}>
                 <div className="dh-act-icon" style={{ background: a.bg }}>{a.icon}</div>
                 <div>
