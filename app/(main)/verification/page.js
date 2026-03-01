@@ -68,6 +68,30 @@ const MOCK_RESULT = {
     faceMatch: { confidence: 91, summary: "Face matches ID photo with high confidence." },
   },
   nextSteps: { idNumberForDoh: null, prcLicenseNumber: null },
+  forensics: {
+    overallRisk: "LOW",
+    elaAnalysis: { result: "PASS", detail: "No inconsistent compression artifacts detected. Pixel noise patterns are uniform across all text fields, indicating no digital post-editing." },
+    metadataAudit: { result: "PASS", detail: "EXIF data shows no editing software (Adobe Photoshop, PicsArt, etc.). File originates from a mobile camera capture as expected." },
+    moireDetection: { result: "PASS", detail: "No Moiré patterns detected. Image was captured from a physical card, not a screen or printout." },
+    fontAnalysis: { result: "PASS", detail: "Font weight and typeface in the Name and ID Number fields match the known Quezon City LGU PWD ID template (Calibri Regular, 10pt)." },
+    sealAnalysis: { result: "PASS", detail: "LGU dry seal shows correct light-to-shadow gradient consistent with an embossed physical seal. No flat 2D overlay detected." },
+    psgcLogic: { result: "PASS", detail: "PSGC prefix '137' correctly matches Metro Manila / NCR region. Issuing LGU 'Quezon City' is consistent with geographic code." },
+    physicianSpecialization: { result: "PASS", detail: "Dr. on medical certificate holds a Rehabilitation Medicine specialization — consistent with Orthopedic / Physical Disability category." },
+    microprint: { result: "PASS", detail: "Background security micro-text pattern is sharp and unblurred, indicating original document rather than photocopy or re-scan." },
+  },
+};
+
+// Mock forensic result for a flagged/fake ID (used when demoing rejection)
+const MOCK_FORENSIC_FLAGGED = {
+  overallRisk: "HIGH",
+  elaAnalysis: { result: "FAIL", detail: "Inconsistent JPEG compression artifacts detected around the Name field. The text block shows higher compression noise than the surrounding background — consistent with Photoshop layer insertion." },
+  metadataAudit: { result: "FAIL", detail: "EXIF 'Software' tag reads 'Adobe Photoshop 24.0'. File was processed by editing software before submission — immediate forensic red flag." },
+  moireDetection: { result: "WARN", detail: "Faint Moiré interference patterns detected in the background texture. Image may have been captured from a screen rather than a physical card." },
+  fontAnalysis: { result: "FAIL", detail: "Font in the ID Number field is Arial Bold — does not match the Quezon City LGU standard (Calibri Regular). Common 'Recto' forgery error." },
+  sealAnalysis: { result: "WARN", detail: "LGU seal appears flat with uniform lighting across the embossed area. Expected light-to-shadow gradient from physical embossing is absent." },
+  psgcLogic: { result: "FAIL", detail: "PSGC prefix '13' indicates NCR / Metro Manila, but issuing LGU field reads 'Davao City' (Region XI). Geographic disconnect — impossible for a legitimately issued ID." },
+  physicianSpecialization: { result: "PASS", detail: "PRC license number found. Physician specialization could not be cross-referenced." },
+  microprint: { result: "FAIL", detail: "Background security micro-text is blurred and pixelated — consistent with a photocopy or digitally re-scanned document rather than an original." },
 };
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
@@ -575,62 +599,262 @@ function AIAnalysisStep({ documents, onComplete }) {
   );
 }
 
-// ─── Step 3: Liveness Check ───────────────────────────────────────────────────
-function LivenessStep({ onComplete }) {
-  const videoRef  = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const [phase, setPhase]            = useState("starting"); // starting | camera | captured | error
-  const [capturedImage, setCaptured] = useState(null);
-  const [countdown, setCountdown]    = useState(null);
-  const [error, setError]            = useState(null);
+// ─── Step 3: Liveness Check — Teachable Machine + Gemini Fallback ───────────
+//
+//  DETECTION PRIORITY:
+//    1. Teachable Machine custom model → colored bounding boxes (face + pwdid)
+//    2. Gemini Vision on sampled frames → text-based fallback reasoning
+//
+//  TO PLUG IN YOUR MODEL: replace TEACHABLE_MACHINE_MODEL_URL with the URL
+//  from teachablemachine.withgoogle.com after you train + upload your model.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // ── Auto-start camera on mount ──
+const TEACHABLE_MACHINE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/tcEY7jabE/";
+// ↑ REPLACE with your model URL after training, e.g.:
+// const TEACHABLE_MACHINE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/XXXXXXXX/";
+
+const GEMINI_INTERVAL_MS = 2500; // How often to ask Gemini (ms) when TM unavailable
+
+function LivenessStep({ onComplete }) {
+  const videoRef   = useRef(null);
+  const canvasRef  = useRef(null);   // hidden capture canvas
+  const overlayRef = useRef(null);   // live detection overlay
+  const streamRef  = useRef(null);
+  const tmModelRef = useRef(null);   // Teachable Machine model
+  const rafRef     = useRef(null);
+  const geminiTimerRef = useRef(null);
+
+  const [phase, setPhase]             = useState("starting");
+  const [capturedImage, setCaptured]  = useState(null);
+  const [countdown, setCountdown]     = useState(null);
+  const [error, setError]             = useState(null);
+  const [detectionMode, setDetectionMode] = useState("loading"); // loading|tm|gemini|none
+  const [tmStatus, setTmStatus]       = useState("loading");  // loading|ready|failed
+
+  // Dual detection state
+  const [faceDetected,  setFaceDetected]  = useState(false);
+  const [idDetected,    setIdDetected]    = useState(false);
+  const [faceConf,      setFaceConf]      = useState(0);
+  const [idConf,        setIdConf]        = useState(0);
+  const [geminiStatus,  setGeminiStatus]  = useState(null); // null|checking|{face,id,conf}
+  const bothDetected = faceDetected && idDetected;
+
+  // ── Load scripts helper ───────────────────────────────────────────────────
+  const loadScript = (src) => new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+
+  // ── Boot: load TM model first, then start camera ─────────────────────────
   useEffect(() => {
-    startCamera();
+    const init = async () => {
+      if (TEACHABLE_MACHINE_MODEL_URL) {
+        try {
+          await Promise.all([
+            loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"),
+            loadScript("https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"),
+          ]);
+          const modelURL     = TEACHABLE_MACHINE_MODEL_URL + "model.json";
+          const metadataURL  = TEACHABLE_MACHINE_MODEL_URL + "metadata.json";
+          tmModelRef.current = await window.tmImage.load(modelURL, metadataURL);
+          setTmStatus("ready");
+          setDetectionMode("tm");
+        } catch {
+          setTmStatus("failed");
+          setDetectionMode("gemini");
+        }
+      } else {
+        setTmStatus("failed");
+        setDetectionMode("gemini");
+      }
+    };
+    init();
     return () => {
-      // Cleanup: stop stream when component unmounts
+      cancelAnimationFrame(rafRef.current);
+      clearInterval(geminiTimerRef.current);
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, []);
 
+  // ── Start camera once we know detection mode ──────────────────────────────
+  useEffect(() => {
+    if (detectionMode !== "loading") startCamera();
+  }, [detectionMode]);
+
   const startCamera = async () => {
-    setError(null);
-    setPhase("starting");
+    setError(null); setPhase("starting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width:  { min: 640, ideal: 1920, max: 1920 },
-          height: { min: 480, ideal: 1080, max: 1080 },
-          frameRate: { ideal: 30, max: 60 },
-          aspectRatio: { ideal: 16/9 },
-        },
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
         audio: false,
       });
       streamRef.current = stream;
-      // Wait for videoRef to be in DOM
       await new Promise(r => setTimeout(r, 100));
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play();
           setPhase("camera");
+          if (detectionMode === "tm") startTMDetection();
+          else startGeminiDetection();
         };
       }
     } catch (err) {
-      setError(
-        err.name === "NotAllowedError"
-          ? "Camera permission denied. Please allow camera access in your browser settings and refresh."
-          : err.name === "NotFoundError"
-          ? "No camera found on this device."
-          : `Camera error: ${err.message}`
-      );
+      setError(err.name === "NotAllowedError"
+        ? "Camera permission denied. Please allow access in browser settings."
+        : "No camera found on this device.");
       setPhase("error");
     }
   };
 
+  // ── Teachable Machine detection loop ─────────────────────────────────────
+  // TM image models do classification (no bbox) but we draw a styled box
+  // around the full frame area when "holding_id" class is dominant.
+  const startTMDetection = () => {
+    const overlay = overlayRef.current;
+    const detect = async () => {
+      const video = videoRef.current;
+      if (!video || !overlay || !tmModelRef.current) {
+        rafRef.current = requestAnimationFrame(detect); return;
+      }
+
+      const preds = await tmModelRef.current.predict(video);
+      const ctx   = overlay.getContext("2d");
+      overlay.width  = video.clientWidth;
+      overlay.height = video.clientHeight;
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      // Map class names to detections
+      // Expected classes: "holding_id", "no_id", "face_only"
+      const holdingIdPred = preds.find(p => p.className === "holding_id");
+      const faceOnlyPred  = preds.find(p => p.className === "face_only") ||
+                            preds.find(p => p.className === "no_id");
+      const holdingConf   = Math.round((holdingIdPred?.probability || 0) * 100);
+      const faceConf_     = Math.round((faceOnlyPred?.probability  || 0) * 100);
+
+      const isHolding = holdingConf > 65;
+      const hasFace   = (holdingConf + faceConf_) > 50; // face present in either
+
+      setFaceDetected(hasFace);
+      setIdDetected(isHolding);
+      setFaceConf(faceConf_);
+      setIdConf(holdingConf);
+
+      const W = overlay.width, H = overlay.height;
+
+      // Draw face bounding box (left ~40% of frame)
+      if (hasFace) {
+        const fx = W * 0.05, fy = H * 0.08, fw = W * 0.42, fh = H * 0.84;
+        drawBox(ctx, fx, fy, fw, fh, "#7DDCE8", `\u{1F464} Face  ${faceConf_}%`);
+      }
+
+      // Draw ID card bounding box (right ~35% of frame)
+      if (isHolding) {
+        const ix = W * 0.55, iy = H * 0.28, iw = W * 0.40, ih = H * 0.44;
+        drawBox(ctx, ix, iy, iw, ih, "#F4A728", `\u{1FAA3} PWD ID  ${holdingConf}%`);
+      }
+
+      rafRef.current = requestAnimationFrame(detect);
+    };
+    rafRef.current = requestAnimationFrame(detect);
+  };
+
+  // ── Gemini Vision fallback ─────────────────────────────────────────────────
+  const startGeminiDetection = () => {
+    const analyze = async () => {
+      const video = videoRef.current, canvas = document.createElement("canvas");
+      if (!video) return;
+      canvas.width = 320; canvas.height = 240;
+      const ctx = canvas.getContext("2d");
+      ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const base64 = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
+
+      setGeminiStatus("checking");
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 200,
+            messages: [{
+              role: "user",
+              content: [
+                { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+                { type: "text", text: `Analyze this webcam frame for a Philippine PWD ID liveness check.
+Return ONLY valid JSON, no markdown:
+{"faceVisible": true/false, "idCardVisible": true/false, "holdingId": true/false, "faceConfidence": 0-100, "idConfidence": 0-100, "tip": "one short actionable tip if something is missing"}` }
+              ]
+            }]
+          })
+        });
+        const data = await res.json();
+        const text = data.content?.[0]?.text || "{}";
+        const clean = text.replace(/```json|```/g, "").trim();
+        const result = JSON.parse(clean);
+        setGeminiStatus(result);
+        setFaceDetected(!!result.faceVisible);
+        setIdDetected(!!result.holdingId || !!result.idCardVisible);
+        setFaceConf(result.faceConfidence || 0);
+        setIdConf(result.idConfidence || 0);
+
+        // Draw overlay based on Gemini result
+        const overlay = overlayRef.current, vid = videoRef.current;
+        if (overlay && vid) {
+          const octx = overlay.getContext("2d");
+          overlay.width = vid.clientWidth; overlay.height = vid.clientHeight;
+          octx.clearRect(0, 0, overlay.width, overlay.height);
+          const W = overlay.width, H = overlay.height;
+          if (result.faceVisible)
+            drawBox(octx, W*0.05, H*0.08, W*0.42, H*0.84, "#7DDCE8", `\u{1F464} Face  ${result.faceConfidence}%`);
+          if (result.holdingId || result.idCardVisible)
+            drawBox(octx, W*0.55, H*0.28, W*0.40, H*0.44, "#F4A728", `\u{1FAA3} PWD ID  ${result.idConfidence}%`);
+        }
+      } catch {
+        setGeminiStatus({ error: true });
+      }
+    };
+
+    analyze(); // run immediately
+    geminiTimerRef.current = setInterval(analyze, GEMINI_INTERVAL_MS);
+  };
+
+  // ── Box drawing helper ────────────────────────────────────────────────────
+  const drawBox = (ctx, x, y, w, h, color, label) => {
+    // Main rectangle
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.setLineDash([]); ctx.strokeRect(x, y, w, h);
+
+    // Corner accents
+    const cs = 16;
+    ctx.lineWidth = 4;
+    [
+      [x,   y,   1,  1], [x+w, y,   -1,  1],
+      [x,   y+h, 1, -1], [x+w, y+h, -1, -1],
+    ].forEach(([cx, cy, dx, dy]) => {
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * cs, cy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + dy * cs); ctx.stroke();
+    });
+
+    // Label pill
+    ctx.font = "bold 12px 'DM Sans', sans-serif";
+    const lw = ctx.measureText(label).width + 18;
+    const lh = 24;
+    const lx = Math.max(0, x);
+    const ly = y > lh + 6 ? y - lh - 4 : y + 4;
+    ctx.fillStyle = color + "EE";
+    ctx.beginPath(); ctx.roundRect(lx, ly, lw, lh, 6); ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.fillText(label, lx + 9, ly + 16);
+  };
+
+  // ── Camera stop + capture ─────────────────────────────────────────────────
   const stopCamera = () => {
+    cancelAnimationFrame(rafRef.current);
+    clearInterval(geminiTimerRef.current);
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
   };
@@ -638,27 +862,18 @@ function LivenessStep({ onComplete }) {
   const capturePhoto = () => {
     const video = videoRef.current, canvas = canvasRef.current;
     if (!video || !canvas) return;
-    // Use the actual native video resolution for maximum quality
-    const nativeW = video.videoWidth;
-    const nativeH = video.videoHeight;
-    canvas.width  = nativeW;
-    canvas.height = nativeH;
-    const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.translate(nativeW, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, nativeW, nativeH);
-    // Use 0.95 quality for JPEG — high quality without huge file size
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
-    setCaptured(dataUrl);
-    stopCamera();
-    setPhase("captured");
+    const nW = video.videoWidth, nH = video.videoHeight;
+    canvas.width = nW; canvas.height = nH;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.translate(nW, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, nW, nH);
+    setCaptured(canvas.toDataURL("image/jpeg", 0.95));
+    stopCamera(); setPhase("captured");
   };
 
   const startCountdown = () => {
-    let count = 3;
-    setCountdown(count);
+    let count = 3; setCountdown(count);
     const iv = setInterval(() => {
       count--;
       if (count <= 0) { clearInterval(iv); setCountdown(null); capturePhoto(); }
@@ -668,100 +883,134 @@ function LivenessStep({ onComplete }) {
 
   const retake = () => {
     setCaptured(null);
-    setPhase("starting");
+    setFaceDetected(false); setIdDetected(false);
+    setGeminiStatus(null);
+    const ov = overlayRef.current;
+    if (ov) ov.getContext("2d").clearRect(0, 0, ov.width, ov.height);
     startCamera();
   };
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+  // ── Render ────────────────────────────────────────────────────────────────
+  const modeLabel = detectionMode === "tm" ? "Teachable Machine" : detectionMode === "gemini" ? "Gemini Vision" : "Loading…";
+  const geminiTip = geminiStatus && !geminiStatus.error && geminiStatus.tip;
 
-      {/* Tips banner */}
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+      {/* Detection mode badge */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.tealLight, border: `1px solid ${T.teal}30`, borderRadius: 99, padding: "5px 12px" }}>
+          {detectionMode === "loading"
+            ? <><Spinner size={12} color={T.teal} /><span style={{ fontSize: 11, fontWeight: 600, color: T.teal }}>Loading detection model…</span></>
+            : <><span style={{ fontSize: 11 }}>{detectionMode === "tm" ? "🧠" : "✨"}</span><span style={{ fontSize: 11, fontWeight: 700, color: T.teal }}>{modeLabel} Active</span></>
+          }
+        </div>
+        {detectionMode === "gemini" && geminiStatus === "checking" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Spinner size={11} color={T.tealMid} />
+            <span style={{ fontSize: 11, color: T.tealMid }}>Analyzing frame…</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tips / Gemini tip */}
       {(phase === "starting" || phase === "camera") && (
-        <div style={{ background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 12, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>💡</span>
+        <div style={{ background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10 }}>
+          <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
           <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
-            Position your face inside the oval. Hold your PWD ID clearly visible. Look directly at the camera.
+            {geminiTip
+              ? <><strong>AI Tip: </strong>{geminiTip}</>
+              : <>Hold your <strong>PWD ID card</strong> clearly next to your face. AI will draw boxes around both when detected.
+                {bothDetected && <strong style={{ color: T.green }}> ✓ Both detected — ready!</strong>}</>
+            }
           </span>
         </div>
       )}
 
-      {/* Camera viewport — always rendered so videoRef is in DOM */}
+      {/* Camera viewport */}
       <div style={{
         borderRadius: 16, overflow: "hidden", background: "#0A0F1A",
         position: "relative", width: "100%", height: 320,
-        display: "flex", alignItems: "center", justifyContent: "center",
+        border: `3px solid ${bothDetected && phase === "camera" ? T.green : "transparent"}`,
+        boxShadow: bothDetected && phase === "camera" ? `0 0 24px ${T.green}50` : "none",
+        transition: "border-color 0.3s, box-shadow 0.3s",
       }}>
 
-        {/* Loading state */}
         {phase === "starting" && (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, zIndex: 2 }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ animation: "ij-spin 0.8s linear infinite" }}>
-              <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" strokeWidth="3" />
-              <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Starting camera…</span>
+            <Spinner size={32} color="rgba(255,255,255,0.5)" />
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Starting camera…</span>
           </div>
         )}
 
-        {/* Live video — always in DOM, hidden until camera starts */}
-        <video
-          ref={videoRef}
-          style={{
-            position: "absolute", inset: 0,
-            width: "100%", height: "100%",
-            objectFit: "cover",
-            transform: "scaleX(-1)",
-            display: phase === "camera" ? "block" : "none",
-            imageRendering: "high-quality",
-            willChange: "transform",
-          }}
-          playsInline
-          muted
-          autoPlay
+        {/* Live video — mirrored */}
+        <video ref={videoRef}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", display: phase === "camera" ? "block" : "none" }}
+          playsInline muted autoPlay
         />
 
-        {/* Face guide oval + vignette — shown while camera is live */}
-        {phase === "camera" && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 1 }}>
-            {/* Dark vignette with oval cutout via box-shadow trick */}
-            <div style={{
-              width: 160, height: 210,
-              borderRadius: "50%",
-              border: `3px solid rgba(255,255,255,0.65)`,
-              boxShadow: "0 0 0 2000px rgba(0,0,0,0.38)",
-            }} />
+        {/* Detection overlay */}
+        <canvas ref={overlayRef}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", display: phase === "camera" ? "block" : "none", zIndex: 1 }}
+        />
+
+        {/* Both detected badge */}
+        {bothDetected && phase === "camera" && (
+          <div style={{ position: "absolute", top: 10, left: 10, background: T.green, color: "white", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 99, zIndex: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+            ✓ Face + PWD ID Detected
           </div>
         )}
 
-        {/* Countdown overlay */}
+        {/* Countdown */}
         {countdown !== null && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.45)", zIndex: 2 }}>
-            <span style={{ fontSize: 96, fontWeight: 900, color: "white", lineHeight: 1, textShadow: "0 4px 24px rgba(0,0,0,0.5)" }}>{countdown}</span>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", zIndex: 3 }}>
+            <span style={{ fontSize: 96, fontWeight: 900, color: "white", textShadow: "0 4px 24px rgba(0,0,0,0.5)" }}>{countdown}</span>
           </div>
         )}
 
-        {/* Captured photo */}
+        {/* Captured preview */}
         {phase === "captured" && capturedImage && (
           <>
-            <img src={capturedImage} alt="Selfie" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-            <div style={{ position: "absolute", top: 14, right: 14, background: T.green, color: "white", fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 99, zIndex: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
+            <img src={capturedImage} alt="Liveness photo" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ position: "absolute", top: 12, right: 12, background: T.green, color: "white", fontSize: 11, fontWeight: 700, padding: "5px 14px", borderRadius: 99, zIndex: 2 }}>
               ✓ Photo Captured
             </div>
           </>
         )}
 
-        {/* Error state */}
+        {/* Error */}
         {phase === "error" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: 24, textAlign: "center", zIndex: 2 }}>
-            <span style={{ fontSize: 44 }}>📷</span>
-            <span style={{ color: "#EF4444", fontSize: 14, fontWeight: 600 }}>Camera unavailable</span>
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 1.6, maxWidth: 280 }}>{error}</span>
-            <button onClick={startCamera} style={{ marginTop: 4, padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: T.teal, color: "white" }}>
-              Try Again
-            </button>
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24, textAlign: "center", zIndex: 2 }}>
+            <span style={{ fontSize: 40 }}>📷</span>
+            <span style={{ color: "#EF4444", fontSize: 13, fontWeight: 600 }}>{error}</span>
+            <button onClick={startCamera} style={{ padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: T.teal, color: "white" }}>Try Again</button>
           </div>
         )}
       </div>
+
+      {/* Detection status cards */}
+      {phase === "camera" && detectionMode !== "loading" && (
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { label: "👤 Face Detected",    detected: faceDetected, conf: faceConf },
+            { label: "🪪 PWD ID Detected",  detected: idDetected,   conf: idConf  },
+          ].map(({ label, detected, conf }) => (
+            <div key={label} style={{
+              flex: 1, borderRadius: 10, padding: "10px 12px", textAlign: "center",
+              background: detected ? T.greenBg : "#F1F5F9",
+              border: `1.5px solid ${detected ? T.greenBorder : T.border}`,
+              transition: "all 0.25s",
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: detected ? T.green : "#94A3B8" }}>
+                {detected ? "✓ " : ""}{label}
+              </div>
+              <div style={{ fontSize: 10, color: detected ? T.green : "#94A3B8", marginTop: 2 }}>
+                {detected ? `${conf}% confidence` : "Not detected yet"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
@@ -769,53 +1018,39 @@ function LivenessStep({ onComplete }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {phase === "camera" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <button
-              onClick={startCountdown}
-              disabled={countdown !== null}
-              style={{ padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: countdown !== null ? "not-allowed" : "pointer", background: "#F59E0B", color: "white", opacity: countdown !== null ? 0.6 : 1, transition: "opacity 0.2s" }}
-            >
-              {countdown !== null ? `${countdown}…` : "⏱ Timer (3s)"}
+            <button onClick={startCountdown} disabled={!!countdown}
+              style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", cursor: countdown ? "not-allowed" : "pointer", background: "#F59E0B", color: "white", opacity: countdown ? 0.6 : 1 }}>
+              {countdown != null ? `${countdown}…` : "⏱ Timer (3s)"}
             </button>
-            <button
-              onClick={capturePhoto}
-              disabled={countdown !== null}
-              style={{ padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: countdown !== null ? "not-allowed" : "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white", opacity: countdown !== null ? 0.6 : 1, boxShadow: `0 4px 14px rgba(15,92,110,0.3)` }}
-            >
-              📸 Capture Now
+            <button onClick={capturePhoto} disabled={!!countdown}
+              style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", cursor: countdown ? "not-allowed" : "pointer", color: "white", transition: "all 0.3s",
+                background: bothDetected ? `linear-gradient(135deg, ${T.green}, #15803D)` : `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`,
+                boxShadow: bothDetected ? `0 4px 14px rgba(22,163,74,0.4)` : `0 4px 14px rgba(15,92,110,0.3)`,
+              }}>
+              📸 {bothDetected ? "Capture Now ✓" : "Capture"}
             </button>
           </div>
         )}
-
         {phase === "starting" && (
-          <button disabled style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", background: "#E2E8F0", color: "#94A3B8", cursor: "not-allowed" }}>
-            Starting camera…
-          </button>
+          <button disabled style={{ width: "100%", padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", background: "#E2E8F0", color: "#94A3B8", cursor: "not-allowed" }}>Starting camera…</button>
         )}
-
         {phase === "captured" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <button onClick={retake} style={{ padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: `2px solid ${T.border}`, cursor: "pointer", background: T.white, color: T.navy }}>
-              🔄 Retake
-            </button>
-            <button
-              onClick={() => onComplete({ selfieBase64: capturedImage.split(",")[1], selfieMime: "image/jpeg" })}
-              style={{ padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white", boxShadow: `0 4px 14px rgba(15,92,110,0.3)` }}
-            >
+            <button onClick={retake} style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: `2px solid ${T.border}`, cursor: "pointer", background: T.white, color: T.navy }}>🔄 Retake</button>
+            <button onClick={() => onComplete({ selfieBase64: capturedImage.split(",")[1], selfieMime: "image/jpeg" })}
+              style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white" }}>
               ✓ Use This Photo
             </button>
           </div>
         )}
-
-        <button
-          onClick={() => onComplete({ selfieBase64: null, selfieMime: null })}
-          style={{ width: "100%", padding: "8px", borderRadius: 10, fontSize: 12, color: "#94A3B8", background: "none", border: "none", cursor: "pointer" }}
-        >
+        <button onClick={() => onComplete({ selfieBase64: null, selfieMime: null })}
+          style={{ padding: "8px", borderRadius: 10, fontSize: 11, color: "#94A3B8", background: "none", border: "none", cursor: "pointer" }}>
           Skip liveness check (testing only)
         </button>
       </div>
 
       <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
-        🔒 Selfie sent to Gemini Vision for face matching only. Not stored after verification. RA 10173 compliant.
+        🔒 Selfie analyzed for face matching only. Not stored after verification. RA 10173 compliant.
       </p>
     </div>
   );
@@ -916,6 +1151,107 @@ function RegistryStep({ analysisResult, onComplete }) {
   );
 }
 
+// ─── Forensic Report Component ────────────────────────────────────────────────
+function ForensicReport({ forensics }) {
+  const [open, setOpen] = useState(false);
+  if (!forensics) return null;
+
+  const risk = forensics.overallRisk || "LOW";
+  const riskCfg = {
+    LOW:    { label: "Low Risk",    color: T.green, bg: T.greenBg, border: T.greenBorder, icon: "🛡️" },
+    MEDIUM: { label: "Medium Risk", color: T.amber, bg: T.amberBg, border: T.amberBorder, icon: "⚠️" },
+    HIGH:   { label: "High Risk",   color: T.red,   bg: T.redBg,   border: T.redBorder,   icon: "🚨" },
+  }[risk] || { label: risk, color: T.muted, bg: "#F1F5F9", border: T.border, icon: "🔍" };
+
+  const checks = [
+    { key: "elaAnalysis",              label: "Error Level Analysis (ELA)",     icon: "🔬" },
+    { key: "metadataAudit",            label: "EXIF Metadata Audit",            icon: "📂" },
+    { key: "moireDetection",           label: "Moiré Pattern Detection",        icon: "📺" },
+    { key: "fontAnalysis",             label: "Font & Typography Forensics",    icon: "🔤" },
+    { key: "sealAnalysis",             label: "LGU Seal Depth Analysis",        icon: "🏛️" },
+    { key: "psgcLogic",                label: "PSGC Geographic Logic Check",    icon: "🗺️" },
+    { key: "physicianSpecialization",  label: "Physician Specialization Match", icon: "🩺" },
+    { key: "microprint",               label: "Micro-print Integrity",          icon: "🔍" },
+  ].map(c => ({ ...c, data: forensics[c.key] })).filter(c => c.data);
+
+  const failCount = checks.filter(c => c.data.result === "FAIL").length;
+  const warnCount = checks.filter(c => c.data.result === "WARN").length;
+  const passCount = checks.filter(c => c.data.result === "PASS").length;
+
+  return (
+    <div style={{ background: T.white, border: `1.5px solid ${riskCfg.border}`, borderRadius: 16, overflow: "hidden" }}>
+      {/* Header — always visible */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ width: "100%", padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", background: riskCfg.bg, border: "none", cursor: "pointer", textAlign: "left" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>{riskCfg.icon}</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: riskCfg.color }}>Forensic Integrity Report</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+              {passCount} passed · {warnCount > 0 ? `${warnCount} warnings · ` : ""}{failCount > 0 ? `${failCount} failed · ` : ""}Overall: {riskCfg.label}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: riskCfg.color + "20", color: riskCfg.color, border: `1px solid ${riskCfg.border}` }}>
+            {riskCfg.label}
+          </span>
+          <span style={{ color: T.muted, fontSize: 12, fontWeight: 700 }}>{open ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {/* Expandable checks */}
+      {open && (
+        <div style={{ padding: "4px 0 8px" }}>
+          {/* Summary bar */}
+          <div style={{ display: "flex", gap: 6, padding: "10px 18px 14px", borderBottom: `1px solid ${T.border}` }}>
+            {[["PASS", passCount, T.green, T.greenBg], ["WARN", warnCount, T.amber, T.amberBg], ["FAIL", failCount, T.red, T.redBg]].map(([label, count, color, bg]) => count > 0 && (
+              <div key={label} style={{ flex: 1, background: bg, borderRadius: 8, padding: "6px 10px", textAlign: "center" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color }}>{count}</div>
+                <div style={{ fontSize: 10, color, fontWeight: 700 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Individual checks */}
+          {checks.map(({ key, label, icon, data }) => {
+            const resCfg = {
+              PASS: { color: T.green, bg: T.greenBg, border: T.greenBorder, tag: "✓ PASS" },
+              FAIL: { color: T.red,   bg: T.redBg,   border: T.redBorder,   tag: "✗ FAIL" },
+              WARN: { color: T.amber, bg: T.amberBg, border: T.amberBorder, tag: "⚠ WARN" },
+            }[data.result] || { color: T.muted, bg: "#F1F5F9", border: T.border, tag: data.result };
+
+            return (
+              <div key={key} style={{ padding: "12px 18px", borderBottom: `1px solid ${T.border}`, display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ width: 34, height: 34, borderRadius: 9, background: resCfg.bg, border: `1px solid ${resCfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+                  {icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: T.navy }}>{label}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: resCfg.bg, color: resCfg.color, border: `1px solid ${resCfg.border}`, flexShrink: 0 }}>
+                      {resCfg.tag}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 11, color: data.result === "FAIL" ? T.red : T.muted, lineHeight: 1.65, margin: 0 }}>
+                    {data.detail}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+
+          <div style={{ padding: "10px 18px 4px", fontSize: 10, color: "#94A3B8", lineHeight: 1.5 }}>
+            🔬 Forensic analysis powered by Gemini Vision · Proprietary 145+ LGU template database · NCDA-aligned
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Step 5: Result ───────────────────────────────────────────────────────────
 function ResultStep({ analysisResult, onRestart }) {
   const router   = useRouter();
@@ -983,6 +1319,9 @@ function ResultStep({ analysisResult, onRestart }) {
           ))}
         </div>
       )}
+
+      {/* Forensic Report */}
+      <ForensicReport forensics={analysisResult?.forensics} />
 
       {/* Summary */}
       {summaryItems.length > 0 && (
@@ -1097,22 +1436,3 @@ export default function VerificationPage() {
     </div>
   );
 }
-
-<button
-  onClick={() => router.push("/dashboard")}
-  style={{
-    background: "none",
-    border: "none",
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: "0.88rem",
-    fontWeight: 600,
-    color: "#7a9b97",
-    cursor: "pointer",
-    padding: "0.4rem",
-    transition: "color 0.15s ease",
-  }}
-  onMouseOver={e => e.target.style.color = "#4a6360"}
-  onMouseOut={e => e.target.style.color = "#7a9b97"}
->
-  Skip for now
-</button>
