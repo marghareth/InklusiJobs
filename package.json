@@ -10,22 +10,25 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.9.0",
-    "@supabase/auth-helpers-nextjs": "^0.8.7",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "dotenv": "^17.3.1",
-    "face-api.js": "^0.20.0",
     "firebase": "^12.10.0",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "ssr": "^7.0.5"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "eslint": "^10.0.2",
-    "eslint-config-next": "^0.2.4",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.1.6",
     "tailwindcss": "^4"
+  },
+  "overrides": {
+    "axios": "^1.7.0",
+    "http-proxy-middleware": "^3.0.0",
+    "rimraf": "^4.0.0",
+    "uuid": "^9.0.0"
   }
 }
