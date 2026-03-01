@@ -49,9 +49,8 @@ const ChipSelect = ({ options, selected, onToggle, max }) => (
     })}
   </div>
 );
-const Field = ({ label, required, children }) => <div style={{ marginBottom: 16 }}><Label required={required}>{label}</Label>{children}</div>;
-const Row = ({ children }) => <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{children}</div>;
 
+// ── Single definitions of Field and Row ───────────────────────────────────────
 const Field = ({ label, required, children }) => (
   <div style={{ marginBottom: 16 }}>
     <Label required={required}>{label}</Label>
@@ -229,7 +228,6 @@ export default function OnboardingPage() {
       const user = auth.currentUser;
       if (!user) { router.push("/"); return; }
 
-      // ✅ Save to localStorage so dashboard reads it immediately
       localStorage.setItem("worker_first_name", s1.firstName);
       localStorage.setItem("worker_last_name", s1.lastName);
       localStorage.setItem("worker_profile", JSON.stringify({
@@ -239,16 +237,13 @@ export default function OnboardingPage() {
         workPreference: s2, disability: s3, dashboardPrefs: s4,
       }));
 
-      // ✅ Save to Firestore so it persists across devices
       await saveProgress(user.uid, {
         role: "worker", onboarding_complete: true,
         basicInfo: s1, workPreference: s2, disability: s3, dashboardPrefs: s4,
         onboarded_at: new Date().toISOString(),
       });
 
-      // ✅ Set cookie so middleware lets them through
       document.cookie = "ij_onboarded=true; path=/; max-age=31536000";
-
       router.push("/job-select");
     } catch (err) {
       console.error("Failed to save onboarding:", err);
