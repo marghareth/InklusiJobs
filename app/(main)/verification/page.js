@@ -1097,3 +1097,22 @@ export default function VerificationPage() {
     </div>
   );
 }
+
+<button
+  onClick={() => router.push("/dashboard")}
+  style={{
+    background: "none",
+    border: "none",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: "0.88rem",
+    fontWeight: 600,
+    color: "#7a9b97",
+    cursor: "pointer",
+    padding: "0.4rem",
+    transition: "color 0.15s ease",
+  }}
+  onMouseOver={e => e.target.style.color = "#4a6360"}
+  onMouseOut={e => e.target.style.color = "#7a9b97"}
+>
+  Skip for now
+</button>
