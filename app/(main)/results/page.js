@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { storage } from '@/lib/storage';
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function loadResults() {
@@ -243,16 +245,22 @@ export default function ResultsPage() {
   const [results, setResults] = useState(null);
   const [revealed, setRevealed] = useState(false);
 
-  useEffect(() => {
-    const data = loadResults();
-    if (!data?.scoring) {
-      router.replace("/job-select");
-      return;
-    }
-    setResults(data);
-    const t = setTimeout(() => setRevealed(true), 100);
-    return () => clearTimeout(t);
-  }, [router]);
+  
+useEffect(() => {
+  const data = loadResults();
+  if (!data?.scoring) {
+    router.replace('/job-select');
+    return;
+  }
+
+  // ── NEW LINE: write to master storage so Tracker + Dashboard update ──────
+  storage.setFromAssessmentResult(data);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  setResults(data);
+  const t = setTimeout(() => setRevealed(true), 100);
+  return () => clearTimeout(t);
+}, [router]);
 
   if (!results) {
     return (
