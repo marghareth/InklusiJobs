@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { saveProgress } from "@/lib/progressHelpers";
+import { storage } from "@/lib/storage";
 import Image from "next/image";
 
 // ── Design tokens (matching employer onboarding) ──────────────────────────────
@@ -148,6 +149,28 @@ const TextInput = ({ placeholder, value, onChange, type = "text", min, max }) =>
   />
 );
 
+const Select = ({ options, value, onChange }) => (
+  <select value={value} onChange={onChange} style={{ ...inputBase, cursor: "pointer" }}
+    onFocus={e => e.target.style.borderColor = C.accent} onBlur={e => e.target.style.borderColor = C.border}>
+    {options.map(o => <option key={o} value={o}>{o}</option>)}
+  </select>
+);
+
+const ChipSelect = ({ options, selected, onToggle, max }) => (
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+    {options.map(opt => {
+      const active = selected.includes(opt);
+      const disabled = !active && max && selected.length >= max;
+      return <button key={opt} onClick={() => !disabled && onToggle(opt)} style={{ padding: "5px 11px", borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1.5px solid ${active ? C.accent : C.border}`, background: active ? C.light : C.card, color: active ? C.navy : C.muted, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.15s" }}>{opt}</button>;
+    })}
+  </div>
+);
+
+const Field = ({ label, required, children }) => (
+  <div style={{ marginBottom: 16 }}>
+    <Label required={required}>{label}</Label>
+    {children}
+  </div>
 const SelectInput = ({ options, value, onChange }) => (
   <select value={value} onChange={onChange}
     style={{ width: "100%", boxSizing: "border-box", padding: "14px 18px", borderRadius: 12,
@@ -695,42 +718,7 @@ const Step4 = ({ data, set }) => {
   );
 };
 
-// ── Complete screen ───────────────────────────────────────────────────────────
-const CompleteScreen = ({ firstName }) => (
-  <div style={{ display: "flex", minHeight: "100vh", fontFamily: "inherit" }}>
-    <Sidebar step={5} />
-    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-      background: T.bg, padding: "40px" }}>
-      <div style={{ width: "100%", maxWidth: 600, background: T.white, borderRadius: 24,
-        padding: "56px 48px", boxShadow: "0 8px 40px rgba(0,0,0,0.08)", textAlign: "center" }}>
-        <div style={{ width: 88, height: 88, borderRadius: "50%",
-          background: `linear-gradient(135deg, ${T.teal}, ${T.tealMid})`,
-          margin: "0 auto 32px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon d={ICONS.check} size={40} color="#fff" strokeWidth={2.5} />
-        </div>
-        <h2 style={{ fontSize: 28, fontWeight: 900, color: T.navy, margin: "0 0 14px", letterSpacing: "-0.5px" }}>
-          Your <strong style={{ color: T.teal }}>InklusiJobs profile</strong> is ready! 🎉
-        </h2>
-        <p style={{ fontSize: 16, color: T.muted, margin: "0 0 36px", lineHeight: 1.7 }}>
-          Welcome{firstName ? `, ${firstName}` : ""}! We&apos;re already finding <strong>inclusive job matches</strong> for you.
-        </p>
-        <a href="/job-select"
-          style={{ display: "inline-block", padding: "16px 44px", borderRadius: 14,
-            background: `linear-gradient(135deg, ${T.teal}, ${T.tealMid})`,
-            color: "#fff", fontSize: 16, fontWeight: 800, textDecoration: "none",
-            boxShadow: `0 8px 24px ${T.teal}55` }}>
-          Continue to Job Selection →
-        </a>
-        <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <Icon d={ICONS.checkCircle} size={18} color={T.success} />
-          <span style={{ fontSize: 14, color: T.success, fontWeight: 700 }}>Profile verified & ready for matching!</span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep]         = useState(1);
@@ -766,14 +754,52 @@ export default function OnboardingPage() {
       const user = auth.currentUser;
       if (!user) { router.push("/"); return; }
 
-      localStorage.setItem("worker_first_name", s1.firstName);
-      localStorage.setItem("worker_last_name", s1.lastName);
-      localStorage.setItem("worker_profile", JSON.stringify({
-        firstName: s1.firstName, lastName: s1.lastName, age: s1.age,
-        currentAddress: s1.currentAddress, contactNumber: s1.contactNumber,
-        educationalAttainment: s1.educationalAttainment,
-        workPreference: s2, disability: s3, dashboardPrefs: s4,
-      }));
+      // ── Write all onboarding data to the unified storage layer ──────────
+      const fullName = `${s1.firstName.trim()} ${s1.lastName.trim()}`.trim();
+      const initials = ((s1.firstName[0] || "") + (s1.lastName[0] || "")).toUpperCase() || "YN";
+
+      storage.update({
+        profile: {
+          name:                  fullName,
+          firstName:             s1.firstName.trim(),
+          lastName:              s1.lastName.trim(),
+          avatarInitials:        initials,
+          age:                   s1.age,
+          address:               s1.currentAddress,
+          permanentAddress:      s1.permanentAddress,
+          contactNumber:         s1.contactNumber,
+          educationalAttainment: s1.educationalAttainment,
+          // NOTE: profile.email is set by auth — not touched here
+        },
+        workPreference: {
+          workType:     s2.workType,
+          contractType: s2.contractType,
+          industry:     s2.industry,
+          salaryMin:    s2.salaryMin,
+          salaryMax:    s2.salaryMax,
+          skills:       s2.skills,
+          availability: s2.availability,
+          goals:        s2.goals,
+        },
+        disability: {
+          types:          s3.disabilityTypes,
+          primaryType:    s3.disabilityTypes[0] || "",
+          severity:       s3.severity,
+          pwdId:          s3.pwdId,
+          accommodations: s3.accommodations,
+          notes:          s3.disabilityNotes,
+          consentSharing: s3.consentSharing,
+        },
+        dashboardPrefs: {
+          theme:   s4.theme,
+          layout:  s4.layout,
+          widgets: s4.widgets,
+        },
+        onboarding: {
+          completedAt: new Date().toISOString(),
+        },
+      });
+      // ───────────────────────────────────────────────────────────────────
 
       await saveProgress(user.uid, {
         role: "worker", onboarding_complete: true,
@@ -796,17 +822,30 @@ export default function OnboardingPage() {
   const pct = (step / STEPS.length) * 100;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans','Arial',sans-serif", display: "flex" }}>
-      <Sidebar step={step} />
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Lexend','DM Sans',sans-serif", display: "flex" }}>
 
-      {/* Main content */}
-      <div ref={contentRef} style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-
-        {/* Top progress bar */}
-        <div style={{ height: 5, background: T.border, flexShrink: 0 }}>
-          <div style={{ height: "100%", width: `${pct}%`,
-            background: `linear-gradient(90deg, ${T.teal}, ${T.tealMid})`,
-            transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)" }} />
+      {/* Sidebar */}
+      <div style={{ width: 220, minWidth: 220, flexShrink: 0, background: `linear-gradient(180deg, ${C.navy} 0%, #1E2F55 100%)`, padding: "32px 20px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ fontSize: 16, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>InklusiJobs</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>Worker Setup</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          {STEPS.map((s, i) => {
+            const done = step > s.id, current = step === s.id;
+            return (
+              <div key={s.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: done ? C.success : current ? C.accent : "rgba(255,255,255,0.1)", border: `2px solid ${done ? C.success : current ? C.accent : "rgba(255,255,255,0.2)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#fff", transition: "all 0.25s" }}>{done ? "✓" : s.icon}</div>
+                  {i < STEPS.length - 1 && <div style={{ width: 2, height: 20, marginTop: 3, background: done ? C.success : "rgba(255,255,255,0.1)" }} />}
+                </div>
+                <div style={{ paddingTop: 4, marginBottom: i < STEPS.length - 1 ? 16 : 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: current ? 700 : 600, color: current ? "#fff" : done ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)", lineHeight: 1.2 }}>{s.label}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", marginTop: 2 }}>{s.desc}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Step header */}
@@ -832,55 +871,19 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* Sticky footer nav */}
-        <div style={{ position: "sticky", bottom: 0, background: T.white,
-          borderTop: `1px solid ${T.border}`, padding: "20px 56px",
-          display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-          <button onClick={() => handleStep(-1)} disabled={step === 1}
-            style={{ padding: "12px 24px", borderRadius: 12, border: `2px solid ${T.border}`,
-              background: T.white, color: step === 1 ? T.muted : T.bodyText,
-              fontSize: 15, fontWeight: 700, cursor: step === 1 ? "not-allowed" : "pointer",
-              opacity: step === 1 ? 0.4 : 1, fontFamily: "inherit" }}>
-            ‹ Back
-          </button>
-
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {step === 3 && (
-              <button onClick={() => handleStep(1)}
-                style={{ padding: "12px 24px", borderRadius: 12, border: `2px solid ${T.border}`,
-                  background: T.white, color: T.muted, fontSize: 15, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit" }}>
-                Skip ⏭
-              </button>
-            )}
-            {step < 4 ? (
-              <button onClick={() => handleStep(1)}
-                style={{ padding: "12px 28px", borderRadius: 12, border: "none",
-                  background: canNext() ? `linear-gradient(135deg, ${T.teal}, ${T.tealMid})` : T.border,
-                  color: canNext() ? "#fff" : T.muted,
-                  fontSize: 15, fontWeight: 800, cursor: canNext() ? "pointer" : "not-allowed",
-                  boxShadow: canNext() ? `0 6px 18px ${T.teal}44` : "none",
-                  transition: "all 0.2s", fontFamily: "inherit" }}>
-                Continue ›
-              </button>
-            ) : (
-              <button onClick={handleLaunch} disabled={saving}
-                style={{ padding: "12px 28px", borderRadius: 12, border: "none",
-                  background: saving ? T.border : `linear-gradient(135deg, ${T.teal}, ${T.tealMid})`,
-                  color: saving ? T.muted : "#fff", fontSize: 15, fontWeight: 800,
-                  cursor: saving ? "not-allowed" : "pointer",
-                  boxShadow: saving ? "none" : `0 6px 18px ${T.teal}44`, fontFamily: "inherit" }}>
-                {saving ? "Saving..." : "Launch Dashboard 🚀"}
-              </button>
-            )}
-          </div>
+        {/* Footer nav */}
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: C.card, flexShrink: 0 }}>
+          <button onClick={() => setStep(s => s - 1)} disabled={step === 1} style={{ padding: "9px 20px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.card, color: step === 1 ? C.muted : C.navy, fontSize: 13, fontWeight: 600, cursor: step === 1 ? "not-allowed" : "pointer", opacity: step === 1 ? 0.5 : 1 }}>← Back</button>
+          <div style={{ display: "flex", gap: 5 }}>{STEPS.map(s => <div key={s.id} style={{ width: step === s.id ? 18 : 5, height: 5, borderRadius: 99, background: step >= s.id ? C.accent : C.border, transition: "all 0.25s" }} />)}</div>
+          {step < 4
+            ? <button onClick={() => canNext() && setStep(s => s + 1)} disabled={!canNext()} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: canNext() ? `linear-gradient(135deg, ${C.accentDim}, #0D7377)` : C.border, color: canNext() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-needed", transition: "all 0.2s" }}>Continue →</button>
+            : <button onClick={handleLaunch} disabled={saving} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: saving ? C.border : `linear-gradient(135deg, ${C.success}, #15803D)`, color: saving ? C.muted : "#fff", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s" }}>{saving ? "Saving..." : "Continue to Job Selection →"}</button>
+          }
         </div>
 
+        {/* Inline error message */}
         {error && (
-          <div style={{ padding: "8px 56px", background: "#FEF2F2", color: T.error,
-            fontSize: 13, fontWeight: 600, borderTop: "1px solid #FECACA" }}>
-            {error}
-          </div>
+          <div style={{ textAlign: "center", padding: "8px 40px 14px", fontSize: 12, color: C.error }}>{error}</div>
         )}
       </div>
     </div>
