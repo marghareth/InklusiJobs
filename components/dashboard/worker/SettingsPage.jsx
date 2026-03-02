@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { storage } from '@/lib/storage';
+import { useAppData } from '@/hooks/useAppData';
 
 // ── Reusable Toggle ──────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }) {
@@ -66,7 +68,6 @@ function Section({ icon, title, children, danger }) {
   );
 }
 
-// ── Field label ───────────────────────────────────────────────────────────────
 function Label({ children }) {
   return (
     <label style={{
@@ -79,12 +80,10 @@ function Label({ children }) {
   );
 }
 
-// ── Divider ──────────────────────────────────────────────────────────────────
 function Divider() {
   return <div style={{ height: 1, background: 'rgba(26,39,68,0.08)', margin: '2px 0' }} />;
 }
 
-// ── Toggle row ────────────────────────────────────────────────────────────────
 function TRow({ label, sub, checked, onChange }) {
   return (
     <>
@@ -104,7 +103,6 @@ function TRow({ label, sub, checked, onChange }) {
   );
 }
 
-// ── Action row (security) ────────────────────────────────────────────────────
 function ARow({ label, sub, children }) {
   return (
     <>
@@ -123,7 +121,6 @@ function ARow({ label, sub, children }) {
   );
 }
 
-// ── Shared input style ────────────────────────────────────────────────────────
 const inp = {
   width: '100%', padding: '11px 14px',
   background: '#fff',
@@ -135,7 +132,6 @@ const inp = {
   transition: 'border-color .18s, box-shadow .18s',
 };
 
-// ── Button variants ───────────────────────────────────────────────────────────
 const Btn = {
   primary: {
     padding: '10px 22px', borderRadius: 10, border: 'none',
@@ -186,44 +182,103 @@ const Btn = {
 
 // ════════════════════════════════════════════════════════════════════════════
 export default function SettingsPage() {
+  useAppData(); // re-render on storage changes
 
-  // ── Profile state ──
-  const [firstName, setFirstName] = useState('Sarah');
-  const [lastName,  setLastName]  = useState('Johnson');
-  const [email,     setEmail]     = useState('sarah.johnson@email.com');
-  const [phone,     setPhone]     = useState('+1 (555) 234-5678');
-  const [bio,       setBio]       = useState('Full-stack developer passionate about creating intuitive user experiences and scalable backend systems.');
-  const [location,  setLocation]  = useState('San Francisco, CA');
-  const [website,   setWebsite]   = useState('https://sarahjohnson.dev');
+  // ── Load initial values from storage ──
+  const stored = storage.get();
+  const sp = stored.profile || {};
+  const sa = stored.accessibilityPrefs || {};
+  const spr = stored.preferences || {};
+  const sn = stored.notificationPrefs || {};
+
+  // ── Profile state (seeded from storage) ──
+  const [firstName, setFirstName] = useState(sp.firstName || sp.name?.split(' ')[0] || '');
+  const [lastName,  setLastName]  = useState(sp.lastName  || sp.name?.split(' ').slice(1).join(' ') || '');
+  const [email,     setEmail]     = useState(sp.email && sp.email !== 'your@email.com' ? sp.email : '');
+  const [phone,     setPhone]     = useState(sp.contactNumber || '');
+  const [bio,       setBio]       = useState(sp.bio || '');
+  const [location,  setLocation]  = useState(sp.address || '');
+  const [website,   setWebsite]   = useState(sp.website || '');
   const [saved,     setSaved]     = useState(false);
 
   // ── Accessibility ──
-  const [screenReader,  setScreenReader]  = useState(true);
-  const [highContrast,  setHighContrast]  = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [largeText,     setLargeText]     = useState(false);
-  const [keyboardHints, setKeyboardHints] = useState(true);
+  const [screenReader,  setScreenReader]  = useState(sa.screenReader  ?? true);
+  const [highContrast,  setHighContrast]  = useState(sa.highContrast  ?? false);
+  const [reducedMotion, setReducedMotion] = useState(sa.reducedMotion ?? false);
+  const [largeText,     setLargeText]     = useState(sa.largeText     ?? false);
+  const [keyboardHints, setKeyboardHints] = useState(sa.keyboardHints ?? true);
 
   // ── Preferences ──
-  const [language,    setLanguage]    = useState('en-US');
-  const [timezone,    setTimezone]    = useState('America/Los_Angeles');
-  const [showProfile, setShowProfile] = useState(true);
-  const [publicPort,  setPublicPort]  = useState(true);
+  const [language,    setLanguage]    = useState(spr.language    || 'en-US');
+  const [timezone,    setTimezone]    = useState(spr.timezone    || 'Asia/Manila');
+  const [showProfile, setShowProfile] = useState(spr.showProfile ?? true);
+  const [publicPort,  setPublicPort]  = useState(spr.publicPort  ?? true);
 
   // ── Notifications ──
-  const [nJobMatch,  setNJobMatch]  = useState(true);
-  const [nChallenge, setNChallenge] = useState(true);
-  const [nProgress,  setNProgress]  = useState(true);
-  const [nFeedback,  setNFeedback]  = useState(true);
-  const [nMarketing, setNMarketing] = useState(false);
+  const [nJobMatch,  setNJobMatch]  = useState(sn.jobMatch   ?? true);
+  const [nChallenge, setNChallenge] = useState(sn.challenge  ?? true);
+  const [nProgress,  setNProgress]  = useState(sn.progress   ?? true);
+  const [nFeedback,  setNFeedback]  = useState(sn.feedback   ?? true);
+  const [nMarketing, setNMarketing] = useState(sn.marketing  ?? false);
 
   // ── UI state ──
   const [showLogout, setShowLogout] = useState(false);
 
+  // ── Save profile to storage ──
   const handleSave = () => {
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || sp.avatarInitials || 'YN';
+
+    storage.update({
+      profile: {
+        firstName:      firstName.trim(),
+        lastName:       lastName.trim(),
+        name:           fullName,
+        avatarInitials: initials,
+        email:          email.trim(),
+        contactNumber:  phone.trim(),
+        address:        location.trim(),
+        bio:            bio.trim(),
+        website:        website.trim(),
+      },
+    });
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
+  // ── Save accessibility to storage ──
+  const saveAccessibility = (patch) => {
+    storage.update({ accessibilityPrefs: patch });
+  };
+
+  // ── Save preferences to storage ──
+  const savePreferences = (patch) => {
+    storage.update({ preferences: patch });
+  };
+
+  // ── Save notifications to storage ──
+  const saveNotifications = (patch) => {
+    storage.update({ notificationPrefs: patch });
+  };
+
+  // ── Toggle helpers that also persist ──
+  const toggleScreenReader  = v => { setScreenReader(v);  saveAccessibility({ screenReader: v,  highContrast, reducedMotion, largeText, keyboardHints }); };
+  const toggleHighContrast  = v => { setHighContrast(v);  saveAccessibility({ screenReader, highContrast: v,  reducedMotion, largeText, keyboardHints }); };
+  const toggleReducedMotion = v => { setReducedMotion(v); saveAccessibility({ screenReader, highContrast, reducedMotion: v, largeText, keyboardHints }); };
+  const toggleLargeText     = v => { setLargeText(v);     saveAccessibility({ screenReader, highContrast, reducedMotion, largeText: v,     keyboardHints }); };
+  const toggleKeyboardHints = v => { setKeyboardHints(v); saveAccessibility({ screenReader, highContrast, reducedMotion, largeText, keyboardHints: v }); };
+
+  const toggleShowProfile = v => { setShowProfile(v); savePreferences({ language, timezone, showProfile: v, publicPort }); };
+  const togglePublicPort  = v => { setPublicPort(v);  savePreferences({ language, timezone, showProfile, publicPort: v }); };
+  const changeLanguage    = v => { setLanguage(v);    savePreferences({ language: v, timezone, showProfile, publicPort }); };
+  const changeTimezone    = v => { setTimezone(v);    savePreferences({ language, timezone: v, showProfile, publicPort }); };
+
+  const toggleNJobMatch  = v => { setNJobMatch(v);  saveNotifications({ jobMatch: v,  challenge: nChallenge, progress: nProgress, feedback: nFeedback, marketing: nMarketing }); };
+  const toggleNChallenge = v => { setNChallenge(v); saveNotifications({ jobMatch: nJobMatch, challenge: v,  progress: nProgress, feedback: nFeedback, marketing: nMarketing }); };
+  const toggleNProgress  = v => { setNProgress(v);  saveNotifications({ jobMatch: nJobMatch, challenge: nChallenge, progress: v,  feedback: nFeedback, marketing: nMarketing }); };
+  const toggleNFeedback  = v => { setNFeedback(v);  saveNotifications({ jobMatch: nJobMatch, challenge: nChallenge, progress: nProgress, feedback: v,  marketing: nMarketing }); };
+  const toggleNMarketing = v => { setNMarketing(v); saveNotifications({ jobMatch: nJobMatch, challenge: nChallenge, progress: nProgress, feedback: nFeedback, marketing: v }); };
 
   const selectSt = {
     ...inp,
@@ -291,16 +346,16 @@ export default function SettingsPage() {
 
         {/* ══ 2. ACCESSIBILITY ══ */}
         <Section icon="♿" title="Accessibility">
-          <TRow label="Screen reader support"      sub="Optimise interface for assistive technologies"   checked={screenReader}  onChange={setScreenReader}  />
-          <TRow label="High contrast mode"         sub="Increase contrast for better visibility"          checked={highContrast}  onChange={setHighContrast}  />
-          <TRow label="Reduce motion"              sub="Minimise animations and transitions"              checked={reducedMotion} onChange={setReducedMotion} />
-          <TRow label="Large text"                 sub="Increase base font size across the dashboard"     checked={largeText}     onChange={setLargeText}     />
+          <TRow label="Screen reader support"      sub="Optimise interface for assistive technologies"   checked={screenReader}  onChange={toggleScreenReader}  />
+          <TRow label="High contrast mode"         sub="Increase contrast for better visibility"          checked={highContrast}  onChange={toggleHighContrast}  />
+          <TRow label="Reduce motion"              sub="Minimise animations and transitions"              checked={reducedMotion} onChange={toggleReducedMotion} />
+          <TRow label="Large text"                 sub="Increase base font size across the dashboard"     checked={largeText}     onChange={toggleLargeText}     />
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:15 }}>
             <div>
               <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Keyboard navigation hints</p>
               <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(26,39,68,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Show shortcut hints for keyboard users</p>
             </div>
-            <Toggle checked={keyboardHints} onChange={setKeyboardHints} />
+            <Toggle checked={keyboardHints} onChange={toggleKeyboardHints} />
           </div>
         </Section>
 
@@ -310,7 +365,7 @@ export default function SettingsPage() {
             <div className="st-two">
               <div>
                 <Label>Language</Label>
-                <select className="st-input-el" style={selectSt} value={language} onChange={e=>setLanguage(e.target.value)}>
+                <select className="st-input-el" style={selectSt} value={language} onChange={e=>changeLanguage(e.target.value)}>
                   <option value="en-US">English (US)</option>
                   <option value="en-GB">English (UK)</option>
                   <option value="fil">Filipino</option>
@@ -321,7 +376,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <Label>Timezone</Label>
-                <select className="st-input-el" style={selectSt} value={timezone} onChange={e=>setTimezone(e.target.value)}>
+                <select className="st-input-el" style={selectSt} value={timezone} onChange={e=>changeTimezone(e.target.value)}>
                   <option value="America/Los_Angeles">Pacific Time (PT)</option>
                   <option value="America/Denver">Mountain Time (MT)</option>
                   <option value="America/Chicago">Central Time (CT)</option>
@@ -333,41 +388,41 @@ export default function SettingsPage() {
               </div>
             </div>
             <Divider />
-            <TRow label="Show profile to employers" sub="Employers can discover your profile in search"    checked={showProfile} onChange={setShowProfile} />
+            <TRow label="Show profile to employers" sub="Employers can discover your profile in search" checked={showProfile} onChange={toggleShowProfile} />
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:4 }}>
               <div>
                 <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Public portfolio</p>
                 <p style={{ margin:'3px 0 0', fontSize:12, color:'rgba(26,39,68,0.45)', fontFamily:'"Instrument Sans",sans-serif' }}>Anyone with the link can view your portfolio</p>
               </div>
-              <Toggle checked={publicPort} onChange={setPublicPort} />
+              <Toggle checked={publicPort} onChange={togglePublicPort} />
             </div>
           </div>
         </Section>
 
         {/* ══ 4. NOTIFICATIONS ══ */}
         <Section icon="🔔" title="Notification Preferences">
-          <TRow label="Email notifications for new job matches"   checked={nJobMatch}  onChange={setNJobMatch}  />
-          <TRow label="Challenge completion reminders"            checked={nChallenge} onChange={setNChallenge} />
-          <TRow label="Weekly progress summary"                   checked={nProgress}  onChange={setNProgress}  />
-          <TRow label="Feedback and review notifications"         checked={nFeedback}  onChange={setNFeedback}  />
+          <TRow label="Email notifications for new job matches"   checked={nJobMatch}  onChange={toggleNJobMatch}  />
+          <TRow label="Challenge completion reminders"            checked={nChallenge} onChange={toggleNChallenge} />
+          <TRow label="Weekly progress summary"                   checked={nProgress}  onChange={toggleNProgress}  />
+          <TRow label="Feedback and review notifications"         checked={nFeedback}  onChange={toggleNFeedback}  />
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:15 }}>
             <p style={{ margin:0, fontSize:14, fontWeight:500, color:'#1A2744', fontFamily:'"Instrument Sans",sans-serif' }}>Marketing and promotional emails</p>
-            <Toggle checked={nMarketing} onChange={setNMarketing} />
+            <Toggle checked={nMarketing} onChange={toggleNMarketing} />
           </div>
         </Section>
 
         {/* ══ 5. SECURITY ══ */}
         <Section icon="🔒" title="Security">
-          <ARow label="Password"                    sub="Last changed 3 months ago">
+          <ARow label="Password" sub="Last changed 3 months ago">
             <button className="st-btn-ol" style={Btn.outline}>Change Password</button>
           </ARow>
-          <ARow label="Two-Factor Authentication"   sub="Add an extra layer of security to your account">
+          <ARow label="Two-Factor Authentication" sub="Add an extra layer of security to your account">
             <button className="st-btn-sl" style={Btn.slate}>Enable 2FA</button>
           </ARow>
-          <ARow label="Active Sessions"             sub="2 devices currently signed in">
+          <ARow label="Active Sessions" sub="2 devices currently signed in">
             <button className="st-btn-ol" style={Btn.outline}>Manage Sessions</button>
           </ARow>
-          <ARow label="Login History"               sub="View recent sign-in activity and locations">
+          <ARow label="Login History" sub="View recent sign-in activity and locations">
             <button className="st-btn-ol" style={Btn.outline}>View History</button>
           </ARow>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, paddingTop:16 }}>
