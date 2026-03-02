@@ -1,8 +1,11 @@
 import { IcEye, IcX, IcCheck, IcTrophy, IcSparkle } from "./Icons";
-import { getUserData, SKILLS_DATA, CHALLENGES_DATA } from "../portfolioData";import SkillRow from "./SkillRow";
+import { getUserData, SKILLS_DATA, CHALLENGES_DATA } from "../portfolioData";
+import SkillRow from "./SkillRow";
 import CustomSections from "./CustomSections";
 
 export default function EmployerPreview({ bio, headline, sections, onClose }) {
+  const USER = getUserData(); // ✅ pull real data from storage
+
   const done = CHALLENGES_DATA.filter(c => c.status === "completed");
   const totalPts = done.reduce((a, c) => a + c.pts, 0);
 

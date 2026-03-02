@@ -13,6 +13,7 @@ import { storage } from '@/lib/storage';
 import { auth } from '@/lib/firebase';
 import { useAppData } from '@/hooks/useAppData';
 
+
 const NAV_ITEMS = [
   { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard/worker', group: 'main' },
   { id: 'roadmap',    label: 'Roadmap',    icon: Map,             path: '/roadmap', group: 'main' },
@@ -20,7 +21,7 @@ const NAV_ITEMS = [
   { id: 'portfolio',  label: 'Portfolio',  icon: Briefcase,       path: '/dashboard/worker/portfolio', group: 'main' },
   { id: 'tracker',    label: 'Tracker',    icon: BarChart2,       path: '/dashboard/worker/tracker', group: 'main' },
   { id: 'jobs',       label: 'Jobs',       icon: Search,          path: '/jobs', group: 'main', badge: '3' },
-  { id: 'feedback',   label: 'Feedback',   icon: MessageSquare,   path: '/feedback', group: 'support' },
+  { id: 'feedback', label: 'Feedback', icon: MessageSquare, path: '/dashboard/worker/feedback', group: 'support' },
   { id: 'settings',   label: 'Settings',   icon: Settings,        path: '/dashboard/worker/settings', group: 'support' },
 ];
 

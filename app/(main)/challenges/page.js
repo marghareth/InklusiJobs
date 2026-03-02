@@ -1,398 +1,587 @@
-//app/(main)/challenges/[challengeId]/page.js
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { getChallengeById } from "@/lib/learn-content";
-import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
+import { getChallengeForPhase } from "@/lib/learn-content";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// ─── localStorage helpers ────────────────────────────────────────────────────
+const LS = {
+  get: (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
+};
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function ChallengePage() {
-  const router = useRouter();
-  const params = useParams();
-  const { challengeId } = params;
+const KEYS = {
+  JOB_SELECTION:      "inklusijobs_job_selection",
+  COMPLETED_CHALLENGES: "inklusijobs_completed_challenges", // string[] of challengeIds
+  CURRENT_CHALLENGE:  "inklusijobs_current_challenge",
+  ROADMAP_PROGRESS:   "inklusijobs_roadmap_progress",
+  SCORING:            "inklusijobs_scoring",
+};
 
-  const [challenge, setChallenge]   = useState(null);
-  const [jobId, setJobId]           = useState(null);
-  const [userId, setUserId]         = useState(null);
-  const [view, setView]             = useState("brief"); // brief | submit | scoring | result
-  const [submission, setSubmission] = useState("");
-  const [result, setResult]         = useState(null);
-  const [revealed, setRevealed]     = useState(false);
-
-  useEffect(() => {
-    const selection = JSON.parse(localStorage.getItem("inklusijobs_job_selection") || "null");
-    if (!selection?.jobId) { router.replace("/job-select"); return; }
-    setJobId(selection.jobId);
-
-    const ch = getChallengeById(selection.jobId, challengeId);
-    if (!ch) { router.replace("/roadmap"); return; }
-    setChallenge(ch);
-    setTimeout(() => setRevealed(true), 100);
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUserId(data.user.id);
-    });
-  }, [challengeId, router]);
-
-  const handleSubmit = async () => {
-    if (!submission.trim()) return;
-    setView("scoring");
-
-    try {
-      const res = await fetch("/api/challenge/score", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          challengeId,
-          jobId,
-          challenge,
-          submission,
-          userId,
-        }),
-      });
-      const data = await res.json();
-      setResult(data);
-      setView("result");
-    } catch (e) {
-      console.error("[Challenge] Submit error:", e);
-      setView("submit");
-    }
-  };
-
-  if (!challenge) {
-    return (
-      <div className="ij-loading">
-        <div className="ij-spinner" />
-        <LoadingStyles />
-      </div>
-    );
-  }
-
-  return (
-    <div className={`ij-page ${revealed ? "revealed" : ""}`}>
-      <GlobalStyles />
-
-      <div className="ij-shell">
-        {/* Logo */}
-        <div className="ij-logo-row">
-          <div className="ij-logo-mark">IJ</div>
-          <span className="ij-logo-text">InklusiJobs</span>
-        </div>
-
-        {/* Challenge header */}
-        <div className="ij-challenge-header">
-          <div className="ij-challenge-badge">
-            ⚡ Phase {challenge.phaseNumber} Challenge
-          </div>
-          <h1 className="ij-challenge-title">{challenge.title}</h1>
-          <div className="ij-challenge-meta-row">
-            <span className="ij-meta-tag">⏱ ~{challenge.estimatedHours}h</span>
-            <span className="ij-meta-tag">📁 Portfolio worthy</span>
-            {challenge.skills?.map(s => (
-              <span key={s} className="ij-meta-tag skill">{s}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* ── BRIEF VIEW ──────────────────────────────────────────────────── */}
-        {view === "brief" && (
-          <div className="ij-card">
-            <div className="ij-brief-label">📋 Your Brief</div>
-            <div className="ij-brief-text">
-              {challenge.brief.split("\n").map((line, i) => (
-                line.trim() === ""
-                  ? <div key={i} className="ij-brief-spacer" />
-                  : <p key={i} className={line.endsWith(":") || line.match(/^[A-Z\s]+:$/) ? "ij-brief-heading" : "ij-brief-para"}>{line}</p>
-              ))}
-            </div>
-
-            {/* Rubric */}
-            {challenge.rubric && (
-              <div className="ij-rubric">
-                <div className="ij-rubric-title">📊 How You'll Be Scored</div>
-                <div className="ij-rubric-list">
-                  {challenge.rubric.map((r, i) => (
-                    <div key={i} className="ij-rubric-item">
-                      <div className="ij-rubric-criterion">{r.criterion}</div>
-                      <div className="ij-rubric-points">{r.maxScore} pts</div>
-                      <div className="ij-rubric-desc">{r.description}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="ij-rubric-passing">
-                  Passing score: <strong>{challenge.passingScore}%</strong>
-                </div>
-              </div>
-            )}
-
-            <div className="ij-brief-cta">
-              <button className="ij-btn-secondary" onClick={() => router.push("/roadmap")}>
-                ← Back to Roadmap
-              </button>
-              <button className="ij-btn-primary" onClick={() => setView("submit")}>
-                Start Challenge →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── SUBMIT VIEW ──────────────────────────────────────────────────── */}
-        {view === "submit" && (
-          <div className="ij-card">
-            <div className="ij-submit-header">
-              <button className="ij-back-link" onClick={() => setView("brief")}>← Re-read Brief</button>
-              <div className="ij-submit-title">Your Submission</div>
-            </div>
-
-            <div className="ij-submit-hint">
-              Write your full response below. Take your time — this is a portfolio piece.
-            </div>
-
-            <textarea
-              className="ij-submit-textarea"
-              placeholder="Start writing your submission here..."
-              value={submission}
-              onChange={e => setSubmission(e.target.value)}
-              rows={16}
-            />
-
-            <div className="ij-submit-footer">
-              <div className="ij-char-count">{submission.length} characters · ~{Math.ceil(submission.split(" ").length / 200)} min read</div>
-              <button
-                className={`ij-btn-primary ${submission.trim().length < 50 ? "disabled" : ""}`}
-                onClick={handleSubmit}
-                disabled={submission.trim().length < 50}
-              >
-                Submit for Review 🚀
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── SCORING VIEW ────────────────────────────────────────────────── */}
-        {view === "scoring" && (
-          <div className="ij-scoring-screen">
-            <div className="ij-spinner large" />
-            <h2>Reviewing your submission…</h2>
-            <p>Our AI evaluator is checking your work against the rubric.<br />This takes about 15 seconds. ☕</p>
-            <div className="ij-scoring-steps">
-              <div className="ij-scoring-step done">✅ Submission received</div>
-              <div className="ij-scoring-step active">⚙️ Evaluating against rubric…</div>
-              <div className="ij-scoring-step">⏳ Generating feedback…</div>
-            </div>
-          </div>
-        )}
-
-        {/* ── RESULT VIEW ─────────────────────────────────────────────────── */}
-        {view === "result" && result && (
-          <ChallengeResult result={result} challenge={challenge} onBack={() => router.push("/roadmap")} onRetry={() => setView("submit")} />
-        )}
-      </div>
-    </div>
-  );
+// ─── Static fallback challenges (if lib/learn-content doesn't return any) ────
+function buildFallbackChallenges(jobId) {
+  return [
+    {
+      id: `${jobId}_c1`, phaseNumber: 1, phaseLabel: "Phase 1: Foundation",
+      title: "Build a Content Calendar", briefSummary: "Create a 30-day social media content calendar for a fictional brand, including post topics, content types, and scheduling logic.",
+      estimatedHours: 3, difficulty: "Beginner", points: 150, portfolioWorthy: true,
+      skills: ["Planning", "Content Strategy"],
+    },
+    {
+      id: `${jobId}_c2`, phaseNumber: 1, phaseLabel: "Phase 1: Foundation",
+      title: "Write Social Media Captions", briefSummary: "Write 10 engaging captions for different platforms (Instagram, LinkedIn, Twitter) for a brand of your choice.",
+      estimatedHours: 2, difficulty: "Beginner", points: 100, portfolioWorthy: true,
+      skills: ["Copywriting", "Tone of Voice"],
+    },
+    {
+      id: `${jobId}_c3`, phaseNumber: 1, phaseLabel: "Phase 1: Foundation",
+      title: "Create Brand Guidelines", briefSummary: "Develop a simple brand guideline document including logo usage rules, color palette, typography, and voice guidelines.",
+      estimatedHours: 4, difficulty: "Beginner", points: 200, portfolioWorthy: true,
+      skills: ["Branding", "Design Thinking"],
+    },
+    {
+      id: `${jobId}_c4`, phaseNumber: 2, phaseLabel: "Phase 2: Intermediate",
+      title: "Strategic Campaign Plan", briefSummary: "Plan a full 3-month marketing campaign including goals, channels, budget allocation, and KPIs.",
+      estimatedHours: 5, difficulty: "Intermediate", points: 250, portfolioWorthy: true,
+      skills: ["Strategy", "Analytics"],
+    },
+    {
+      id: `${jobId}_c5`, phaseNumber: 2, phaseLabel: "Phase 2: Intermediate",
+      title: "Audience Analysis Report", briefSummary: "Research and document a target audience persona with demographics, pain points, and content preferences.",
+      estimatedHours: 3, difficulty: "Intermediate", points: 200, portfolioWorthy: false,
+      skills: ["Research", "Data Analysis"],
+    },
+    {
+      id: `${jobId}_c6`, phaseNumber: 3, phaseLabel: "Phase 3: Advanced",
+      title: "End-to-End Campaign Execution", briefSummary: "Design and document a full go-to-market launch campaign with creative briefs, timelines, and measurement frameworks.",
+      estimatedHours: 8, difficulty: "Advanced", points: 400, portfolioWorthy: true,
+      skills: ["Campaign Management", "Leadership"],
+    },
+  ];
 }
 
-// ─── Challenge Result ─────────────────────────────────────────────────────────
-function ChallengeResult({ result, challenge, onBack, onRetry }) {
-  const scoreColor = result.score >= 80 ? "#479880" : result.score >= challenge.passingScore ? "#648FBF" : "#c47a7a";
+// ─── Group challenges by phase ────────────────────────────────────────────────
+function groupByPhase(challenges) {
+  const map = new Map();
+  for (const c of challenges) {
+    if (!map.has(c.phaseNumber)) {
+      map.set(c.phaseNumber, { phaseNumber: c.phaseNumber, label: c.phaseLabel || `Phase ${c.phaseNumber}`, challenges: [] });
+    }
+    map.get(c.phaseNumber).challenges.push(c);
+  }
+  return Array.from(map.values()).sort((a, b) => a.phaseNumber - b.phaseNumber);
+}
+
+// ─── Derive locked/unlocked state ─────────────────────────────────────────────
+// Rule: each challenge in a phase locks the NEXT challenge in the same phase.
+//       The first challenge of a new phase is locked until the last challenge
+//       of the previous phase is completed.
+function computeStatuses(phases, completed) {
+  const done = new Set(completed || []);
+  const result = [];
+
+  for (let pi = 0; pi < phases.length; pi++) {
+    const phase = phases[pi];
+    const prevPhase = phases[pi - 1];
+    // Phase unlocked if it's the first phase OR the last challenge of prev phase is done
+    const phaseUnlocked = pi === 0 || (prevPhase && done.has(prevPhase.challenges[prevPhase.challenges.length - 1]?.id));
+
+    const phaseChallenges = [];
+    for (let ci = 0; ci < phase.challenges.length; ci++) {
+      const c = phase.challenges[ci];
+      let status;
+      if (done.has(c.id)) {
+        status = "completed";
+      } else if (!phaseUnlocked) {
+        status = "locked";
+      } else if (ci === 0) {
+        status = "available"; // first of an unlocked phase
+      } else {
+        // Unlocked only if previous challenge in same phase is done
+        status = done.has(phase.challenges[ci - 1]?.id) ? "available" : "locked";
+      }
+      phaseChallenges.push({ ...c, status });
+    }
+    result.push({ ...phase, challenges: phaseChallenges, phaseUnlocked });
+  }
+  return result;
+}
+
+// ─── Difficulty config ────────────────────────────────────────────────────────
+const DIFFICULTY_CONFIG = {
+  Beginner:     { color: "#34d399", bg: "rgba(52,211,153,0.10)", label: "Beginner" },
+  Intermediate: { color: "#f59e0b", bg: "rgba(245,158,11,0.10)", label: "Intermediate" },
+  Advanced:     { color: "#f87171", bg: "rgba(248,113,113,0.10)", label: "Advanced" },
+};
+
+// ─── Single challenge step ────────────────────────────────────────────────────
+function ChallengeStep({ challenge, index, isLastInPhase, onClick }) {
+  const diff = DIFFICULTY_CONFIG[challenge.difficulty] || DIFFICULTY_CONFIG.Beginner;
+  const isAvailable  = challenge.status === "available";
+  const isCompleted  = challenge.status === "completed";
+  const isLocked     = challenge.status === "locked";
 
   return (
-    <div className="ij-result-card">
-      {/* Score hero */}
-      <div className="ij-result-hero">
-        <div className="ij-result-ring" style={{ borderColor: scoreColor }}>
-          <div className="ij-result-score" style={{ color: scoreColor }}>{result.score}%</div>
-          <div className="ij-result-max">out of 100</div>
+    <div className={`cs-step ${challenge.status}`} style={{ animationDelay: `${index * 60}ms` }}>
+      {/* Connector line */}
+      {!isLastInPhase && <div className="cs-connector" />}
+
+      {/* Node */}
+      <div className="cs-node-col">
+        <div className={`cs-node ${challenge.status}`}>
+          {isCompleted ? "✓" : isLocked ? "🔒" : index + 1}
         </div>
-        <div className="ij-result-info">
-          <div className={`ij-result-badge ${result.passed ? "passed" : "failed"}`}>
-            {result.passed ? "🏆 Challenge Passed!" : "📚 Keep Practising"}
+      </div>
+
+      {/* Card */}
+      <div
+        className={`cs-card ${challenge.status}`}
+        onClick={() => isAvailable && onClick(challenge)}
+        role={isAvailable ? "button" : undefined}
+        tabIndex={isAvailable ? 0 : undefined}
+        onKeyDown={e => e.key === "Enter" && isAvailable && onClick(challenge)}
+      >
+        <div className="cs-card-top">
+          <div className="cs-card-left">
+            <div className="cs-card-title">{challenge.title}</div>
+            <div className="cs-card-desc">{challenge.briefSummary}</div>
           </div>
-          {result.passed && (
-            <div className="ij-result-unlock">🔓 Next phase unlocked!</div>
+          {isAvailable && (
+            <div className="cs-arrow">→</div>
+          )}
+          {isCompleted && (
+            <div className="cs-done-badge">✅ Done</div>
           )}
         </div>
+
+        <div className="cs-card-meta">
+          <span className="cs-meta-tag">⏱ ~{challenge.estimatedHours}h</span>
+          <span className="cs-meta-tag points">🏆 {challenge.points} pts</span>
+          <span className="cs-meta-tag" style={{ color: diff.color, background: diff.bg }}>
+            {diff.label}
+          </span>
+          {challenge.portfolioWorthy && (
+            <span className="cs-meta-tag portfolio">📁 Portfolio</span>
+          )}
+          {challenge.skills?.map(s => (
+            <span key={s} className="cs-meta-tag skill">{s}</span>
+          ))}
+        </div>
       </div>
-
-      {/* Encouragement */}
-      {result.encouragement && (
-        <div className="ij-result-encourage">💬 {result.encouragement}</div>
-      )}
-
-      {/* Rubric scores */}
-      {result.rubricScores?.length > 0 && (
-        <div className="ij-rubric-results">
-          <div className="ij-rubric-results-title">Rubric Breakdown</div>
-          {result.rubricScores.map((r, i) => {
-            const pct = Math.round((r.score / r.maxScore) * 100);
-            const col = pct >= 70 ? "#479880" : pct >= 50 ? "#e09c50" : "#c47a7a";
-            return (
-              <div key={i} className="ij-rubric-result-item">
-                <div className="ij-rubric-result-header">
-                  <span className="ij-rubric-result-name">{r.criterion}</span>
-                  <span className="ij-rubric-result-score" style={{ color: col }}>{r.score}/{r.maxScore}</span>
-                </div>
-                <div className="ij-rubric-result-bar-track">
-                  <div className="ij-rubric-result-bar-fill" style={{ width: `${pct}%`, background: col }} />
-                </div>
-                {r.feedback && <p className="ij-rubric-result-feedback">{r.feedback}</p>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Overall feedback */}
-      {result.overallFeedback && (
-        <div className="ij-result-overall">
-          <div className="ij-result-overall-label">Overall Feedback</div>
-          <p>{result.overallFeedback}</p>
-        </div>
-      )}
-
-      {/* Next step */}
-      {result.nextStep && (
-        <div className="ij-result-nextstep">
-          <span className="ij-nextstep-label">Your Next Step</span>
-          <p>{result.nextStep}</p>
-        </div>
-      )}
-
-      {/* CTAs */}
-      <div className="ij-result-cta-row">
-        {result.passed ? (
-          <button className="ij-btn-primary" onClick={onBack}>Back to Roadmap →</button>
-        ) : (
-          <>
-            <button className="ij-btn-secondary" onClick={onRetry}>Revise & Resubmit ↺</button>
-            <button className="ij-btn-primary" onClick={onBack}>Back to Roadmap</button>
-          </>
-        )}
-      </div>
-
-      <style jsx>{`
-        .ij-result-card { background:white; border-radius:24px; padding:2rem; box-shadow:0 4px 24px rgba(71,152,128,0.10); border:1px solid #eef4f2; }
-        .ij-result-hero { display:flex; gap:1.5rem; align-items:center; margin-bottom:1.25rem; }
-        .ij-result-ring { width:100px; height:100px; border-radius:50%; border:6px solid; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
-        .ij-result-score { font-size:1.75rem; font-weight:800; line-height:1; }
-        .ij-result-max { font-size:0.68rem; color:#7a9b97; font-weight:600; }
-        .ij-result-badge { display:inline-block; padding:0.3rem 0.85rem; border-radius:999px; font-size:0.82rem; font-weight:700; margin-bottom:0.5rem; }
-        .ij-result-badge.passed { background:#f0faf7; color:#479880; border:1.5px solid #c8e8df; }
-        .ij-result-badge.failed { background:#fdf5eb; color:#c47a3a; border:1.5px solid #f0d5b0; }
-        .ij-result-unlock { font-size:0.82rem; color:#479880; font-weight:600; }
-        .ij-result-encourage { font-size:0.88rem; color:#2d5f55; font-style:italic; line-height:1.6; background:#f0faf7; border-radius:12px; padding:0.85rem 1rem; margin-bottom:1.25rem; border:1px solid #c8e8df; }
-        .ij-rubric-results { margin-bottom:1.25rem; }
-        .ij-rubric-results-title { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#7a9b97; margin-bottom:0.75rem; }
-        .ij-rubric-result-item { margin-bottom:0.85rem; }
-        .ij-rubric-result-header { display:flex; justify-content:space-between; margin-bottom:0.3rem; }
-        .ij-rubric-result-name { font-size:0.85rem; font-weight:600; color:#1a2e2b; }
-        .ij-rubric-result-score { font-size:0.85rem; font-weight:700; }
-        .ij-rubric-result-bar-track { height:6px; background:#eef4f2; border-radius:999px; overflow:hidden; margin-bottom:0.35rem; }
-        .ij-rubric-result-bar-fill { height:100%; border-radius:999px; transition:width 0.8s ease; }
-        .ij-rubric-result-feedback { font-size:0.78rem; color:#6b8a87; font-style:italic; line-height:1.5; }
-        .ij-result-overall { background:#f8fffe; border-radius:12px; padding:1rem; margin-bottom:1rem; border:1px solid #e4ecea; }
-        .ij-result-overall-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#479880; margin-bottom:0.4rem; }
-        .ij-result-overall p { font-size:0.88rem; color:#3d5e59; line-height:1.65; }
-        .ij-result-nextstep { background:linear-gradient(135deg,#0f2421,#1a3d35); border-radius:12px; padding:1rem 1.25rem; margin-bottom:1.5rem; }
-        .ij-nextstep-label { display:block; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#479880; margin-bottom:0.3rem; }
-        .ij-result-nextstep p { font-size:0.88rem; color:#e8f6f2; line-height:1.6; font-weight:500; }
-        .ij-result-cta-row { display:flex; gap:0.85rem; }
-      `}</style>
     </div>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-function GlobalStyles() {
+// ─── Phase group (collapsible) ───────────────────────────────────────────────
+function PhaseGroup({ phase, onChallengeClick, phaseIndex }) {
+  const total     = phase.challenges.length;
+  const done      = phase.challenges.filter(c => c.status === "completed").length;
+  const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone   = done === total;
+  const hasActive = phase.challenges.some(c => c.status === "available");
+  const isLocked  = !phase.phaseUnlocked;
+
+  // Default open if phase has an active challenge, or it's the first phase
+  const [open, setOpen] = useState(hasActive || phaseIndex === 0);
+
   return (
-    <style jsx global>{`
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-      :root { --teal:#479880; --blue:#4B959E; --bg:#f4f9f8; }
-      *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-      body { background:var(--bg); }
-      .ij-page { min-height:100vh; background:var(--bg); font-family:'Plus Jakarta Sans',sans-serif; padding:2rem 1.5rem 4rem; display:flex; justify-content:center; opacity:0; transform:translateY(10px); transition:opacity 0.5s ease,transform 0.5s ease; }
-      .ij-page.revealed { opacity:1; transform:translateY(0); }
-      .ij-shell { width:100%; max-width:680px; }
-      .ij-logo-row { display:flex; align-items:center; gap:0.6rem; justify-content:center; margin-bottom:1.5rem; }
-      .ij-logo-mark { width:36px; height:36px; background:linear-gradient(135deg,var(--teal),var(--blue)); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:0.85rem; }
-      .ij-logo-text { font-weight:700; font-size:1.1rem; color:#0f2421; letter-spacing:-0.02em; }
+    <div className={`pg-group ${isLocked ? "pg-locked" : ""}`} style={{ animationDelay: `${phaseIndex * 100}ms` }}>
+      {/* Phase header — clickable toggle */}
+      <button
+        className={`pg-header pg-toggle ${isLocked ? "pg-toggle-disabled" : ""}`}
+        onClick={() => !isLocked && setOpen(o => !o)}
+        disabled={isLocked}
+        aria-expanded={open && !isLocked}
+      >
+        <div className="pg-header-left">
+          <div className={`pg-phase-badge ${allDone ? "done" : hasActive ? "active" : isLocked ? "locked" : "inactive"}`}>
+            {allDone ? "✓ Complete" : isLocked ? "🔒 Locked" : `Phase ${phase.phaseNumber}`}
+          </div>
+          <h2 className="pg-phase-title">{phase.label}</h2>
+        </div>
+        <div className="pg-header-right">
+          {!isLocked && (
+            <div className="pg-progress-wrap">
+              <span className="pg-pct">{done}/{total}</span>
+              <div className="pg-bar-track">
+                <div className="pg-bar-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          )}
+          {!isLocked && (
+            <span className="pg-chevron" aria-hidden="true">{open ? "▲" : "▼"}</span>
+          )}
+        </div>
+      </button>
 
-      .ij-challenge-header { margin-bottom:1.25rem; }
-      .ij-challenge-badge { display:inline-block; padding:0.25rem 0.8rem; background:linear-gradient(135deg,#fff8eb,#fff3e0); color:#c47a3a; border:1.5px solid #f0d5b0; border-radius:999px; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem; }
-      .ij-challenge-title { font-size:1.5rem; font-weight:800; color:#0f2421; letter-spacing:-0.02em; line-height:1.25; margin-bottom:0.75rem; }
-      .ij-challenge-meta-row { display:flex; flex-wrap:wrap; gap:0.4rem; }
-      .ij-meta-tag { font-size:0.72rem; font-weight:600; padding:0.2rem 0.65rem; background:white; border:1px solid #e4ecea; border-radius:999px; color:#4a6360; }
-      .ij-meta-tag.skill { background:#f0faf7; border-color:#c8e8df; color:#479880; }
-
-      .ij-card { background:white; border-radius:24px; padding:2rem; box-shadow:0 4px 24px rgba(71,152,128,0.08); border:1px solid #eef4f2; }
-
-      /* Brief */
-      .ij-brief-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#479880; margin-bottom:1rem; }
-      .ij-brief-text { font-size:0.9rem; color:#2d4a47; line-height:1.75; margin-bottom:1.5rem; }
-      .ij-brief-heading { font-weight:700; color:#0f2421; margin-top:0.75rem; }
-      .ij-brief-para { margin-bottom:0.1rem; }
-      .ij-brief-spacer { height:0.6rem; }
-      .ij-brief-cta { display:flex; gap:0.85rem; justify-content:space-between; align-items:center; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #eef4f2; }
-
-      /* Rubric */
-      .ij-rubric { background:#f8fffe; border-radius:14px; padding:1.1rem; margin-bottom:1.25rem; border:1px solid #e4ecea; }
-      .ij-rubric-title { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#7a9b97; margin-bottom:0.75rem; }
-      .ij-rubric-list { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem; }
-      .ij-rubric-item { display:grid; grid-template-columns:1fr auto; grid-template-rows:auto auto; gap:0.1rem 0.5rem; }
-      .ij-rubric-criterion { font-size:0.85rem; font-weight:600; color:#1a2e2b; }
-      .ij-rubric-points { font-size:0.82rem; font-weight:700; color:#479880; text-align:right; }
-      .ij-rubric-desc { font-size:0.76rem; color:#6b8a87; grid-column:1/-1; }
-      .ij-rubric-passing { font-size:0.78rem; color:#7a9b97; font-weight:500; border-top:1px solid #e4ecea; padding-top:0.6rem; }
-
-      /* Submit */
-      .ij-submit-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; }
-      .ij-back-link { background:none; border:none; color:#479880; font-size:0.82rem; font-weight:600; cursor:pointer; font-family:inherit; }
-      .ij-submit-title { font-size:1rem; font-weight:700; color:#0f2421; }
-      .ij-submit-hint { font-size:0.82rem; color:#6b8a87; margin-bottom:0.85rem; }
-      .ij-submit-textarea { width:100%; padding:1rem; border:1.5px solid #e4ecea; border-radius:14px; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.9rem; color:#1a2e2b; resize:vertical; line-height:1.7; background:#f8fffe; transition:border-color 0.18s; }
-      .ij-submit-textarea:focus { outline:none; border-color:var(--teal); background:white; }
-      .ij-submit-footer { display:flex; justify-content:space-between; align-items:center; margin-top:0.85rem; }
-      .ij-char-count { font-size:0.72rem; color:#7a9b97; }
-
-      /* Scoring */
-      .ij-scoring-screen { background:white; border-radius:24px; padding:3rem 2rem; text-align:center; box-shadow:0 4px 24px rgba(71,152,128,0.10); }
-      .ij-scoring-screen h2 { font-size:1.25rem; font-weight:700; color:#0f2421; margin:1.25rem 0 0.5rem; }
-      .ij-scoring-screen p { font-size:0.88rem; color:#6b8a87; line-height:1.65; margin-bottom:1.5rem; }
-      .ij-scoring-steps { display:flex; flex-direction:column; gap:0.5rem; text-align:left; background:#f8fffe; border-radius:12px; padding:1rem 1.25rem; max-width:300px; margin:0 auto; }
-      .ij-scoring-step { font-size:0.83rem; font-weight:500; color:#7a9b97; }
-      .ij-scoring-step.active { color:#479880; font-weight:700; }
-      .ij-scoring-step.done { color:#4a6360; }
-
-      .ij-spinner { width:52px; height:52px; border:4px solid #e8f0ef; border-top-color:#479880; border-radius:50%; animation:spin 0.9s linear infinite; margin:0 auto; }
-      .ij-spinner.large { width:64px; height:64px; }
-      @keyframes spin { to { transform:rotate(360deg); } }
-
-      .ij-btn-primary { background:linear-gradient(135deg,var(--teal),var(--blue)); border:none; border-radius:12px; padding:0.85rem 2rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.92rem; font-weight:700; color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 16px rgba(71,152,128,0.3); }
-      .ij-btn-primary:hover:not(.disabled) { transform:translateY(-2px); }
-      .ij-btn-primary.disabled { background:#c5d9d6; box-shadow:none; cursor:not-allowed; }
-      .ij-btn-secondary { background:none; border:2px solid #e4ecea; border-radius:12px; padding:0.85rem 1.5rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.88rem; font-weight:600; color:#4a6360; cursor:pointer; transition:all 0.18s; }
-      .ij-btn-secondary:hover { border-color:var(--teal); color:var(--teal); }
-
-      @media(max-width:480px) {
-        .ij-brief-cta,.ij-result-cta-row { flex-direction:column; }
-        .ij-btn-primary,.ij-btn-secondary { width:100%; text-align:center; }
-        .ij-result-hero { flex-direction:column; text-align:center; }
-      }
-    `}</style>
+      {/* Steps — only shown when open and not locked */}
+      {open && !isLocked && (
+        <div className="pg-steps">
+          {phase.challenges.map((c, i) => (
+            <ChallengeStep
+              key={c.id}
+              challenge={c}
+              index={i}
+              isLastInPhase={i === phase.challenges.length - 1}
+              onClick={onChallengeClick}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
-function LoadingStyles() {
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function ChallengesPage() {
+  const router = useRouter();
+  const [jobId,      setJobId]      = useState(null);
+  const [phases,     setPhases]     = useState([]);
+  const [completed,  setCompleted]  = useState([]);
+  const [totalPts,   setTotalPts]   = useState(0);
+  const [revealed,   setRevealed]   = useState(false);
+  const [toast,      setToast]      = useState(null);
+
+  // Load job + challenges
+  useEffect(() => {
+    const sel = LS.get(KEYS.JOB_SELECTION);
+    if (!sel?.jobId) { router.replace("/job-select"); return; }
+    setJobId(sel.jobId);
+
+    const completedIds = LS.get(KEYS.COMPLETED_CHALLENGES) || [];
+    setCompleted(completedIds);
+
+    // Build challenges from getChallengeForPhase (phases 1-3), fall back to static
+    let rawChallenges = [];
+    try {
+      [1, 2, 3].forEach(phase => {
+        const ch = getChallengeForPhase(sel.jobId, phase);
+        if (ch) rawChallenges.push({ ...ch, phaseNumber: phase, phaseLabel: `Phase ${phase}` });
+      });
+    } catch {}
+    if (!rawChallenges.length) rawChallenges = buildFallbackChallenges(sel.jobId);
+
+    const grouped  = groupByPhase(rawChallenges);
+    const computed = computeStatuses(grouped, completedIds);
+    setPhases(computed);
+
+    // Compute total points
+    const pts = completedIds.reduce((sum, id) => {
+      const ch = rawChallenges.find(c => c.id === id);
+      return sum + (ch?.points || 0);
+    }, 0);
+    setTotalPts(pts);
+
+    setTimeout(() => setRevealed(true), 80);
+  }, [router]);
+
+  const handleChallengeClick = (challenge) => {
+    // Save current challenge to localStorage
+    LS.set(KEYS.CURRENT_CHALLENGE, {
+      id:             challenge.id,
+      title:          challenge.title,
+      description:    challenge.briefSummary,
+      estimatedHours: challenge.estimatedHours,
+      portfolioWorthy: challenge.portfolioWorthy,
+      points:         challenge.points,
+      phase:          challenge.phaseNumber,
+      startedAt:      new Date().toISOString(),
+    });
+    router.push(`/challenges/${challenge.id}`);
+  };
+
+  const allChallenges = phases.flatMap(p => p.challenges);
+  const totalDone     = allChallenges.filter(c => c.status === "completed").length;
+  const totalCount    = allChallenges.length;
+  const overallPct    = totalCount > 0 ? Math.round((totalDone / totalCount) * 100) : 0;
+
   return (
-    <style jsx global>{`
-      .ij-loading { min-height:100vh; background:#f4f9f8; display:flex; align-items:center; justify-content:center; }
-      .ij-spinner { width:48px; height:48px; border:4px solid #e8f0ef; border-top-color:#479880; border-radius:50%; animation:spin 0.9s linear infinite; }
-      @keyframes spin { to { transform:rotate(360deg); } }
-    `}</style>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+          --teal:   #479880;
+          --blue:   #4B959E;
+          --bg:     #f4f9f8;
+          --white:  #ffffff;
+          --text:   #0f2421;
+          --muted:  #6b8a87;
+          --border: #e4ecea;
+          --font-d: 'Plus Jakarta Sans', sans-serif;
+          --font-b: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body { background: var(--bg); }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; } to { opacity: 1; }
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Shell ── */
+        .ch-root {
+          min-height: 100vh; background: var(--bg);
+          font-family: var(--font-b);
+          padding: 0 0 60px;
+          opacity: 0; transition: opacity 0.4s ease;
+        }
+        .ch-root.revealed { opacity: 1; }
+
+        /* ── Top bar ── */
+        .ch-topbar {
+          position: sticky; top: 0; z-index: 50;
+          background: rgba(244,249,248,0.92);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid var(--border);
+          padding: 14px 24px;
+          display: flex; align-items: center; gap: 16px;
+        }
+        .ch-back-btn {
+          background: none; border: 1.5px solid var(--border);
+          border-radius: 8px; padding: 6px 14px;
+          font-family: var(--font-b); font-size: 13px; font-weight: 600;
+          color: var(--muted); cursor: pointer; transition: all 0.15s;
+        }
+        .ch-back-btn:hover { border-color: var(--teal); color: var(--teal); }
+        .ch-topbar-logo {
+          font-family: var(--font-d); font-size: 16px; font-weight: 800;
+          color: var(--text); letter-spacing: -0.3px;
+        }
+        .ch-topbar-logo span { color: var(--teal); }
+        .ch-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+        .ch-pts-badge {
+          background: linear-gradient(135deg, #fff8eb, #fff3e0);
+          border: 1.5px solid #f0d5b0; border-radius: 99px;
+          padding: 5px 14px; font-size: 12px; font-weight: 700;
+          color: #c47a3a;
+        }
+
+        /* ── Header ── */
+        .ch-header {
+          max-width: 700px; margin: 0 auto;
+          padding: 32px 24px 20px;
+          animation: fadeUp 0.4s both;
+        }
+        .ch-page-badge {
+          display: inline-block; padding: 4px 12px;
+          background: linear-gradient(135deg, #e8f6f2, #e4f2f5);
+          color: var(--blue); border-radius: 99px;
+          font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.07em; margin-bottom: 12px;
+        }
+        .ch-page-title {
+          font-family: var(--font-d); font-size: 28px; font-weight: 800;
+          color: var(--text); letter-spacing: -0.5px; line-height: 1.2;
+          margin-bottom: 8px;
+        }
+        .ch-page-sub { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 20px; }
+
+        /* Progress bar */
+        .ch-overall-wrap { margin-bottom: 8px; }
+        .ch-overall-row {
+          display: flex; justify-content: space-between;
+          font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px;
+        }
+        .ch-overall-row span:last-child { color: var(--teal); font-weight: 700; }
+        .ch-overall-track { height: 7px; background: rgba(71,152,128,0.12); border-radius: 99px; overflow: hidden; }
+        .ch-overall-fill {
+          height: 100%; border-radius: 99px;
+          background: linear-gradient(90deg, var(--teal), var(--blue));
+          transition: width 1s cubic-bezier(0.22,1,0.36,1);
+        }
+
+        /* ── Content ── */
+        .ch-content { max-width: 700px; margin: 0 auto; padding: 0 24px; }
+
+        /* ── Phase group ── */
+        .pg-group {
+          margin-bottom: 32px;
+          animation: fadeUp 0.5s both;
+        }
+        .pg-group.pg-locked { opacity: 0.65; }
+
+        .pg-header {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-bottom: 0; gap: 12px;
+        }
+        .pg-toggle {
+          width: 100%; background: var(--white); border: 1.5px solid var(--border);
+          border-radius: 14px; padding: 14px 16px;
+          cursor: pointer; font-family: var(--font-b);
+          text-align: left; transition: border-color 0.18s, box-shadow 0.18s;
+          margin-bottom: 2px;
+        }
+        .pg-toggle:hover:not(.pg-toggle-disabled) {
+          border-color: rgba(71,152,128,0.4);
+          box-shadow: 0 2px 10px rgba(71,152,128,0.08);
+        }
+        .pg-toggle-disabled { cursor: not-allowed; background: #fafafa; opacity: 0.7; }
+        .pg-header-left { display: flex; align-items: center; gap: 10px; }
+        .pg-header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .pg-chevron { font-size: 9px; color: var(--muted); flex-shrink: 0; }
+        .pg-phase-badge {
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          padding: 4px 12px; border-radius: 99px;
+        }
+        .pg-phase-badge.active { background: rgba(71,152,128,0.12); color: var(--teal); border: 1px solid rgba(71,152,128,0.25); }
+        .pg-phase-badge.done   { background: rgba(71,152,128,0.08); color: var(--teal); border: 1px solid rgba(71,152,128,0.2); }
+        .pg-phase-badge.locked   { background: rgba(0,0,0,0.06); color: #9aa8a6; border: 1px solid rgba(0,0,0,0.08); }
+        .pg-phase-badge.inactive { background: rgba(71,152,128,0.06); color: var(--muted); border: 1px solid rgba(71,152,128,0.15); }
+        .pg-phase-title { font-family: var(--font-d); font-size: 15px; font-weight: 700; color: var(--text); }
+
+        .pg-progress-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .pg-pct { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+        .pg-bar-track { width: 80px; height: 5px; background: rgba(71,152,128,0.10); border-radius: 99px; overflow: hidden; }
+        .pg-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); border-radius: 99px; transition: width 0.8s ease; }
+
+        .pg-steps { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+
+        /* ── Challenge Step ── */
+        .cs-step {
+          display: flex; gap: 0; align-items: flex-start;
+          position: relative;
+          animation: fadeUp 0.4s both;
+        }
+
+        .cs-connector {
+          position: absolute; left: 15px; top: 38px;
+          width: 2px; height: calc(100% - 16px);
+          background: var(--border); z-index: 0;
+        }
+        .cs-step.completed .cs-connector { background: rgba(71,152,128,0.4); }
+
+        /* Node column */
+        .cs-node-col { width: 32px; flex-shrink: 0; display: flex; justify-content: center; padding-top: 12px; z-index: 1; }
+        .cs-node {
+          width: 32px; height: 32px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 12px; font-weight: 800;
+          flex-shrink: 0; transition: all 0.2s;
+        }
+        .cs-node.completed { background: var(--teal); color: #fff; box-shadow: 0 0 0 4px rgba(71,152,128,0.15); }
+        .cs-node.available { background: linear-gradient(135deg, var(--teal), var(--blue)); color: #fff; box-shadow: 0 4px 14px rgba(71,152,128,0.35); }
+        .cs-node.locked    { background: #eef4f2; color: #a0b5b2; border: 2px solid var(--border); font-size: 14px; }
+
+        /* Card */
+        .cs-card {
+          flex: 1; margin: 6px 0 6px 14px;
+          background: var(--white); border: 1.5px solid var(--border);
+          border-radius: 14px; padding: 16px 18px;
+          transition: all 0.18s;
+        }
+        .cs-card.available {
+          cursor: pointer; border-color: rgba(71,152,128,0.3);
+          box-shadow: 0 2px 12px rgba(71,152,128,0.08);
+        }
+        .cs-card.available:hover {
+          border-color: var(--teal);
+          transform: translateX(3px);
+          box-shadow: 0 4px 20px rgba(71,152,128,0.14);
+        }
+        .cs-card.available:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+        .cs-card.completed {
+          background: #f0faf7; border-color: rgba(71,152,128,0.25);
+          opacity: 0.85;
+        }
+        .cs-card.locked { background: #fafafa; opacity: 0.6; }
+
+        .cs-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .cs-card-left { flex: 1; min-width: 0; }
+        .cs-card-title {
+          font-family: var(--font-d); font-size: 14px; font-weight: 700;
+          color: var(--text); margin-bottom: 5px; line-height: 1.3;
+        }
+        .cs-card.locked .cs-card-title { color: #9aa8a6; }
+        .cs-card-desc { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+        .cs-card.locked .cs-card-desc { color: #b0bebb; }
+
+        .cs-arrow { font-size: 18px; color: var(--teal); font-weight: 700; flex-shrink: 0; padding-top: 2px; }
+        .cs-done-badge {
+          font-size: 11px; font-weight: 700; color: var(--teal);
+          background: rgba(71,152,128,0.1); padding: 4px 10px; border-radius: 99px;
+          flex-shrink: 0; white-space: nowrap;
+        }
+
+        .cs-card-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cs-meta-tag {
+          font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 6px;
+          background: #f0f4f3; color: var(--muted); white-space: nowrap;
+        }
+        .cs-meta-tag.points   { background: rgba(251,191,36,0.1); color: #b07d20; }
+        .cs-meta-tag.portfolio { background: rgba(100,143,191,0.1); color: #4a7aad; }
+        .cs-meta-tag.skill    { background: rgba(71,152,128,0.08); color: var(--teal); }
+
+        /* ── Toast ── */
+        .ch-toast {
+          position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+          background: #0f2421; color: #e8f6f2; padding: 12px 24px;
+          border-radius: 12px; font-size: 13px; font-weight: 600;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 1000;
+          animation: toastIn 0.3s both;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+          .ch-page-title { font-size: 22px; }
+          .pg-progress-wrap { display: none; }
+        }
+      `}</style>
+
+      <div className={`ch-root ${revealed ? "revealed" : ""}`}>
+        {/* Toast */}
+        {toast && <div className="ch-toast">{toast}</div>}
+
+        {/* Top bar */}
+        <div className="ch-topbar">
+          <button className="ch-back-btn" onClick={() => router.push("/roadmap")}>← Roadmap</button>
+          <span className="ch-topbar-logo">Inklusi<span>Jobs</span></span>
+          <div className="ch-topbar-right">
+            {totalPts > 0 && (
+              <span className="ch-pts-badge">🏆 {totalPts} pts earned</span>
+            )}
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="ch-header">
+          <div className="ch-page-badge">⚡ Your Challenges</div>
+          <h1 className="ch-page-title">Practical Challenges</h1>
+          <p className="ch-page-sub">
+            Complete each challenge to unlock the next. Every submission is AI-reviewed and added to your verified portfolio.
+          </p>
+          <div className="ch-overall-wrap">
+            <div className="ch-overall-row">
+              <span>Overall Progress — {totalDone} of {totalCount} completed</span>
+              <span>{overallPct}%</span>
+            </div>
+            <div className="ch-overall-track">
+              <div className="ch-overall-fill" style={{ width: `${overallPct}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Phase groups */}
+        <div className="ch-content">
+          {phases.map((phase, i) => (
+            <PhaseGroup
+              key={phase.phaseNumber}
+              phase={phase}
+              phaseIndex={i}
+              onChallengeClick={handleChallengeClick}
+            />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }

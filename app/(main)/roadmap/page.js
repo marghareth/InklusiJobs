@@ -1,186 +1,181 @@
-//app/(main)/roadmap/page.js
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getResourcesForJob, getChallengeForPhase } from "@/lib/learn-content";
-import { createClient } from "@supabase/supabase-js";
+import { getResourcesForJob } from "@/lib/learn-content";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// ─── localStorage helpers ────────────────────────────────────────────────────
+const LS = {
+  get:    (key)      => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } },
+  set:    (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
+};
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function loadRoadmap()   { try { return JSON.parse(localStorage.getItem("inklusijobs_roadmap") || "null"); } catch { return null; } }
-function loadJobSel()    { try { return JSON.parse(localStorage.getItem("inklusijobs_job_selection") || "null"); } catch { return null; } }
-function loadScoring()   { try { return JSON.parse(localStorage.getItem("inklusijobs_scoring") || "null"); } catch { return null; } }
-function loadJobResult() { try { return JSON.parse(localStorage.getItem("inklusijobs_job_for_roadmap") || "null"); } catch { return null; } }
+const KEYS = {
+  JOB_SELECTION:     "inklusijobs_job_selection",
+  ROADMAP:           "inklusijobs_roadmap",
+  COMPLETED_SKILLS:  "inklusijobs_completed_skills",   // string[]  - resource/skill IDs
+  ROADMAP_PROGRESS:  "inklusijobs_roadmap_progress",   // { phase1: 0-100, phase2: 0-100, phase3: 0-100, overall: 0-100 }
+  SCORING:           "inklusijobs_scoring",
+  COMPLETED_CHALLENGES: "inklusijobs_completed_challenges",
+};
 
-function getPhaseNumbers(phases) { return phases?.map(p => p.phaseNumber) || []; }
+// ─── Fallback roadmap (if API hasn't been called yet) ─────────────────────────
+function buildFallbackRoadmap(jobId) {
+  return {
+    title: "Your Personalised Learning Roadmap",
+    summary: "A step-by-step path to build the skills you need to land your target role.",
+    totalWeeks: 12,
+    encouragementMessage: "Every resource you complete adds to your verified portfolio. You're building something real.",
+    nextStep: "Start with the Beginner resources and check them off as you go.",
+    phases: [
+      {
+        phaseNumber: 1,
+        title: "Beginner: Core Foundations",
+        milestone: "You can confidently describe what this career path involves and explain key concepts.",
+      },
+      {
+        phaseNumber: 2,
+        title: "Intermediate: Applied Skills",
+        milestone: "You can apply your skills to real-world scenarios with some guidance.",
+      },
+      {
+        phaseNumber: 3,
+        title: "Advanced: Job-Ready Mastery",
+        milestone: "You can work independently and handle complex challenges.",
+      },
+    ],
+  };
+}
 
-// ─── Resource Row ─────────────────────────────────────────────────────────────
-function ResourceRow({ resource, isComplete, quizScore, onToggleComplete, jobId, locked }) {
-  const router = useRouter();
-  const quizPassed = quizScore?.passed;
+// ─── Fallback resources (if lib/learn-content is empty) ──────────────────────
+function buildFallbackResources(jobId) {
+  return [
+    { id: `${jobId}_r1`, phaseNumber: 1, title: "Introduction to Digital Marketing", platform: "Google Skillshop", type: "course", url: "https://skillshop.withgoogle.com", estimatedHours: 3, isFree: true, language: "English" },
+    { id: `${jobId}_r2`, phaseNumber: 1, title: "Content Strategy Fundamentals", platform: "HubSpot Academy", type: "course", url: "https://academy.hubspot.com", estimatedHours: 2, isFree: true, language: "English" },
+    { id: `${jobId}_r3`, phaseNumber: 1, title: "Social Media 101", platform: "Coursera", type: "article", url: "https://coursera.org", estimatedHours: 1, isFree: true, language: "English" },
+    { id: `${jobId}_r4`, phaseNumber: 2, title: "SEO for Beginners", platform: "Moz", type: "article", url: "https://moz.com/beginners-guide-to-seo", estimatedHours: 2, isFree: true, language: "English" },
+    { id: `${jobId}_r5`, phaseNumber: 2, title: "Email Marketing Mastery", platform: "Mailchimp Academy", type: "course", url: "https://mailchimp.com/resources", estimatedHours: 4, isFree: true, language: "English" },
+    { id: `${jobId}_r6`, phaseNumber: 3, title: "Advanced Analytics with GA4", platform: "Google Analytics", type: "course", url: "https://analytics.google.com/analytics/academy", estimatedHours: 5, isFree: true, language: "English" },
+    { id: `${jobId}_r7`, phaseNumber: 3, title: "Campaign Strategy & Planning", platform: "LinkedIn Learning", type: "course", url: "https://linkedin.com/learning", estimatedHours: 3, isFree: false, language: "English" },
+  ];
+}
 
+const RESOURCE_ICONS = { video: "▶️", article: "📄", course: "🎓", tool: "🛠️", community: "👥" };
+
+// ─── Save & recalculate progress ──────────────────────────────────────────────
+function saveProgress(completedSkills, allResources) {
+  const doneSet = new Set(completedSkills);
+  const byPhase = {};
+  for (const r of allResources) {
+    if (!byPhase[r.phaseNumber]) byPhase[r.phaseNumber] = { total: 0, done: 0 };
+    byPhase[r.phaseNumber].total++;
+    if (doneSet.has(r.id)) byPhase[r.phaseNumber].done++;
+  }
+
+  const progress = {};
+  let totalR = 0; let doneR = 0;
+  for (const [phase, { total, done }] of Object.entries(byPhase)) {
+    progress[`phase${phase}`] = total > 0 ? Math.round((done / total) * 100) : 0;
+    totalR += total; doneR += done;
+  }
+  progress.overall = totalR > 0 ? Math.round((doneR / totalR) * 100) : 0;
+  LS.set(KEYS.ROADMAP_PROGRESS, progress);
+  return progress;
+}
+
+// ─── Single resource row ──────────────────────────────────────────────────────
+function ResourceRow({ resource, isComplete, onToggle, locked }) {
   return (
-    <div className={`resource-row ${isComplete ? "done" : ""} ${locked ? "locked-item" : ""}`}>
-      {/* Checkbox */}
+    <div className={`rm-resource ${isComplete ? "done" : ""} ${locked ? "locked" : ""}`}>
       <button
-        className={`resource-check ${isComplete ? "checked" : ""}`}
-        onClick={() => !locked && onToggleComplete(resource)}
+        className={`rm-check ${isComplete ? "checked" : ""}`}
+        onClick={() => !locked && onToggle(resource.id)}
         disabled={locked}
-        aria-label={isComplete ? "Mark as incomplete" : "Mark as complete"}
+        aria-label={isComplete ? "Mark incomplete" : "Mark complete"}
       >
-        {isComplete && <span>✓</span>}
+        {isComplete && "✓"}
       </button>
-
-      {/* Resource info */}
-      <div className="resource-info">
-        <div className="resource-title-row">
+      <div className="rm-res-info">
+        <div className="rm-res-title-row">
           <a
             href={locked ? undefined : resource.url}
             target={locked ? undefined : "_blank"}
             rel="noopener noreferrer"
-            className={`resource-title ${locked ? "locked-link" : ""}`}
+            className={`rm-res-title ${locked ? "locked-link" : ""}`}
             onClick={e => locked && e.preventDefault()}
           >
             {RESOURCE_ICONS[resource.type] || "📎"} {resource.title}
           </a>
-          <div className="resource-badges">
-            {resource.isFree !== false && <span className="badge free">Free</span>}
-            {resource.language !== "English" && <span className="badge lang">{resource.language}</span>}
-          </div>
-        </div>
-        <div className="resource-meta">
-          {resource.platform} · ~{resource.estimatedHours}h
-          {resource.accessibilityNotes && <span className="resource-a11y"> · ♿ {resource.accessibilityNotes}</span>}
-        </div>
-      </div>
-
-      {/* Quiz button */}
-      {!locked && (
-        <div className="resource-quiz-col">
-          {quizPassed ? (
-            <div className="quiz-passed-badge">✅ {quizScore?.score}%</div>
-          ) : (
-            <button
-              className={`quiz-btn ${isComplete ? "active" : "dim"}`}
-              onClick={() => router.push(`/learn/quiz/${resource.id}`)}
-            >
-              {quizScore ? "Retry Quiz" : "Take Quiz"}
-            </button>
+          {resource.isFree !== false && <span className="rm-badge free">Free</span>}
+          {resource.language && resource.language !== "English" && (
+            <span className="rm-badge lang">{resource.language}</span>
           )}
         </div>
-      )}
+        <div className="rm-res-meta">
+          {resource.platform} · ~{resource.estimatedHours}h
+          {resource.accessibilityNotes && <span className="rm-a11y"> · ♿ {resource.accessibilityNotes}</span>}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Phase Card ───────────────────────────────────────────────────────────────
-function PhaseCard({ phase, resources, challenge, progress, locked, index }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(index === 0);
-
-  const totalResources  = resources.length;
-  const doneResources   = resources.filter(r => progress.resourceProgress?.[r.id]?.completed).length;
-  const allDone         = totalResources > 0 && doneResources === totalResources;
-  const quizAttempts    = progress.quizAttempts || {};
-  const challengeResult = progress.challengeAttempts?.[challenge?.id];
-  const phasePercent    = totalResources > 0 ? Math.round((doneResources / totalResources) * 100) : 0;
+// ─── Phase section ────────────────────────────────────────────────────────────
+function PhaseSection({ phase, resources, completedSkills, onToggle, isLocked, defaultOpen }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const total    = resources.length;
+  const done     = resources.filter(r => completedSkills.has(r.id)).length;
+  const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+  const allDone  = total > 0 && done === total;
 
   return (
-    <div className={`phase-card ${locked ? "locked" : ""} ${open && !locked ? "open" : ""}`}>
-      {/* Phase header */}
-      <button className="phase-header" onClick={() => !locked && setOpen(o => !o)} disabled={locked}>
-        <div className="phase-num-col">
-          <div className={`phase-num ${locked ? "locked-num" : allDone ? "done-num" : ""}`}>
-            {locked ? "🔒" : allDone ? "✓" : phase.phaseNumber}
-          </div>
+    <div className={`rm-phase ${isLocked ? "rm-phase-locked" : ""} ${allDone ? "rm-phase-done" : ""}`}>
+      <button
+        className="rm-phase-header"
+        onClick={() => !isLocked && setOpen(o => !o)}
+        disabled={isLocked}
+        aria-expanded={open && !isLocked}
+      >
+        <div className="rm-phase-num">
+          {isLocked ? "🔒" : allDone ? "✓" : phase.phaseNumber}
         </div>
-        <div className="phase-meta">
-          <div className="phase-top">
-            <span className="phase-title">{phase.title || `Phase ${phase.phaseNumber}`}</span>
-            {!locked && <span className="phase-chevron">{open ? "▲" : "▼"}</span>}
+        <div className="rm-phase-meta">
+          <div className="rm-phase-top-row">
+            <span className="rm-phase-title">{phase.title || `Phase ${phase.phaseNumber}`}</span>
+            {!isLocked && <span className="rm-chevron">{open ? "▲" : "▼"}</span>}
           </div>
-          <div className="phase-sub">
-            {locked
-              ? <span className="locked-msg">Complete Phase {phase.phaseNumber - 1} challenge to unlock</span>
-              : <span className="phase-progress-text">{doneResources}/{totalResources} resources · {phasePercent}% done</span>
+          <div className="rm-phase-sub">
+            {isLocked
+              ? <span style={{ color: "#b0bebb" }}>Complete Phase {phase.phaseNumber - 1} to unlock</span>
+              : <span>{done}/{total} resources · {pct}%</span>
             }
           </div>
-          {!locked && (
-            <div className="phase-progress-bar-track">
-              <div className="phase-progress-bar-fill" style={{ width: `${phasePercent}%` }} />
+          {!isLocked && (
+            <div className="rm-phase-bar-track">
+              <div className="rm-phase-bar-fill" style={{ width: `${pct}%` }} />
             </div>
           )}
         </div>
       </button>
 
-      {/* Phase body */}
-      {open && !locked && (
-        <div className="phase-body">
+      {open && !isLocked && (
+        <div className="rm-phase-body">
           {/* Resources */}
-          {resources.length > 0 && (
-            <div className="phase-section">
-              <div className="phase-section-label">📚 Learning Resources</div>
-              <div className="resources-list">
-                {resources.map(r => (
-                  <ResourceRow
-                    key={r.id}
-                    resource={r}
-                    isComplete={!!progress.resourceProgress?.[r.id]?.completed}
-                    quizScore={quizAttempts?.[r.id]}
-                    onToggleComplete={progress.onToggleResource}
-                    jobId={phase.jobId}
-                    locked={false}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="rm-section-label">📚 Learning Resources</div>
+          <div className="rm-resources-list">
+            {resources.length > 0
+              ? resources.map(r => (
+                <ResourceRow
+                  key={r.id} resource={r}
+                  isComplete={completedSkills.has(r.id)}
+                  onToggle={onToggle} locked={false}
+                />
+              ))
+              : <p className="rm-empty">Resources for this phase will appear here once your roadmap is generated.</p>
+            }
+          </div>
 
-          {/* Challenge */}
-          {challenge && (
-            <div className="phase-section">
-              <div className="phase-section-label">⚡ Practical Challenge</div>
-              <div
-                className={`challenge-card ${challengeResult?.passed ? "challenge-done" : ""}`}
-                onClick={() => router.push(`/challenges/${challenge.id}`)}
-              >
-                <div className="challenge-card-left">
-                  <div className="challenge-card-title">{challenge.title}</div>
-                  <div className="challenge-card-brief">{challenge.briefSummary}</div>
-                  <div className="challenge-card-meta">
-                    ⏱ ~{challenge.estimatedHours}h · 📁 Portfolio worthy
-                    {challenge.skills?.map(s => <span key={s} className="challenge-skill-tag">{s}</span>)}
-                  </div>
-                </div>
-                <div className="challenge-card-right">
-                  {challengeResult ? (
-                    <div className={`challenge-score-badge ${challengeResult.passed ? "passed" : "failed"}`}>
-                      {challengeResult.passed ? "✅" : "❌"} {challengeResult.score}%
-                    </div>
-                  ) : (
-                    <div className="challenge-cta-arrow">View →</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Milestone */}
-          {phase.milestone && (
-            <div className="phase-milestone">
-              <span>🏆</span>
-              <div>
-                <div className="milestone-label">Phase Milestone</div>
-                <div className="milestone-text">{phase.milestone}</div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -191,479 +186,459 @@ function PhaseCard({ phase, resources, challenge, progress, locked, index }) {
 export default function RoadmapPage() {
   const router = useRouter();
 
-  const [roadmap, setRoadmap]         = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
-  const [revealed, setRevealed]       = useState(false);
-  const [userId, setUserId]           = useState(null);
-  const [jobId, setJobId]             = useState(null);
-  const [progress, setProgress]       = useState({
-    resourceProgress:   {},
-    quizAttempts:       {},
-    challengeAttempts:  {},
-    unlockedPhases:     new Set([1]),
-  });
+  const [roadmap,         setRoadmap]         = useState(null);
+  const [jobId,           setJobId]           = useState(null);
+  const [allResources,    setAllResources]     = useState([]);
+  const [completedSkills, setCompletedSkills] = useState(new Set());
+  const [progress,        setProgress]        = useState({});
+  const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState(null);
+  const [revealed,        setRevealed]        = useState(false);
+  const [unlockedPhases,  setUnlockedPhases]  = useState(new Set([1]));
 
-  // ── Load roadmap ────────────────────────────────────────────────────────────
+
+  // ── Init ────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const selection = loadJobSel();
-    if (!selection?.jobId) { router.replace("/job-select"); return; }
-    setJobId(selection.jobId);
+    const sel = LS.get(KEYS.JOB_SELECTION);
+    if (!sel?.jobId) { router.replace("/job-select"); return; }
+    setJobId(sel.jobId);
 
-    const existing = loadRoadmap();
-    if (existing) {
-      setRoadmap(existing);
-      setLoading(false);
-      setTimeout(() => setRevealed(true), 100);
+    // Load roadmap
+    const saved = LS.get(KEYS.ROADMAP);
+    if (saved) {
+      setRoadmap(saved);
     } else {
-      fetchRoadmap(selection.jobId);
+      fetchRoadmap(sel.jobId);
+      return;
     }
 
-    // Get user + load progress
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) {
-        setUserId(data.user.id);
-        loadProgress(data.user.id, selection.jobId);
-      }
-    });
+    // Load resources
+    let resources = [];
+    try { resources = getResourcesForJob?.(sel.jobId) || []; } catch {}
+    if (!resources.length) resources = buildFallbackResources(sel.jobId);
+    setAllResources(resources);
+
+    // Load completed skills
+    const completedArr = LS.get(KEYS.COMPLETED_SKILLS) || [];
+    const completedSet = new Set(completedArr);
+    setCompletedSkills(completedSet);
+
+    // Load progress
+    const prog = LS.get(KEYS.ROADMAP_PROGRESS) || saveProgress(completedArr, resources);
+    setProgress(prog);
+
+    // Compute unlocked phases (phase N+1 unlocks when all challenges in phase N are done)
+    const completedChallenges = new Set(LS.get(KEYS.COMPLETED_CHALLENGES) || []);
+    computeUnlocked(completedChallenges, sel.jobId);
+
+    setLoading(false);
+    setTimeout(() => setRevealed(true), 100);
   }, [router]);
 
   async function fetchRoadmap(jId) {
     setLoading(true);
     try {
-      const scoring = loadScoring();
-      const job     = loadJobResult();
-      if (!scoring || !job) { router.replace("/job-select"); return; }
+      const scoring = LS.get(KEYS.SCORING);
+      const job     = LS.get("inklusijobs_job_for_roadmap");
 
-      const res  = await fetch("/api/roadmap/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scoring, job }),
-      });
-      if (!res.ok) throw new Error("Roadmap generation failed");
-      const data = await res.json();
-      if (!data?.roadmap) throw new Error("Invalid roadmap response");
+      let roadmapData;
+      if (scoring && job) {
+        const res = await fetch("/api/roadmap/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scoring, job }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          roadmapData = data?.roadmap;
+        }
+      }
 
-      localStorage.setItem("inklusijobs_roadmap", JSON.stringify(data.roadmap));
-      setRoadmap(data.roadmap);
+      if (!roadmapData) roadmapData = buildFallbackRoadmap(jId);
+      LS.set(KEYS.ROADMAP, roadmapData);
+      setRoadmap(roadmapData);
+
+      let resources = [];
+      try { resources = getResourcesForJob?.(jId) || []; } catch {}
+      if (!resources.length) resources = buildFallbackResources(jId);
+      setAllResources(resources);
+
+      const completedArr = LS.get(KEYS.COMPLETED_SKILLS) || [];
+      setCompletedSkills(new Set(completedArr));
+      setProgress(saveProgress(completedArr, resources));
+
+      setLoading(false);
       setTimeout(() => setRevealed(true), 100);
-    } catch (err) {
+    } catch (e) {
       setError("Something went wrong building your roadmap. Please try again.");
-    } finally {
       setLoading(false);
     }
   }
 
-  async function loadProgress(uid, jid) {
-    try {
-      const [resourceRes, quizRes, challengeRes] = await Promise.all([
-        supabase.from("user_resource_progress").select("*").eq("user_id", uid).eq("job_id", jid),
-        supabase.from("user_quiz_attempts").select("*").eq("user_id", uid).eq("job_id", jid),
-        supabase.from("user_challenge_attempts").select("*").eq("user_id", uid).eq("job_id", jid),
-      ]);
-
-      const resourceProgress = Object.fromEntries(
-        (resourceRes.data || []).map(r => [r.resource_id, { completed: r.completed, completedAt: r.completed_at }])
-      );
-      const quizAttempts = Object.fromEntries(
-        (quizRes.data || []).map(q => [q.resource_id, { score: q.score, passed: q.passed }])
-      );
-      const challengeAttempts = Object.fromEntries(
-        (challengeRes.data || []).map(c => [c.challenge_id, { score: c.score, passed: c.passed }])
-      );
-
-      // Compute unlocked phases
-      const unlocked = new Set([1]);
-      [1, 2, 3, 4].forEach(phase => {
-        const cId = `${jid}_challenge_${phase}`;
-        if (challengeAttempts[cId]?.passed) unlocked.add(phase + 1);
-      });
-
-      setProgress(prev => ({
-        ...prev,
-        resourceProgress,
-        quizAttempts,
-        challengeAttempts,
-        unlockedPhases: unlocked,
-      }));
-    } catch (e) {
-      console.error("[Roadmap] Progress load error:", e);
-    }
+  function computeUnlocked(completedChallenges, jId) {
+    const unlocked = new Set([1]);
+    [1, 2, 3].forEach(phase => {
+      const anyPhaseDone = Array.from(completedChallenges).some(id => id.includes(`_c${phase}`));
+      if (anyPhaseDone) unlocked.add(phase + 1);
+    });
+    setUnlockedPhases(unlocked);
   }
 
-  const handleToggleResource = async (resource) => {
-    if (!userId) return;
-    const isCurrentlyDone = !!progress.resourceProgress?.[resource.id]?.completed;
+  const handleToggle = useCallback((resourceId) => {
+    setCompletedSkills(prev => {
+      const next = new Set(prev);
+      if (next.has(resourceId)) next.delete(resourceId); else next.add(resourceId);
+      const arr = Array.from(next);
+      LS.set(KEYS.COMPLETED_SKILLS, arr);
+      const p = saveProgress(arr, allResources);
+      setProgress(p);
+      return next;
+    });
+  }, [allResources]);
 
-    // Optimistic update
-    setProgress(prev => ({
-      ...prev,
-      resourceProgress: {
-        ...prev.resourceProgress,
-        [resource.id]: { completed: !isCurrentlyDone, completedAt: isCurrentlyDone ? null : new Date().toISOString() },
-      },
-    }));
+  // ── Computed stats ──────────────────────────────────────────────────────────
+  const totalResources = allResources.length;
+  const doneResources  = completedSkills.size;
+  const overallPct     = progress.overall || 0;
 
-    try {
-      await fetch("/api/progress/resource-complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          jobId,
-          resourceId:   resource.id,
-          phaseNumber:  resource.phaseNumber,
-          completed:    !isCurrentlyDone,
-        }),
-      });
-    } catch (e) {
-      // Revert on failure
-      setProgress(prev => ({
-        ...prev,
-        resourceProgress: {
-          ...prev.resourceProgress,
-          [resource.id]: { completed: isCurrentlyDone },
-        },
-      }));
-    }
-  };
-
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="ij-loading-screen">
-        <div className="ij-loading-card">
-          <div className="ij-spinner" />
+      <div className="rm-loading-screen">
+        <RoadmapStyles />
+        <div className="rm-loading-card">
+          <div className="rm-spinner" />
           <h2>Building your personalised roadmap…</h2>
           <p>This takes about 15 seconds. 🌟</p>
-          <div className="ij-loading-steps">
-            <div className="ij-step done">✅ Assessment complete</div>
-            <div className="ij-step done">✅ Skills scored</div>
-            <div className="ij-step active">⚙️ Generating roadmap…</div>
+          <div className="rm-loading-steps">
+            <div className="rm-lstep done">✅ Assessment complete</div>
+            <div className="rm-lstep done">✅ Skills scored</div>
+            <div className="rm-lstep active">⚙️ Generating roadmap…</div>
           </div>
         </div>
-        <BaseStyles />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="ij-loading-screen">
-        <div className="ij-loading-card">
+      <div className="rm-loading-screen">
+        <RoadmapStyles />
+        <div className="rm-loading-card">
           <p style={{ fontSize: "2.5rem" }}>😔</p>
           <h2>Something went wrong</h2>
           <p>{error}</p>
-          <button className="ij-btn-primary" onClick={() => { setError(null); setLoading(true); fetchRoadmap(jobId); }}>Try Again</button>
+          <button className="rm-btn-primary" onClick={() => { setError(null); setLoading(true); fetchRoadmap(jobId); }}>
+            Try Again
+          </button>
         </div>
-        <BaseStyles />
       </div>
     );
   }
 
   if (!roadmap) return null;
 
-  // ── Compute stats ────────────────────────────────────────────────────────────
-  const allResources    = jobId ? getResourcesForJob(jobId) : [];
-  const totalResources  = allResources.length;
-  const doneResources   = Object.values(progress.resourceProgress).filter(r => r.completed).length;
-  const passedQuizzes   = Object.values(progress.quizAttempts).filter(q => q.passed).length;
-  const passedChallenges= Object.values(progress.challengeAttempts).filter(c => c.passed).length;
-  const overallPercent  = totalResources > 0 ? Math.round((doneResources / totalResources) * 100) : 0;
-
-  const progressWithToggle = { ...progress, onToggleResource: handleToggleResource };
-
   return (
-    <div className={`ij-page ${revealed ? "revealed" : ""}`}>
-      <BaseStyles />
-      <GlobalStyles />
+    <>
+      <RoadmapStyles />
+      <div className={`rm-root ${revealed ? "revealed" : ""}`}>
 
-      <div className="ij-shell">
-        {/* Logo */}
-        <div className="ij-logo-row">
-          <div className="ij-logo-mark">IJ</div>
-          <span className="ij-logo-text">InklusiJobs</span>
-        </div>
-
-        {/* Header */}
-        <div className="ij-roadmap-header">
-          <div className="ij-roadmap-badge">Your Personalised Roadmap</div>
-          <h1 className="ij-roadmap-title">{roadmap.title}</h1>
-          <p className="ij-roadmap-summary">{roadmap.summary}</p>
-
-          {/* Stats */}
-          <div className="ij-stats-row">
-            <div className="ij-stat">
-              <span className="ij-stat-value">{roadmap.totalWeeks}</span>
-              <span className="ij-stat-label">Weeks</span>
-            </div>
-            <div className="ij-stat-div" />
-            <div className="ij-stat">
-              <span className="ij-stat-value">{doneResources}/{totalResources}</span>
-              <span className="ij-stat-label">Resources</span>
-            </div>
-            <div className="ij-stat-div" />
-            <div className="ij-stat">
-              <span className="ij-stat-value">{passedQuizzes}</span>
-              <span className="ij-stat-label">Quizzes Passed</span>
-            </div>
-            <div className="ij-stat-div" />
-            <div className="ij-stat">
-              <span className="ij-stat-value">{passedChallenges}</span>
-              <span className="ij-stat-label">Challenges Done</span>
-            </div>
-          </div>
-
-          {/* Overall progress bar */}
-          <div className="ij-overall-progress">
-            <div className="ij-overall-progress-label">
-              <span>Overall Progress</span>
-              <span>{overallPercent}%</span>
-            </div>
-            <div className="ij-overall-bar-track">
-              <div className="ij-overall-bar-fill" style={{ width: `${overallPercent}%` }} />
-            </div>
+        {/* Top bar */}
+        <div className="rm-topbar">
+          <button className="rm-back-btn" onClick={() => router.push("/results")}>← Results</button>
+          <span className="rm-logo">Inklusi<span>Jobs</span></span>
+          <div className="rm-topbar-right">
+            <button className="rm-dash-btn" onClick={() => router.push("/dashboard/worker")}>
+              Dashboard →
+            </button>
           </div>
         </div>
 
-        {/* Encouragement */}
-        {roadmap.encouragementMessage && (
-          <div className="ij-encouragement">
-            <span>💬</span>
-            <p>{roadmap.encouragementMessage}</p>
+        <div className="rm-shell">
+          {/* Header */}
+          <div className="rm-header">
+            <div className="rm-header-badge">Your Personalised Roadmap</div>
+            <h1 className="rm-header-title">{roadmap.title}</h1>
+            <p className="rm-header-summary">{roadmap.summary}</p>
+
+            {/* Stats */}
+            <div className="rm-stats-row">
+              <div className="rm-stat"><span className="rm-stat-v">{roadmap.totalWeeks || "—"}</span><span className="rm-stat-l">Weeks</span></div>
+              <div className="rm-stat-div" />
+              <div className="rm-stat"><span className="rm-stat-v">{doneResources}/{totalResources}</span><span className="rm-stat-l">Resources</span></div>
+              <div className="rm-stat-div" />
+              <div className="rm-stat"><span className="rm-stat-v">{overallPct}%</span><span className="rm-stat-l">Progress</span></div>
+            </div>
+
+            {/* Overall bar */}
+            <div className="rm-overall-wrap">
+              <div className="rm-overall-row">
+                <span>Overall Progress</span>
+                <span>{overallPct}%</span>
+              </div>
+              <div className="rm-overall-track">
+                <div className="rm-overall-fill" style={{ width: `${overallPct}%` }} />
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Start today */}
-        {roadmap.nextStep && (
-          <div className="ij-next-step">
-            <span className="ij-next-step-label">Start Today</span>
-            <p className="ij-next-step-text">{roadmap.nextStep}</p>
+          {/* Encouragement */}
+          {roadmap.encouragementMessage && (
+            <div className="rm-encourage">
+              <span>💬</span>
+              <p>{roadmap.encouragementMessage}</p>
+            </div>
+          )}
+
+          {/* Next step */}
+          {roadmap.nextStep && (
+            <div className="rm-nextstep">
+              <span className="rm-nextstep-label">Start Today</span>
+              <p className="rm-nextstep-text">{roadmap.nextStep}</p>
+            </div>
+          )}
+
+          {/* Phases */}
+          <div className="rm-phases-label">Your Learning Phases</div>
+          <div className="rm-phases-list">
+            {roadmap.phases?.map((phase, i) => {
+              const phaseResources = allResources.filter(r => r.phaseNumber === phase.phaseNumber);
+              const isLocked = !unlockedPhases.has(phase.phaseNumber);
+              return (
+                <PhaseSection
+                  key={phase.phaseNumber}
+                  phase={phase}
+                  resources={phaseResources}
+                  completedSkills={completedSkills}
+                  onToggle={handleToggle}
+                  isLocked={isLocked}
+                  defaultOpen={i === 0}
+                />
+              );
+            })}
           </div>
-        )}
 
-        {/* Phases */}
-        <div className="ij-phases-label">Your Learning Phases</div>
-        <div className="ij-phases-list">
-          {roadmap.phases?.map((phase, i) => {
-            const phaseResources = jobId ? getResourcesForJob(jobId).filter(r => r.phaseNumber === phase.phaseNumber) : [];
-            const phaseChallenge = jobId ? getChallengeForPhase(jobId, phase.phaseNumber) : null;
-            const isLocked       = !progress.unlockedPhases.has(phase.phaseNumber);
+          {/* Bottom CTAs */}
+          <div className="rm-cta-row">
+            <button className="rm-btn-secondary" onClick={() => router.push("/results")}>← Back to Results</button>
+            <button className="rm-btn-secondary" onClick={() => {
+              LS.set(KEYS.ROADMAP, null);
+              setRoadmap(null);
+              setLoading(true);
+              fetchRoadmap(jobId);
+            }}>
+              Regenerate ↺
+            </button>
+            <button className="rm-btn-primary" onClick={() => router.push("/dashboard/worker")}>
+              Go to Dashboard →
+            </button>
+          </div>
 
-            return (
-              <PhaseCard
-                key={phase.phaseNumber}
-                phase={phase}
-                resources={phaseResources}
-                challenge={phaseChallenge}
-                progress={progressWithToggle}
-                locked={isLocked}
-                index={i}
-              />
-            );
-          })}
+          <p className="rm-footer">🔒 Your progress is saved automatically as you check off skills.</p>
         </div>
-
-        {/* Bottom CTAs */}
-        <div className="ij-cta-row">
-          <button className="ij-btn-secondary" onClick={() => router.push("/results")}>
-            ← Back to Results
-          </button>
-          <button className="ij-btn-primary" onClick={() => {
-            localStorage.removeItem("inklusijobs_roadmap");
-            setRoadmap(null);
-            fetchRoadmap(jobId);
-          }}>
-            Regenerate ↺
-          </button>
-        </div>
-
-        {/* Dashboard Button - ADDED HERE */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => {
-              // Get user role from localStorage or default to "worker"
-              const role = localStorage.getItem("userRole") || "worker";
-              window.location.href = role === "employer" ? "/employer/dashboard" : "/dashboard/worker";
-            }}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-
-        <p className="ij-footer-note">🔒 Your progress is saved automatically.</p>
       </div>
-    </div>
+    </>
   );
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const RESOURCE_ICONS = {
-  video:     "▶️",
-  article:   "📄",
-  course:    "🎓",
-  tool:      "🛠️",
-  community: "👥",
-};
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-function BaseStyles() {
+function RoadmapStyles() {
   return (
-    <style jsx global>{`
+    <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-      :root { --teal:#479880; --blue:#4B959E; --bg:#f4f9f8; }
-      *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-      body { background:var(--bg); }
-      .ij-loading-screen { min-height:100vh; background:var(--bg); display:flex; align-items:center; justify-content:center; font-family:'Plus Jakarta Sans',sans-serif; padding:2rem; }
-      .ij-loading-card { background:white; border-radius:24px; padding:3rem 2.5rem; max-width:440px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(71,152,128,0.12); }
-      .ij-loading-card h2 { font-size:1.35rem; font-weight:700; color:#0f2421; margin:1.25rem 0 0.5rem; }
-      .ij-loading-card p { font-size:0.9rem; color:#6b8a87; line-height:1.6; margin-bottom:1.5rem; }
-      .ij-spinner { width:52px; height:52px; border:4px solid #e8f0ef; border-top-color:#479880; border-radius:50%; animation:spin 0.9s linear infinite; margin:0 auto; }
-      @keyframes spin { to { transform:rotate(360deg); } }
-      .ij-loading-steps { display:flex; flex-direction:column; gap:0.5rem; text-align:left; background:#f8fffe; border-radius:12px; padding:1rem 1.25rem; }
-      .ij-step { font-size:0.85rem; font-weight:500; color:#7a9b97; }
-      .ij-step.active { color:#479880; font-weight:700; }
-      .ij-step.done { color:#4a6360; }
-      .ij-btn-primary { background:linear-gradient(135deg,var(--teal),var(--blue)); border:none; border-radius:12px; padding:0.85rem 2rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.92rem; font-weight:700; color:white; cursor:pointer; margin-top:1rem; }
-    `}</style>
-  );
-}
 
-function GlobalStyles() {
-  return (
-    <style jsx global>{`
-      .ij-page { min-height:100vh; background:var(--bg); font-family:'Plus Jakarta Sans',sans-serif; padding:2rem 1.5rem 4rem; display:flex; justify-content:center; opacity:0; transform:translateY(10px); transition:opacity 0.5s ease,transform 0.5s ease; }
-      .ij-page.revealed { opacity:1; transform:translateY(0); }
-      .ij-shell { width:100%; max-width:680px; }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --teal: #479880; --blue: #4B959E; --bg: #f4f9f8;
+        --white: #ffffff; --text: #0f2421; --muted: #6b8a87;
+        --border: #e4ecea;
+        --font-d: 'Plus Jakarta Sans', sans-serif; --font-b: 'Plus Jakarta Sans', sans-serif;
+      }
+      body { background: var(--bg); }
 
-      .ij-logo-row { display:flex; align-items:center; gap:0.6rem; justify-content:center; margin-bottom:1.75rem; }
-      .ij-logo-mark { width:36px; height:36px; background:linear-gradient(135deg,var(--teal),var(--blue)); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:0.85rem; }
-      .ij-logo-text { font-weight:700; font-size:1.1rem; color:#0f2421; letter-spacing:-0.02em; }
+      @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+      .rm-root { min-height: 100vh; background: var(--bg); font-family: var(--font-b); opacity:0; transition: opacity 0.4s ease; }
+      .rm-root.revealed { opacity: 1; }
+
+      /* Topbar */
+      .rm-topbar {
+        position: sticky; top: 0; z-index: 50;
+        background: rgba(244,249,248,0.92); backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+      }
+      .rm-back-btn {
+        background: none; border: 1.5px solid var(--border); border-radius: 8px;
+        padding: 6px 14px; font-family: var(--font-b); font-size: 13px; font-weight: 600;
+        color: var(--muted); cursor: pointer; transition: all 0.15s;
+      }
+      .rm-back-btn:hover { border-color: var(--teal); color: var(--teal); }
+      .rm-logo { font-family: var(--font-d); font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+      .rm-logo span { color: var(--teal); }
+      .rm-topbar-right { margin-left: auto; }
+      .rm-dash-btn {
+        background: linear-gradient(135deg, var(--teal), var(--blue));
+        border: none; border-radius: 8px; padding: 7px 16px;
+        font-family: var(--font-b); font-size: 12px; font-weight: 700;
+        color: #fff; cursor: pointer; transition: all 0.15s;
+        box-shadow: 0 2px 8px rgba(71,152,128,0.3);
+      }
+      .rm-dash-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(71,152,128,0.35); }
+
+      /* Shell */
+      .rm-shell { max-width: 680px; margin: 0 auto; padding: 28px 24px 60px; }
 
       /* Header */
-      .ij-roadmap-header { background:white; border-radius:24px; padding:1.75rem 2rem; margin-bottom:1rem; box-shadow:0 4px 24px rgba(71,152,128,0.08); border:1px solid rgba(71,152,128,0.1); }
-      .ij-roadmap-badge { display:inline-block; padding:0.25rem 0.8rem; background:linear-gradient(135deg,#e8f6f2,#e4f2f5); color:#4B959E; border-radius:999px; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem; }
-      .ij-roadmap-title { font-size:1.45rem; font-weight:800; color:#0f2421; letter-spacing:-0.02em; line-height:1.25; margin-bottom:0.6rem; }
-      .ij-roadmap-summary { font-size:0.88rem; color:#4a6360; line-height:1.65; margin-bottom:1.25rem; }
+      .rm-header {
+        background: var(--white); border-radius: 20px; padding: 24px;
+        margin-bottom: 16px; border: 1px solid rgba(71,152,128,0.12);
+        box-shadow: 0 2px 16px rgba(71,152,128,0.07);
+        animation: fadeUp 0.4s both;
+      }
+      .rm-header-badge {
+        display: inline-block; padding: 3px 12px;
+        background: linear-gradient(135deg, #e8f6f2, #e4f2f5);
+        color: var(--blue); border-radius: 99px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px;
+      }
+      .rm-header-title { font-family: var(--font-d); font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; margin-bottom: 8px; line-height: 1.25; }
+      .rm-header-summary { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 16px; }
 
-      .ij-stats-row { display:flex; align-items:center; background:#f8fffe; border-radius:12px; padding:0.75rem 1rem; border:1px solid #e4ecea; margin-bottom:1rem; }
-      .ij-stat { flex:1; text-align:center; }
-      .ij-stat-value { display:block; font-size:1rem; font-weight:800; color:#0f2421; }
-      .ij-stat-label { display:block; font-size:0.62rem; color:#7a9b97; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; margin-top:0.1rem; }
-      .ij-stat-div { width:1px; height:32px; background:#e4ecea; flex-shrink:0; }
+      .rm-stats-row { display: flex; align-items: center; background: #f8fffe; border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); margin-bottom: 14px; }
+      .rm-stat { flex: 1; text-align: center; }
+      .rm-stat-v { display: block; font-size: 18px; font-weight: 800; color: var(--text); font-family: var(--font-d); }
+      .rm-stat-l { display: block; font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+      .rm-stat-div { width: 1px; height: 30px; background: var(--border); flex-shrink: 0; }
 
-      .ij-overall-progress { }
-      .ij-overall-progress-label { display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#7a9b97; margin-bottom:0.4rem; }
-      .ij-overall-bar-track { height:8px; background:#eef4f2; border-radius:999px; overflow:hidden; }
-      .ij-overall-bar-fill { height:100%; background:linear-gradient(90deg,var(--teal),var(--blue)); border-radius:999px; transition:width 0.8s ease; }
+      .rm-overall-wrap { }
+      .rm-overall-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+      .rm-overall-row span:last-child { color: var(--teal); font-weight: 700; }
+      .rm-overall-track { height: 7px; background: rgba(71,152,128,0.10); border-radius: 99px; overflow: hidden; }
+      .rm-overall-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); border-radius: 99px; transition: width 1s cubic-bezier(0.22,1,0.36,1); }
 
       /* Encouragement */
-      .ij-encouragement { display:flex; gap:0.75rem; align-items:flex-start; background:linear-gradient(135deg,#f0faf7,#ebf7f8); border-radius:14px; padding:1rem 1.25rem; margin-bottom:1rem; border:1px solid #c8e8df; }
-      .ij-encouragement span { font-size:1.2rem; flex-shrink:0; }
-      .ij-encouragement p { font-size:0.88rem; color:#2d5f55; line-height:1.6; font-style:italic; }
+      .rm-encourage {
+        display: flex; gap: 10px; align-items: flex-start;
+        background: linear-gradient(135deg, #f0faf7, #ebf7f8);
+        border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+        border: 1px solid #c8e8df;
+        animation: fadeUp 0.4s both 0.08s;
+      }
+      .rm-encourage span { font-size: 18px; flex-shrink: 0; }
+      .rm-encourage p { font-size: 13px; color: #2d5f55; line-height: 1.6; font-style: italic; }
 
       /* Next step */
-      .ij-next-step { background:linear-gradient(135deg,#0f2421,#1a3d35); border-radius:14px; padding:1rem 1.4rem; margin-bottom:1.5rem; }
-      .ij-next-step-label { display:block; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#479880; margin-bottom:0.3rem; }
-      .ij-next-step-text { font-size:0.9rem; color:#e8f6f2; line-height:1.6; font-weight:500; }
+      .rm-nextstep {
+        background: linear-gradient(135deg, #0f2421, #1a3d35);
+        border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
+        animation: fadeUp 0.4s both 0.12s;
+      }
+      .rm-nextstep-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #479880; margin-bottom: 4px; }
+      .rm-nextstep-text { font-size: 13px; color: #e8f6f2; line-height: 1.6; font-weight: 500; }
 
-      /* Phases */
-      .ij-phases-label { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#7a9b97; margin-bottom:0.75rem; }
-      .ij-phases-list { display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem; }
+      /* Phases label */
+      .rm-phases-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 10px; }
+      .rm-phases-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 
-      /* Phase card */
-      .phase-card { background:white; border-radius:18px; border:1.5px solid #e4ecea; overflow:hidden; transition:border-color 0.2s,box-shadow 0.2s; }
-      .phase-card.open { border-color:var(--teal); box-shadow:0 4px 20px rgba(71,152,128,0.10); }
-      .phase-card.locked { background:#fafafa; border-color:#e8e8e8; opacity:0.8; }
-      .phase-header { display:flex; gap:1rem; padding:1.1rem 1.25rem; width:100%; background:none; border:none; cursor:pointer; text-align:left; font-family:inherit; align-items:center; }
-      .phase-header:disabled { cursor:not-allowed; }
-      .phase-num-col { flex-shrink:0; }
-      .phase-num { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#479880,#4B959E); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem; }
-      .phase-num.locked-num { background:#e4ecea; color:#7a9b97; }
-      .phase-num.done-num { background:#f0faf7; color:#479880; border:2px solid #c8e8df; }
-      .phase-meta { flex:1; }
-      .phase-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem; }
-      .phase-title { font-size:0.95rem; font-weight:700; color:#0f2421; }
-      .phase-chevron { font-size:0.65rem; color:#7a9b97; }
-      .phase-sub { font-size:0.75rem; color:#7a9b97; margin-bottom:0.4rem; }
-      .locked-msg { color:#b0b8b6; }
-      .phase-progress-bar-track { height:4px; background:#eef4f2; border-radius:999px; overflow:hidden; }
-      .phase-progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--teal),var(--blue)); border-radius:999px; transition:width 0.6s ease; }
+      /* Phase */
+      .rm-phase { background: var(--white); border-radius: 16px; border: 1.5px solid var(--border); overflow: hidden; transition: border-color 0.2s; animation: fadeUp 0.5s both; }
+      .rm-phase:hover:not(.rm-phase-locked) { border-color: rgba(71,152,128,0.3); }
+      .rm-phase-done { border-color: rgba(71,152,128,0.25); }
+      .rm-phase-locked { background: #fafafa; opacity: 0.75; }
+
+      .rm-phase-header {
+        display: flex; align-items: center; gap: 14px;
+        padding: 16px 18px; background: none; border: none;
+        cursor: pointer; width: 100%; text-align: left; font-family: var(--font-b);
+      }
+      .rm-phase-header:disabled { cursor: not-allowed; }
+      .rm-phase-num {
+        width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--teal), var(--blue));
+        color: #fff; font-weight: 800; font-size: 14px;
+      }
+      .rm-phase-locked .rm-phase-num { background: #e4ecea; color: #7a9b97; }
+      .rm-phase-done .rm-phase-num { background: rgba(71,152,128,0.15); color: var(--teal); border: 2px solid rgba(71,152,128,0.3); }
+
+      .rm-phase-meta { flex: 1; }
+      .rm-phase-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+      .rm-phase-title { font-family: var(--font-d); font-size: 14px; font-weight: 700; color: var(--text); }
+      .rm-phase-sub { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+      .rm-chevron { font-size: 10px; color: var(--muted); }
+      .rm-phase-bar-track { height: 4px; background: rgba(71,152,128,0.10); border-radius: 99px; overflow: hidden; }
+      .rm-phase-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); border-radius: 99px; transition: width 0.7s ease; }
 
       /* Phase body */
-      .phase-body { padding:0 1.25rem 1.25rem; border-top:1px solid #eef4f2; padding-top:1rem; }
-      .phase-section { margin-bottom:1.1rem; }
-      .phase-section-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#7a9b97; margin-bottom:0.6rem; }
+      .rm-phase-body { padding: 0 18px 18px; border-top: 1px solid var(--border); padding-top: 16px; }
+      .rm-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
 
-      /* Resources */
-      .resources-list { display:flex; flex-direction:column; gap:0.5rem; }
-      .resource-row { display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:#f8fffe; border:1px solid #e4ecea; border-radius:10px; transition:all 0.18s; }
-      .resource-row.done { background:#f0faf7; border-color:#c8e8df; }
-      .resource-check { width:22px; height:22px; border-radius:6px; border:2px solid #c5d9d6; background:white; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.75rem; color:#479880; font-weight:700; transition:all 0.18s; }
-      .resource-check.checked { background:#479880; border-color:#479880; color:white; }
-      .resource-check:disabled { opacity:0.4; cursor:not-allowed; }
-      .resource-info { flex:1; min-width:0; }
-      .resource-title-row { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.2rem; }
-      .resource-title { font-size:0.85rem; font-weight:600; color:#1a2e2b; text-decoration:none; transition:color 0.18s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
-      .resource-title:hover { color:var(--teal); }
-      .resource-title.locked-link { color:#b0b8b6; cursor:not-allowed; }
-      .badge { font-size:0.62rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:4px; white-space:nowrap; }
-      .badge.free { background:#f0faf7; color:#479880; border:1px solid #c8e8df; }
-      .badge.lang { background:#f0f5fb; color:#648FBF; }
-      .resource-meta { font-size:0.73rem; color:#7a9b97; }
-      .resource-a11y { color:#8891C9; }
-      .resource-quiz-col { flex-shrink:0; }
-      .quiz-btn { padding:0.35rem 0.8rem; border-radius:8px; border:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.18s; }
-      .quiz-btn.active { background:linear-gradient(135deg,var(--teal),var(--blue)); color:white; }
-      .quiz-btn.dim { background:#eef4f2; color:#7a9b97; }
-      .quiz-passed-badge { font-size:0.75rem; font-weight:700; color:#479880; }
+      /* Resource rows */
+      .rm-resources-list { display: flex; flex-direction: column; gap: 6px; }
+      .rm-resource {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; background: #f8fffe; border: 1px solid var(--border);
+        border-radius: 10px; transition: all 0.15s;
+      }
+      .rm-resource.done { background: rgba(71,152,128,0.06); border-color: rgba(71,152,128,0.2); }
+      .rm-resource.locked { opacity: 0.5; }
 
-      /* Challenge card */
-      .challenge-card { display:flex; align-items:center; gap:1rem; padding:1rem; background:#fffbf5; border:1.5px solid #f0d5b0; border-radius:12px; cursor:pointer; transition:all 0.18s; }
-      .challenge-card:hover { border-color:#c47a3a; transform:translateX(2px); }
-      .challenge-card.challenge-done { background:#f0faf7; border-color:#c8e8df; }
-      .challenge-card-left { flex:1; }
-      .challenge-card-title { font-size:0.9rem; font-weight:700; color:#1a2e2b; margin-bottom:0.25rem; }
-      .challenge-card-brief { font-size:0.8rem; color:#6b8a87; line-height:1.5; margin-bottom:0.4rem; }
-      .challenge-card-meta { font-size:0.72rem; color:#7a9b97; display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
-      .challenge-skill-tag { background:#fff8f0; color:#c47a3a; border-radius:4px; padding:0.1rem 0.4rem; font-weight:600; }
-      .challenge-card-right { flex-shrink:0; }
-      .challenge-score-badge { font-size:0.82rem; font-weight:700; }
-      .challenge-score-badge.passed { color:#479880; }
-      .challenge-score-badge.failed { color:#c47a7a; }
-      .challenge-cta-arrow { font-size:0.9rem; color:#c47a3a; font-weight:700; }
+      .rm-check {
+        width: 22px; height: 22px; border-radius: 6px;
+        border: 2px solid #c5d9d6; background: var(--white);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 800; color: #fff;
+        cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+      }
+      .rm-check.checked { background: var(--teal); border-color: var(--teal); }
+      .rm-check:disabled { opacity: 0.4; cursor: not-allowed; }
 
-      /* Phase milestone */
-      .phase-milestone { display:flex; gap:0.6rem; align-items:flex-start; padding:0.75rem; background:linear-gradient(135deg,#f0faf7,#ebf7f8); border-radius:10px; border:1px solid #c8e8df; }
-      .milestone-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#479880; margin-bottom:0.15rem; }
-      .milestone-text { font-size:0.82rem; font-weight:600; color:#1a3d35; }
+      .rm-res-info { flex: 1; min-width: 0; }
+      .rm-res-title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+      .rm-res-title { font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; transition: color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+      .rm-res-title:hover { color: var(--teal); }
+      .rm-res-title.locked-link { color: #b0bebb; cursor: not-allowed; }
+      .rm-res-meta { font-size: 11px; color: var(--muted); }
+      .rm-a11y { color: #8891C9; }
+      .rm-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+      .rm-badge.free { background: rgba(71,152,128,0.1); color: var(--teal); border: 1px solid rgba(71,152,128,0.2); }
+      .rm-badge.lang { background: rgba(100,143,191,0.1); color: #648FBF; }
+      .rm-empty { font-size: 12px; color: var(--muted); padding: 8px 0; font-style: italic; }
+
 
       /* CTAs */
-      .ij-cta-row { display:flex; gap:0.85rem; justify-content:space-between; margin-bottom:1.25rem; }
-      .ij-btn-secondary { background:none; border:2px solid #e4ecea; border-radius:12px; padding:0.75rem 1.2rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.85rem; font-weight:600; color:#4a6360; cursor:pointer; transition:all 0.18s; }
-      .ij-btn-secondary:hover { border-color:var(--teal); color:var(--teal); }
-      .ij-btn-primary { background:linear-gradient(135deg,var(--teal),var(--blue)); border:none; border-radius:12px; padding:0.85rem 1.5rem; font-family:'Plus Jakarta Sans',sans-serif; font-size:0.88rem; font-weight:700; color:white; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 16px rgba(71,152,128,0.3); }
-      .ij-btn-primary:hover { transform:translateY(-2px); }
-      .ij-footer-note { text-align:center; font-size:0.78rem; color:#7a9b97; }
+      .rm-cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+      .rm-btn-primary {
+        background: linear-gradient(135deg, var(--teal), var(--blue));
+        border: none; border-radius: 10px; padding: 11px 22px;
+        font-family: var(--font-b); font-size: 13px; font-weight: 700; color: #fff;
+        cursor: pointer; transition: all 0.2s; box-shadow: 0 3px 12px rgba(71,152,128,0.3);
+      }
+      .rm-btn-primary:hover { transform: translateY(-1px); }
+      .rm-btn-secondary {
+        background: none; border: 1.5px solid var(--border); border-radius: 10px;
+        padding: 11px 18px; font-family: var(--font-b); font-size: 13px; font-weight: 600;
+        color: var(--muted); cursor: pointer; transition: all 0.15s;
+      }
+      .rm-btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
 
-      /* Dashboard button styles - ADDED HERE */
-      .mt-8 { margin-top: 2rem; }
-      .text-center { text-align: center; }
-      .px-8 { padding-left: 2rem; padding-right: 2rem; }
-      .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-      .bg-blue-600 { background-color: #2563eb; }
-      .text-white { color: white; }
-      .rounded-lg { border-radius: 0.5rem; }
-      .font-semibold { font-weight: 600; }
-      .hover\\:bg-blue-700:hover { background-color: #1d4ed8; }
-      .transition-colors { transition-property: background-color, border-color, color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+      .rm-footer { text-align: center; font-size: 12px; color: var(--muted); }
 
-      @media(max-width:480px) {
-        .ij-stats-row { flex-wrap:wrap; }
-        .ij-cta-row { flex-direction:column; }
-        .ij-btn-primary,.ij-btn-secondary { width:100%; text-align:center; }
-        .resource-title { max-width:160px; }
+      /* Loading */
+      .rm-loading-screen { min-height: 100vh; background: var(--bg); display: flex; align-items: center; justify-content: center; font-family: var(--font-b); padding: 2rem; }
+      .rm-loading-card { background: var(--white); border-radius: 20px; padding: 40px 32px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 12px 48px rgba(71,152,128,0.12); }
+      .rm-loading-card h2 { font-family: var(--font-d); font-size: 20px; font-weight: 800; color: var(--text); margin: 20px 0 8px; }
+      .rm-loading-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+      .rm-spinner { width: 48px; height: 48px; border: 4px solid #e8f0ef; border-top-color: var(--teal); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .rm-loading-steps { display: flex; flex-direction: column; gap: 8px; text-align: left; background: #f8fffe; border-radius: 10px; padding: 12px 16px; }
+      .rm-lstep { font-size: 13px; font-weight: 500; color: var(--muted); }
+      .rm-lstep.active { color: var(--teal); font-weight: 700; }
+      .rm-lstep.done { color: #4a6360; }
+
+      @media (max-width: 480px) {
+        .rm-cta-row { flex-direction: column; }
+        .rm-btn-primary, .rm-btn-secondary { width: 100%; text-align: center; }
       }
     `}</style>
   );
