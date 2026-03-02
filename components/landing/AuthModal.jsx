@@ -14,10 +14,10 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult,
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { getProgress } from "@/lib/progressHelpers";
 import { useRouter } from "next/navigation";
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
@@ -25,11 +25,8 @@ function setCookie(name, value, days = 30) {
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
   document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 }
-function deleteCookie(name) {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-}
 
-// ─── Google Provider (singleton) ─────────────────────────────────────────────
+// ─── Google Provider ──────────────────────────────────────────────────────────
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
@@ -77,7 +74,6 @@ const css = `
     transition: background 0.18s; backdrop-filter: blur(4px);
   }
   .am-close:hover { background: rgba(255,255,255,0.30); }
-  .am-close:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
 
   .am-left {
     background: linear-gradient(155deg, #0F2942 0%, #1a5f7a 45%, #6dbfb8 80%, #c9a4d4 100%);
@@ -188,9 +184,8 @@ const css = `
     color: #fff; background: #1E293B; border: none; border-radius: 12px; padding: 13px;
     cursor: pointer; letter-spacing: 0.3px; transition: background 0.2s, transform 0.15s;
   }
-  .am-submit:hover         { background: #1E40AF; transform: translateY(-1px); }
-  .am-submit:disabled      { opacity: 0.6; cursor: not-allowed; transform: none; }
-  .am-submit:focus-visible { outline: 2px solid #2563EB; outline-offset: 3px; }
+  .am-submit:hover    { background: #1E40AF; transform: translateY(-1px); }
+  .am-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
   .am-divider {
     display: flex; align-items: center; gap: 10px;
@@ -214,15 +209,16 @@ const css = `
     color: #DC2626; background: #FEF2F2; border: 1px solid #FECACA;
     border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
   }
-  .am-warning {
-    font-family: 'DM Sans', sans-serif; font-size: 13px;
-    color: #92400E; background: #FFFBEB; border: 1px solid #FDE68A;
-    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
-  }
   .am-success {
     font-family: 'DM Sans', sans-serif; font-size: 13px;
     color: #065F46; background: #ECFDF5; border: 1px solid #A7F3D0;
     border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
+  }
+  .am-loading {
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: #1E40AF; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
   }
 
   .am-role-badge {
@@ -271,38 +267,58 @@ const FacebookIcon = () => (
   </svg>
 );
 
-// ─── Firebase error messages → human-friendly ─────────────────────────────────
 function friendlyError(code) {
   switch (code) {
-    case "auth/email-already-in-use":    return "An account with this email already exists. Please sign in instead.";
-    case "auth/invalid-email":           return "Please enter a valid email address.";
-    case "auth/weak-password":           return "Password must be at least 6 characters.";
-    case "auth/user-not-found":          return "No account found with that email. Please sign up first.";
-    case "auth/wrong-password":          return "Incorrect password. Please try again.";
-    case "auth/invalid-credential":      return "Incorrect email or password. If you signed up with Google and want to use email/password too, click \"Forgot password?\" to set one.";
-    case "auth/too-many-requests":       return "Too many attempts. Please wait a moment and try again.";
-    case "auth/network-request-failed":  return "Network error. Please check your connection.";
-    default:                             return "Something went wrong. Please try again.";
+    case "auth/email-already-in-use":   return "An account with this email already exists. Please sign in instead.";
+    case "auth/invalid-email":          return "Please enter a valid email address.";
+    case "auth/weak-password":          return "Password must be at least 6 characters.";
+    case "auth/user-not-found":         return "No account found with that email. Please sign up first.";
+    case "auth/wrong-password":         return "Incorrect password. Please try again.";
+    case "auth/invalid-credential":     return "Incorrect email or password. Please try again.";
+    case "auth/too-many-requests":      return "Too many attempts. Please wait a moment and try again.";
+    case "auth/network-request-failed": return "Network error. Please check your connection.";
+    default:                            return "Something went wrong. Please try again.";
   }
 }
 
-// ─── Google Sign-In (shared by both forms) ───────────────────────────────────
 async function handleGoogleSignIn() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return { user: result.user, error: null };
   } catch (err) {
-    // User closed the popup — not a real error, just ignore it
     if (err.code === "auth/user-cancelled" || err.code === "auth/popup-closed-by-user") {
       return { user: null, error: null };
     }
-    // Popup was blocked by browser — fall back to redirect
     if (err.code === "auth/popup-blocked") {
       await signInWithRedirect(auth, googleProvider);
-      return { user: null, error: null }; // page will redirect, result handled on return
+      return { user: null, error: null };
     }
-    console.error("Google sign-in error:", err.code, err.message);
     return { user: null, error: friendlyError(err.code) };
+  }
+}
+
+// ─── The key function — checks Firestore to know where to redirect ─────────────
+async function getRedirectPath(firebaseUser, intendedRole) {
+  try {
+    const progress = await getProgress(firebaseUser.uid);
+    const role = progress.role || intendedRole || "worker";
+
+    if (role === "employer") {
+      return progress.onboarding_complete
+        ? "/employer/dashboard"
+        : "/employer/onboarding";
+    }
+
+    // ✅ Simple rule: onboarding done = go to dashboard
+    // No need to check every step — those can be accessed from the dashboard
+    if (progress.onboarding_complete) return "/dashboard/worker";
+
+    // Brand new user — go to onboarding
+    return "/onboarding";
+
+  } catch (err) {
+    console.warn("Could not read Firestore progress, defaulting to onboarding:", err);
+    return "/onboarding";
   }
 }
 
@@ -310,24 +326,24 @@ async function handleGoogleSignIn() {
 function SignInForm({ role, onSignIn, onSwitchTab }) {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setError(""); setSuccess("");
     setLoading(true);
-
     const data  = new FormData(e.target);
     const email = data.get("email")?.trim().toLowerCase();
     const pwd   = data.get("password");
-
     try {
       const credential = await signInWithEmailAndPassword(auth, email, pwd);
-      onSignIn(credential.user);
+      setLoading(false);
+      setChecking(true);
+      await onSignIn(credential.user);
     } catch (err) {
       setError(friendlyError(err.code));
-    } finally {
       setLoading(false);
     }
   };
@@ -342,6 +358,7 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
       </p>
       {error   && <div className="am-error">{error}</div>}
       {success && <div className="am-success">{success}</div>}
+      {checking && <div className="am-loading">⏳ Checking your progress…</div>}
       <form className="am-form" onSubmit={handleSubmit}>
         <div className="am-field">
           <label className="am-label" htmlFor="si-email">Email</label>
@@ -351,7 +368,7 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
           <label className="am-label" htmlFor="si-pwd">Password</label>
           <div className="am-input-wrap">
             <input id="si-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Your password" required autoComplete="current-password" />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+            <button type="button" className="am-eye" onClick={() => setShowPwd(p => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
@@ -361,28 +378,24 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
           <button type="button" className="am-forgot" onClick={async () => {
             const emailEl = document.getElementById("si-email");
             const email = emailEl?.value?.trim();
-            if (!email) { setError("Enter your email above first, then click Forgot password."); setSuccess(""); return; }
+            if (!email) { setError("Enter your email above first."); return; }
             try {
               await sendPasswordResetEmail(auth, email);
-              setError("");
-              setSuccess("✅ Reset email sent! Check your inbox to set your password.");
-            } catch (err) {
-              setSuccess("");
-              setError(friendlyError(err.code));
-            }
+              setError(""); setSuccess("✅ Reset email sent! Check your inbox.");
+            } catch (err) { setSuccess(""); setError(friendlyError(err.code)); }
           }}>Forgot password?</button>
         </div>
-        <button type="submit" className="am-submit" disabled={loading}>
-          {loading ? "Signing in…" : "Sign In"}
+        <button type="submit" className="am-submit" disabled={loading || checking}>
+          {loading ? "Signing in…" : checking ? "Checking progress…" : "Sign In"}
         </button>
         <div className="am-divider">or</div>
         <div className="am-social">
-          <button type="button" className="am-social-btn" disabled={loading} onClick={async () => {
+          <button type="button" className="am-social-btn" disabled={loading || checking} onClick={async () => {
             setLoading(true); setError("");
             const { user, error: err } = await handleGoogleSignIn();
-            setLoading(false);
-            if (err) { setError(err); return; }
-            if (user) onSignIn(user);
+            if (err) { setError(err); setLoading(false); return; }
+            if (user) { setLoading(false); setChecking(true); await onSignIn(user); }
+            else setLoading(false);
           }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
@@ -401,24 +414,17 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const data      = new FormData(e.target);
     const firstName = data.get("firstName")?.trim();
     const lastName  = data.get("lastName")?.trim();
     const email     = data.get("email")?.trim().toLowerCase();
     const pwd       = data.get("password");
-
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, pwd);
-      // Save display name to Firebase profile
-      await updateProfile(credential.user, {
-        displayName: `${firstName} ${lastName}`,
-      });
-      onSignUp(credential.user);
+      await updateProfile(credential.user, { displayName: `${firstName} ${lastName}` });
+      await onSignUp(credential.user, { firstName, lastName });
     } catch (err) {
-      console.error("Firebase signup error:", err.code, err.message);
       setError(friendlyError(err.code));
-    } finally {
       setLoading(false);
     }
   };
@@ -451,7 +457,7 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
           <label className="am-label" htmlFor="su-pwd">Password</label>
           <div className="am-input-wrap">
             <input id="su-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} required />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+            <button type="button" className="am-eye" onClick={() => setShowPwd(p => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
@@ -463,12 +469,10 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
         <div className="am-social">
           <button type="button" className="am-social-btn" disabled={loading} onClick={async () => {
             setLoading(true); setError("");
-            // Save role BEFORE redirect so we know where to send them after Google auth
-            localStorage.setItem("ij_role", role || "worker");
             const { user, error: err } = await handleGoogleSignIn();
             setLoading(false);
             if (err) { setError(err); return; }
-            if (user) onSignUp(user);
+            if (user) await onSignUp(user, {});
           }}><GoogleIcon /> Continue with Google</button>
           <button type="button" className="am-social-btn"><FacebookIcon /> Continue with Facebook</button>
         </div>
@@ -478,18 +482,10 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
-export default function AuthModal({
-  isOpen,
-  onClose,
-  defaultTab = "signin",
-  role = null,
-  onSignUpComplete,
-  onSignInComplete,
-}) {
-  const [tab, setTab] = useState(defaultTab);
-  const overlayRef    = useRef(null);
-  const modalRef      = useRef(null);
-  const closeRef      = useRef(null);
+export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role = null, onSignUpComplete, onSignInComplete }) {
+  const [tab, setTab]   = useState(defaultTab);
+  const overlayRef      = useRef(null);
+  const router          = useRouter();
 
   useEffect(() => { if (isOpen) setTab(defaultTab); }, [isOpen, defaultTab]);
   useEffect(() => { document.body.style.overflow = isOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [isOpen]);
@@ -502,49 +498,55 @@ export default function AuthModal({
 
   const handleOverlay = useCallback((e) => { if (e.target === overlayRef.current) onClose(); }, [onClose]);
 
-  const router = useRouter();
+  // ── Shared redirect logic for both sign in and sign up ──
+  const handleRedirect = async (firebaseUser, intendedRole) => {
+    const resolvedRole = intendedRole || role || "worker";
 
-  const redirectByRole = async (firebaseUser, userRole) => {
-    const resolvedRole = userRole || role || "worker";
+    // Set auth cookies for middleware
+    const token = await firebaseUser.getIdToken();
+    setCookie("firebase_token", token, 7);
+    setCookie("ij_role", resolvedRole, 30);
+    localStorage.setItem("ij_role", resolvedRole);
 
-    // Set Firebase token cookie for middleware auth
+    // ✅ Check Firestore to find where this user should go
+    const path = await getRedirectPath(firebaseUser, resolvedRole);
+
+    // If they're onboarded, also set the onboarded cookie
+    if (path === "/dashboard/worker" || path === "/employer/dashboard") {
+      setCookie("ij_onboarded", "true", 30);
+    }
+
+    onClose?.();
+    router.push(path);
+  };
+
+  // Sign in — check Firestore for their progress
+  const handleSignIn = async (firebaseUser) => {
+    const savedRole = localStorage.getItem("ij_role") || role || "worker";
+    onSignInComplete?.(savedRole);
+    await handleRedirect(firebaseUser, savedRole);
+  };
+
+  // Sign up — brand new user, always go to onboarding
+  const handleSignUp = async (firebaseUser, nameData) => {
+    const resolvedRole = role || "worker";
+
+    // Save name to localStorage right away so onboarding page can pre-fill it
+    if (nameData?.firstName) {
+      localStorage.setItem("worker_first_name", nameData.firstName);
+      localStorage.setItem("worker_last_name",  nameData.lastName || "");
+    }
+
+    onSignUpComplete?.(resolvedRole);
+
+    // New users always go to onboarding — no need to check Firestore
     const token = await firebaseUser.getIdToken();
     setCookie("firebase_token", token, 7);
     setCookie("ij_role", resolvedRole, 30);
     localStorage.setItem("ij_role", resolvedRole);
 
     onClose?.();
-
-    if (resolvedRole === "employer") {
-      // Check if employer has completed onboarding
-      const empOnboarded = localStorage.getItem("ij_emp_onboarded");
-      if (empOnboarded === "true") {
-        router.push("/employer/dashboard");
-      } else {
-        router.push("/employer/onboarding");
-      }
-    } else {
-      // Worker — always start onboarding flow after signup
-      // On sign IN, check if already onboarded
-      const workerOnboarded = localStorage.getItem("ij_onboarded");
-      if (workerOnboarded === "true") {
-        setCookie("ij_onboarded", "true", 30);
-        router.push("/dashboard/worker");
-      } else {
-        router.push("/onboarding");
-      }
-    }
-  };
-
-  const handleSignIn = async (firebaseUser) => {
-    const savedRole = localStorage.getItem("ij_role") || role || "worker";
-    onSignInComplete?.(savedRole);
-    await redirectByRole(firebaseUser, savedRole);
-  };
-
-  const handleSignUp = async (firebaseUser) => {
-    onSignUpComplete?.(role || "worker");
-    await redirectByRole(firebaseUser, role || "worker");
+    router.push(resolvedRole === "employer" ? "/employer/onboarding" : "/onboarding");
   };
 
   if (!isOpen) return null;
@@ -553,25 +555,23 @@ export default function AuthModal({
     <>
       <style>{css}</style>
       <div className="am-overlay" ref={overlayRef} onClick={handleOverlay} role="dialog" aria-modal="true" aria-label="Authentication">
-        <div className="am-modal" ref={modalRef}>
-          <button className="am-close" onClick={onClose} aria-label="Close modal" ref={closeRef}>✕</button>
-
+        <div className="am-modal">
+          <button className="am-close" onClick={onClose} aria-label="Close modal">✕</button>
           <div className="am-left" aria-hidden="true">
             <div className="am-left-body">
               <p className="am-left-quote">&ldquo;Skills that speak louder than credentials.&rdquo;</p>
               <p className="am-left-sub">InklusiJobs · Built for PWDs. Powered by AI.</p>
             </div>
           </div>
-
           <div className="am-right">
             <span className="am-logo">Inklusi<span>Jobs</span></span>
             <div className="am-tabs">
-              <button className={`am-tab ${tab === "signin"  ? "active" : ""}`} onClick={() => setTab("signin")}>Sign In</button>
+              <button className={`am-tab ${tab === "signin" ? "active" : ""}`} onClick={() => setTab("signin")}>Sign In</button>
               <button className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign Up</button>
             </div>
             {tab === "signin"
-              ? <SignInForm  role={role} onSignIn={handleSignIn}  onSwitchTab={setTab} />
-              : <SignUpForm  role={role} onSignUp={handleSignUp}  onSwitchTab={setTab} />
+              ? <SignInForm role={role} onSignIn={handleSignIn}  onSwitchTab={setTab} />
+              : <SignUpForm role={role} onSignUp={handleSignUp} onSwitchTab={setTab} />
             }
           </div>
         </div>

@@ -1,3 +1,5 @@
+//components/laanding/BasicInformation.jsx
+
 "use client";
 
 import { useState, useRef } from "react";

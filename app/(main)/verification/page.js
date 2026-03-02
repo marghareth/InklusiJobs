@@ -599,95 +599,27 @@ function AIAnalysisStep({ documents, onComplete }) {
   );
 }
 
-// ─── Step 3: Liveness Check — Teachable Machine + Gemini Fallback ───────────
-//
-//  DETECTION PRIORITY:
-//    1. Teachable Machine custom model → colored bounding boxes (face + pwdid)
-//    2. Gemini Vision on sampled frames → text-based fallback reasoning
-//
-//  TO PLUG IN YOUR MODEL: replace TEACHABLE_MACHINE_MODEL_URL with the URL
-//  from teachablemachine.withgoogle.com after you train + upload your model.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const TEACHABLE_MACHINE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/tcEY7jabE/";
-// ↑ REPLACE with your model URL after training, e.g.:
-// const TEACHABLE_MACHINE_MODEL_URL = "https://teachablemachine.withgoogle.com/models/XXXXXXXX/";
-
-const GEMINI_INTERVAL_MS = 2500; // How often to ask Gemini (ms) when TM unavailable
-
+// ─── Step 3: Liveness Check ─────────────────────────────────────────────────
 function LivenessStep({ onComplete }) {
-  const videoRef   = useRef(null);
-  const canvasRef  = useRef(null);   // hidden capture canvas
-  const overlayRef = useRef(null);   // live detection overlay
-  const streamRef  = useRef(null);
-  const tmModelRef = useRef(null);   // Teachable Machine model
-  const rafRef     = useRef(null);
-  const geminiTimerRef = useRef(null);
+  const videoRef  = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
-  const [phase, setPhase]             = useState("starting");
-  const [capturedImage, setCaptured]  = useState(null);
-  const [countdown, setCountdown]     = useState(null);
-  const [error, setError]             = useState(null);
-  const [detectionMode, setDetectionMode] = useState("loading"); // loading|tm|gemini|none
-  const [tmStatus, setTmStatus]       = useState("loading");  // loading|ready|failed
+  const [phase, setPhase]           = useState("starting");
+  const [capturedImage, setCaptured]= useState(null);
+  const [countdown, setCountdown]   = useState(null);
+  const [error, setError]           = useState(null);
 
-  // Dual detection state
-  const [faceDetected,  setFaceDetected]  = useState(false);
-  const [idDetected,    setIdDetected]    = useState(false);
-  const [faceConf,      setFaceConf]      = useState(0);
-  const [idConf,        setIdConf]        = useState(0);
-  const [geminiStatus,  setGeminiStatus]  = useState(null); // null|checking|{face,id,conf}
-  const bothDetected = faceDetected && idDetected;
-
-  // ── Load scripts helper ───────────────────────────────────────────────────
-  const loadScript = (src) => new Promise((res, rej) => {
-    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
-    const s = document.createElement("script");
-    s.src = src; s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-
-  // ── Boot: load TM model first, then start camera ─────────────────────────
   useEffect(() => {
-    const init = async () => {
-      if (TEACHABLE_MACHINE_MODEL_URL) {
-        try {
-          await Promise.all([
-            loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"),
-            loadScript("https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"),
-          ]);
-          const modelURL     = TEACHABLE_MACHINE_MODEL_URL + "model.json";
-          const metadataURL  = TEACHABLE_MACHINE_MODEL_URL + "metadata.json";
-          tmModelRef.current = await window.tmImage.load(modelURL, metadataURL);
-          setTmStatus("ready");
-          setDetectionMode("tm");
-        } catch {
-          setTmStatus("failed");
-          setDetectionMode("gemini");
-        }
-      } else {
-        setTmStatus("failed");
-        setDetectionMode("gemini");
-      }
-    };
-    init();
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      clearInterval(geminiTimerRef.current);
-      streamRef.current?.getTracks().forEach(t => t.stop());
-    };
+    startCamera();
+    return () => streamRef.current?.getTracks().forEach(t => t.stop());
   }, []);
-
-  // ── Start camera once we know detection mode ──────────────────────────────
-  useEffect(() => {
-    if (detectionMode !== "loading") startCamera();
-  }, [detectionMode]);
 
   const startCamera = async () => {
     setError(null); setPhase("starting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+        video: { facingMode: "user", width: { min: 640, ideal: 1280 }, height: { min: 480, ideal: 720 }, frameRate: { ideal: 30 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -697,164 +629,17 @@ function LivenessStep({ onComplete }) {
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play();
           setPhase("camera");
-          if (detectionMode === "tm") startTMDetection();
-          else startGeminiDetection();
         };
       }
     } catch (err) {
       setError(err.name === "NotAllowedError"
-        ? "Camera permission denied. Please allow access in browser settings."
+        ? "Camera permission denied. Please allow access in your browser settings."
         : "No camera found on this device.");
       setPhase("error");
     }
   };
 
-  // ── Teachable Machine detection loop ─────────────────────────────────────
-  // TM image models do classification (no bbox) but we draw a styled box
-  // around the full frame area when "holding_id" class is dominant.
-  const startTMDetection = () => {
-    const overlay = overlayRef.current;
-    const detect = async () => {
-      const video = videoRef.current;
-      if (!video || !overlay || !tmModelRef.current) {
-        rafRef.current = requestAnimationFrame(detect); return;
-      }
-
-      const preds = await tmModelRef.current.predict(video);
-      const ctx   = overlay.getContext("2d");
-      overlay.width  = video.clientWidth;
-      overlay.height = video.clientHeight;
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-      // Map class names to detections
-      // Expected classes: "holding_id", "no_id", "face_only"
-      const holdingIdPred = preds.find(p => p.className === "holding_id");
-      const faceOnlyPred  = preds.find(p => p.className === "face_only") ||
-                            preds.find(p => p.className === "no_id");
-      const holdingConf   = Math.round((holdingIdPred?.probability || 0) * 100);
-      const faceConf_     = Math.round((faceOnlyPred?.probability  || 0) * 100);
-
-      const isHolding = holdingConf > 65;
-      const hasFace   = (holdingConf + faceConf_) > 50; // face present in either
-
-      setFaceDetected(hasFace);
-      setIdDetected(isHolding);
-      setFaceConf(faceConf_);
-      setIdConf(holdingConf);
-
-      const W = overlay.width, H = overlay.height;
-
-      // Draw face bounding box (left ~40% of frame)
-      if (hasFace) {
-        const fx = W * 0.05, fy = H * 0.08, fw = W * 0.42, fh = H * 0.84;
-        drawBox(ctx, fx, fy, fw, fh, "#7DDCE8", `\u{1F464} Face  ${faceConf_}%`);
-      }
-
-      // Draw ID card bounding box (right ~35% of frame)
-      if (isHolding) {
-        const ix = W * 0.55, iy = H * 0.28, iw = W * 0.40, ih = H * 0.44;
-        drawBox(ctx, ix, iy, iw, ih, "#F4A728", `\u{1FAA3} PWD ID  ${holdingConf}%`);
-      }
-
-      rafRef.current = requestAnimationFrame(detect);
-    };
-    rafRef.current = requestAnimationFrame(detect);
-  };
-
-  // ── Gemini Vision fallback ─────────────────────────────────────────────────
-  const startGeminiDetection = () => {
-    const analyze = async () => {
-      const video = videoRef.current, canvas = document.createElement("canvas");
-      if (!video) return;
-      canvas.width = 320; canvas.height = 240;
-      const ctx = canvas.getContext("2d");
-      ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const base64 = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
-
-      setGeminiStatus("checking");
-      try {
-        const res = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 200,
-            messages: [{
-              role: "user",
-              content: [
-                { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
-                { type: "text", text: `Analyze this webcam frame for a Philippine PWD ID liveness check.
-Return ONLY valid JSON, no markdown:
-{"faceVisible": true/false, "idCardVisible": true/false, "holdingId": true/false, "faceConfidence": 0-100, "idConfidence": 0-100, "tip": "one short actionable tip if something is missing"}` }
-              ]
-            }]
-          })
-        });
-        const data = await res.json();
-        const text = data.content?.[0]?.text || "{}";
-        const clean = text.replace(/```json|```/g, "").trim();
-        const result = JSON.parse(clean);
-        setGeminiStatus(result);
-        setFaceDetected(!!result.faceVisible);
-        setIdDetected(!!result.holdingId || !!result.idCardVisible);
-        setFaceConf(result.faceConfidence || 0);
-        setIdConf(result.idConfidence || 0);
-
-        // Draw overlay based on Gemini result
-        const overlay = overlayRef.current, vid = videoRef.current;
-        if (overlay && vid) {
-          const octx = overlay.getContext("2d");
-          overlay.width = vid.clientWidth; overlay.height = vid.clientHeight;
-          octx.clearRect(0, 0, overlay.width, overlay.height);
-          const W = overlay.width, H = overlay.height;
-          if (result.faceVisible)
-            drawBox(octx, W*0.05, H*0.08, W*0.42, H*0.84, "#7DDCE8", `\u{1F464} Face  ${result.faceConfidence}%`);
-          if (result.holdingId || result.idCardVisible)
-            drawBox(octx, W*0.55, H*0.28, W*0.40, H*0.44, "#F4A728", `\u{1FAA3} PWD ID  ${result.idConfidence}%`);
-        }
-      } catch {
-        setGeminiStatus({ error: true });
-      }
-    };
-
-    analyze(); // run immediately
-    geminiTimerRef.current = setInterval(analyze, GEMINI_INTERVAL_MS);
-  };
-
-  // ── Box drawing helper ────────────────────────────────────────────────────
-  const drawBox = (ctx, x, y, w, h, color, label) => {
-    // Main rectangle
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
-    ctx.setLineDash([]); ctx.strokeRect(x, y, w, h);
-
-    // Corner accents
-    const cs = 16;
-    ctx.lineWidth = 4;
-    [
-      [x,   y,   1,  1], [x+w, y,   -1,  1],
-      [x,   y+h, 1, -1], [x+w, y+h, -1, -1],
-    ].forEach(([cx, cy, dx, dy]) => {
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + dx * cs, cy); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + dy * cs); ctx.stroke();
-    });
-
-    // Label pill
-    ctx.font = "bold 12px 'DM Sans', sans-serif";
-    const lw = ctx.measureText(label).width + 18;
-    const lh = 24;
-    const lx = Math.max(0, x);
-    const ly = y > lh + 6 ? y - lh - 4 : y + 4;
-    ctx.fillStyle = color + "EE";
-    ctx.beginPath(); ctx.roundRect(lx, ly, lw, lh, 6); ctx.fill();
-    ctx.fillStyle = "#000";
-    ctx.fillText(label, lx + 9, ly + 16);
-  };
-
-  // ── Camera stop + capture ─────────────────────────────────────────────────
   const stopCamera = () => {
-    cancelAnimationFrame(rafRef.current);
-    clearInterval(geminiTimerRef.current);
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
   };
@@ -881,60 +666,23 @@ Return ONLY valid JSON, no markdown:
     }, 1000);
   };
 
-  const retake = () => {
-    setCaptured(null);
-    setFaceDetected(false); setIdDetected(false);
-    setGeminiStatus(null);
-    const ov = overlayRef.current;
-    if (ov) ov.getContext("2d").clearRect(0, 0, ov.width, ov.height);
-    startCamera();
-  };
-
-  // ── Render ────────────────────────────────────────────────────────────────
-  const modeLabel = detectionMode === "tm" ? "Teachable Machine" : detectionMode === "gemini" ? "Gemini Vision" : "Loading…";
-  const geminiTip = geminiStatus && !geminiStatus.error && geminiStatus.tip;
+  const retake = () => { setCaptured(null); startCamera(); };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-      {/* Detection mode badge */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: T.tealLight, border: `1px solid ${T.teal}30`, borderRadius: 99, padding: "5px 12px" }}>
-          {detectionMode === "loading"
-            ? <><Spinner size={12} color={T.teal} /><span style={{ fontSize: 11, fontWeight: 600, color: T.teal }}>Loading detection model…</span></>
-            : <><span style={{ fontSize: 11 }}>{detectionMode === "tm" ? "🧠" : "✨"}</span><span style={{ fontSize: 11, fontWeight: 700, color: T.teal }}>{modeLabel} Active</span></>
-          }
-        </div>
-        {detectionMode === "gemini" && geminiStatus === "checking" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Spinner size={11} color={T.tealMid} />
-            <span style={{ fontSize: 11, color: T.tealMid }}>Analyzing frame…</span>
-          </div>
-        )}
-      </div>
-
-      {/* Tips / Gemini tip */}
+      {/* Tips banner */}
       {(phase === "starting" || phase === "camera") && (
         <div style={{ background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 10, padding: "10px 14px", display: "flex", gap: 10 }}>
           <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
           <span style={{ fontSize: 12, color: "#92400E", lineHeight: 1.6 }}>
-            {geminiTip
-              ? <><strong>AI Tip: </strong>{geminiTip}</>
-              : <>Hold your <strong>PWD ID card</strong> clearly next to your face. AI will draw boxes around both when detected.
-                {bothDetected && <strong style={{ color: T.green }}> ✓ Both detected — ready!</strong>}</>
-            }
+            Position your <strong>face inside the oval</strong> and hold your <strong>PWD ID</strong> clearly visible. Look directly at the camera.
           </span>
         </div>
       )}
 
       {/* Camera viewport */}
-      <div style={{
-        borderRadius: 16, overflow: "hidden", background: "#0A0F1A",
-        position: "relative", width: "100%", height: 320,
-        border: `3px solid ${bothDetected && phase === "camera" ? T.green : "transparent"}`,
-        boxShadow: bothDetected && phase === "camera" ? `0 0 24px ${T.green}50` : "none",
-        transition: "border-color 0.3s, box-shadow 0.3s",
-      }}>
+      <div style={{ borderRadius: 16, overflow: "hidden", background: "#0A0F1A", position: "relative", width: "100%", height: 320 }}>
 
         {phase === "starting" && (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, zIndex: 2 }}>
@@ -943,38 +691,52 @@ Return ONLY valid JSON, no markdown:
           </div>
         )}
 
-        {/* Live video — mirrored */}
+        {/* Live video */}
         <video ref={videoRef}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)", display: phase === "camera" ? "block" : "none" }}
           playsInline muted autoPlay
         />
 
-        {/* Detection overlay */}
-        <canvas ref={overlayRef}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", display: phase === "camera" ? "block" : "none", zIndex: 1 }}
-        />
-
-        {/* Both detected badge */}
-        {bothDetected && phase === "camera" && (
-          <div style={{ position: "absolute", top: 10, left: 10, background: T.green, color: "white", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 99, zIndex: 2, boxShadow: "0 2px 8px rgba(0,0,0,0.3)" }}>
-            ✓ Face + PWD ID Detected
+        {/* Oval face guide + ID card rectangle guide */}
+        {phase === "camera" && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none", zIndex: 1 }}>
+            {/* Dark overlay with cutouts via SVG */}
+            <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+              <defs>
+                <mask id="cutout-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  {/* Face oval cutout — center-left */}
+                  <ellipse cx="38%" cy="50%" rx="13%" ry="32%" fill="black" />
+                  {/* ID card rectangle cutout — center-right */}
+                  <rect x="60%" y="33%" width="24%" height="34%" rx="6" fill="black" />
+                </mask>
+              </defs>
+              {/* Dark vignette with both cutouts */}
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#cutout-mask)" />
+              {/* Face oval border */}
+              <ellipse cx="38%" cy="50%" rx="13%" ry="32%" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" />
+              {/* ID card rectangle border */}
+              <rect x="60%" y="33%" width="24%" height="34%" rx="6" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeDasharray="8 5" />
+              {/* Face label */}
+              <text x="38%" y="88%" textAnchor="middle" fill="rgba(255,255,255,0.75)" fontSize="11" fontFamily="DM Sans, sans-serif" fontWeight="600">FACE</text>
+              {/* ID label */}
+              <text x="72%" y="73%" textAnchor="middle" fill="rgba(255,255,255,0.75)" fontSize="11" fontFamily="DM Sans, sans-serif" fontWeight="600">PWD ID</text>
+            </svg>
           </div>
         )}
 
         {/* Countdown */}
         {countdown !== null && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", zIndex: 3 }}>
-            <span style={{ fontSize: 96, fontWeight: 900, color: "white", textShadow: "0 4px 24px rgba(0,0,0,0.5)" }}>{countdown}</span>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", zIndex: 3 }}>
+            <span style={{ fontSize: 96, fontWeight: 900, color: "white" }}>{countdown}</span>
           </div>
         )}
 
-        {/* Captured preview */}
+        {/* Captured */}
         {phase === "captured" && capturedImage && (
           <>
-            <img src={capturedImage} alt="Liveness photo" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-            <div style={{ position: "absolute", top: 12, right: 12, background: T.green, color: "white", fontSize: 11, fontWeight: 700, padding: "5px 14px", borderRadius: 99, zIndex: 2 }}>
-              ✓ Photo Captured
-            </div>
+            <img src={capturedImage} alt="Selfie" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ position: "absolute", top: 12, right: 12, background: T.green, color: "white", fontSize: 11, fontWeight: 700, padding: "5px 14px", borderRadius: 99, zIndex: 2 }}>✓ Photo Captured</div>
           </>
         )}
 
@@ -988,33 +750,9 @@ Return ONLY valid JSON, no markdown:
         )}
       </div>
 
-      {/* Detection status cards */}
-      {phase === "camera" && detectionMode !== "loading" && (
-        <div style={{ display: "flex", gap: 8 }}>
-          {[
-            { label: "👤 Face Detected",    detected: faceDetected, conf: faceConf },
-            { label: "🪪 PWD ID Detected",  detected: idDetected,   conf: idConf  },
-          ].map(({ label, detected, conf }) => (
-            <div key={label} style={{
-              flex: 1, borderRadius: 10, padding: "10px 12px", textAlign: "center",
-              background: detected ? T.greenBg : "#F1F5F9",
-              border: `1.5px solid ${detected ? T.greenBorder : T.border}`,
-              transition: "all 0.25s",
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: detected ? T.green : "#94A3B8" }}>
-                {detected ? "✓ " : ""}{label}
-              </div>
-              <div style={{ fontSize: 10, color: detected ? T.green : "#94A3B8", marginTop: 2 }}>
-                {detected ? `${conf}% confidence` : "Not detected yet"}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
-      {/* Action buttons */}
+      {/* Buttons */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {phase === "camera" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -1023,11 +761,8 @@ Return ONLY valid JSON, no markdown:
               {countdown != null ? `${countdown}…` : "⏱ Timer (3s)"}
             </button>
             <button onClick={capturePhoto} disabled={!!countdown}
-              style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", cursor: countdown ? "not-allowed" : "pointer", color: "white", transition: "all 0.3s",
-                background: bothDetected ? `linear-gradient(135deg, ${T.green}, #15803D)` : `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`,
-                boxShadow: bothDetected ? `0 4px 14px rgba(22,163,74,0.4)` : `0 4px 14px rgba(15,92,110,0.3)`,
-              }}>
-              📸 {bothDetected ? "Capture Now ✓" : "Capture"}
+              style={{ padding: "13px", borderRadius: 12, fontSize: 13, fontWeight: 700, border: "none", cursor: countdown ? "not-allowed" : "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white", boxShadow: `0 4px 14px rgba(15,92,110,0.3)` }}>
+              📸 Capture Now
             </button>
           </div>
         )}
@@ -1050,7 +785,7 @@ Return ONLY valid JSON, no markdown:
       </div>
 
       <p style={{ fontSize: 11, color: "#94A3B8", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
-        🔒 Selfie analyzed for face matching only. Not stored after verification. RA 10173 compliant.
+        🔒 Selfie analyzed by Gemini Vision for face matching only. Not stored after verification. RA 10173 compliant.
       </p>
     </div>
   );
