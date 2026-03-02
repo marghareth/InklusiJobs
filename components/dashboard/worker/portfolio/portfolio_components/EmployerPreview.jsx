@@ -1,6 +1,5 @@
 import { IcEye, IcX, IcCheck, IcTrophy, IcSparkle } from "./Icons";
-import { USER, SKILLS_DATA, CHALLENGES_DATA } from "../portfolioData";
-import SkillRow from "./SkillRow";
+import { getUserData, SKILLS_DATA, CHALLENGES_DATA } from "../portfolioData";import SkillRow from "./SkillRow";
 import CustomSections from "./CustomSections";
 
 export default function EmployerPreview({ bio, headline, sections, onClose }) {

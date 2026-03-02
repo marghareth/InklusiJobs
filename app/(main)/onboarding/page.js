@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { saveProgress } from "@/lib/progressHelpers";
+import { storage } from "@/lib/storage";
 
 const C = {
   navy: "#1A2744", navyLight: "#1E2F55", accent: "#2DD4BF", accentDim: "#0F4C4C",
@@ -34,12 +35,14 @@ const Input = ({ placeholder, value, onChange, type = "text", min, max }) => (
   <input type={type} placeholder={placeholder} value={value} onChange={onChange} min={min} max={max} style={inputBase}
     onFocus={e => e.target.style.borderColor = C.accent} onBlur={e => e.target.style.borderColor = C.border} />
 );
+
 const Select = ({ options, value, onChange }) => (
   <select value={value} onChange={onChange} style={{ ...inputBase, cursor: "pointer" }}
     onFocus={e => e.target.style.borderColor = C.accent} onBlur={e => e.target.style.borderColor = C.border}>
     {options.map(o => <option key={o} value={o}>{o}</option>)}
   </select>
 );
+
 const ChipSelect = ({ options, selected, onToggle, max }) => (
   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
     {options.map(opt => {
@@ -50,7 +53,6 @@ const ChipSelect = ({ options, selected, onToggle, max }) => (
   </div>
 );
 
-// ── Single definitions of Field and Row ───────────────────────────────────────
 const Field = ({ label, required, children }) => (
   <div style={{ marginBottom: 16 }}>
     <Label required={required}>{label}</Label>
@@ -204,6 +206,7 @@ const Step4 = ({ data, set }) => {
   );
 };
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep]     = useState(1);
@@ -228,14 +231,52 @@ export default function OnboardingPage() {
       const user = auth.currentUser;
       if (!user) { router.push("/"); return; }
 
-      localStorage.setItem("worker_first_name", s1.firstName);
-      localStorage.setItem("worker_last_name", s1.lastName);
-      localStorage.setItem("worker_profile", JSON.stringify({
-        firstName: s1.firstName, lastName: s1.lastName, age: s1.age,
-        currentAddress: s1.currentAddress, contactNumber: s1.contactNumber,
-        educationalAttainment: s1.educationalAttainment,
-        workPreference: s2, disability: s3, dashboardPrefs: s4,
-      }));
+      // ── Write all onboarding data to the unified storage layer ──────────
+      const fullName = `${s1.firstName.trim()} ${s1.lastName.trim()}`.trim();
+      const initials = ((s1.firstName[0] || "") + (s1.lastName[0] || "")).toUpperCase() || "YN";
+
+      storage.update({
+        profile: {
+          name:                  fullName,
+          firstName:             s1.firstName.trim(),
+          lastName:              s1.lastName.trim(),
+          avatarInitials:        initials,
+          age:                   s1.age,
+          address:               s1.currentAddress,
+          permanentAddress:      s1.permanentAddress,
+          contactNumber:         s1.contactNumber,
+          educationalAttainment: s1.educationalAttainment,
+          // NOTE: profile.email is set by auth — not touched here
+        },
+        workPreference: {
+          workType:     s2.workType,
+          contractType: s2.contractType,
+          industry:     s2.industry,
+          salaryMin:    s2.salaryMin,
+          salaryMax:    s2.salaryMax,
+          skills:       s2.skills,
+          availability: s2.availability,
+          goals:        s2.goals,
+        },
+        disability: {
+          types:          s3.disabilityTypes,
+          primaryType:    s3.disabilityTypes[0] || "",
+          severity:       s3.severity,
+          pwdId:          s3.pwdId,
+          accommodations: s3.accommodations,
+          notes:          s3.disabilityNotes,
+          consentSharing: s3.consentSharing,
+        },
+        dashboardPrefs: {
+          theme:   s4.theme,
+          layout:  s4.layout,
+          widgets: s4.widgets,
+        },
+        onboarding: {
+          completedAt: new Date().toISOString(),
+        },
+      });
+      // ───────────────────────────────────────────────────────────────────
 
       await saveProgress(user.uid, {
         role: "worker", onboarding_complete: true,
@@ -264,6 +305,8 @@ export default function OnboardingPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Lexend','DM Sans',sans-serif", display: "flex" }}>
+
+      {/* Sidebar */}
       <div style={{ width: 220, minWidth: 220, flexShrink: 0, background: `linear-gradient(180deg, ${C.navy} 0%, #1E2F55 100%)`, padding: "32px 20px", display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div style={{ marginBottom: 36 }}>
           <div style={{ fontSize: 16, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em" }}>InklusiJobs</div>
@@ -301,14 +344,21 @@ export default function OnboardingPage() {
             {stepContent()}
           </div>
         </div>
+
+        {/* Footer nav */}
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "14px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: C.card, flexShrink: 0 }}>
           <button onClick={() => setStep(s => s - 1)} disabled={step === 1} style={{ padding: "9px 20px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.card, color: step === 1 ? C.muted : C.navy, fontSize: 13, fontWeight: 600, cursor: step === 1 ? "not-allowed" : "pointer", opacity: step === 1 ? 0.5 : 1 }}>← Back</button>
           <div style={{ display: "flex", gap: 5 }}>{STEPS.map(s => <div key={s.id} style={{ width: step === s.id ? 18 : 5, height: 5, borderRadius: 99, background: step >= s.id ? C.accent : C.border, transition: "all 0.25s" }} />)}</div>
           {step < 4
-            ? <button onClick={() => canNext() && setStep(s => s + 1)} disabled={!canNext()} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: canNext() ? `linear-gradient(135deg, ${C.accentDim}, #0D7377)` : C.border, color: canNext() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-allowed", transition: "all 0.2s" }}>Continue →</button>
+            ? <button onClick={() => canNext() && setStep(s => s + 1)} disabled={!canNext()} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: canNext() ? `linear-gradient(135deg, ${C.accentDim}, #0D7377)` : C.border, color: canNext() ? "#fff" : C.muted, fontSize: 13, fontWeight: 700, cursor: canNext() ? "pointer" : "not-needed", transition: "all 0.2s" }}>Continue →</button>
             : <button onClick={handleLaunch} disabled={saving} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: saving ? C.border : `linear-gradient(135deg, ${C.success}, #15803D)`, color: saving ? C.muted : "#fff", fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", transition: "all 0.2s" }}>{saving ? "Saving..." : "Continue to Job Selection →"}</button>
           }
         </div>
+
+        {/* Inline error message */}
+        {error && (
+          <div style={{ textAlign: "center", padding: "8px 40px 14px", fontSize: 12, color: C.error }}>{error}</div>
+        )}
       </div>
     </div>
   );
