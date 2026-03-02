@@ -80,7 +80,7 @@ function StatItem({ stat, visible, index }) {
   const val = useCounter(typeof stat.value === "number" ? stat.value : 0, visible, 1200, index * 150);
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 32, color: "#7DDCE8" }}>
+      <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 32, color: "#7DDCE8", lineHeight: 1 }}>
         {stat.noCount ? stat.value : `${val}${stat.suffix || ""}`}
       </div>
       <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "rgba(224,248,250,0.60)", marginTop: 6 }}>{stat.label}</div>
@@ -116,34 +116,40 @@ export default function EmployersClient() {
         @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0.4)}50%{box-shadow:0 0 0 12px rgba(52,211,153,0)} }
       `}</style>
 
-      {/* HERO */}
-      <div ref={heroRef} style={{ position: "relative", background: "linear-gradient(135deg, #0F5C6E 0%, #1A3A5C 100%)", paddingTop: 140, paddingBottom: 100, paddingLeft: 32, paddingRight: 32, overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "-10%", right: "5%", width: 400, height: 400, background: "radial-gradient(circle, rgba(125,220,232,0.12) 0%, transparent 70%)", animation: "blobMorph 10s ease-in-out infinite", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "-15%", left: "-5%", width: 320, height: 320, background: "radial-gradient(circle, rgba(52,211,153,0.10) 0%, transparent 70%)", animation: "blobMorph 13s ease-in-out 2s infinite", pointerEvents: "none" }} />
+      {/* HERO — matches Find Work page style */}
+      <div ref={heroRef} style={{ position: "relative", background: "linear-gradient(135deg, #0F5C6E 0%, #0A3D4A 100%)", paddingTop: 140, paddingBottom: 100, paddingLeft: 32, paddingRight: 32, overflow: "hidden" }}>
+        {/* Animated blobs */}
+        <div style={{ position: "absolute", top: "-10%", right: "5%", width: 420, height: 420, background: "radial-gradient(circle, rgba(125,220,232,0.12) 0%, transparent 70%)", animation: "blobMorph 10s ease-in-out infinite", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "-15%", left: "-5%", width: 340, height: 340, background: "radial-gradient(circle, rgba(52,211,153,0.10) 0%, transparent 70%)", animation: "blobMorph 13s ease-in-out 2s infinite", pointerEvents: "none" }} />
         <Sparkles count={10} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          {/* Floating badge pills — same style as Find Work */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 28 }}>
             {["🏢 For Employers", "✅ WCAG 2.1 AA", "🇵🇭 Philippines"].map((badge, i) => (
               <span key={badge} style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 100, padding: "6px 16px", fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, color: "#E0F8FA", animation: `sparkFloat ${4 + i}s ease-in-out ${i * 0.6}s infinite` }}>{badge}</span>
             ))}
           </div>
 
+          {/* Eyebrow label */}
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "#7DDCE8", display: "block", marginBottom: 16 }}>For Employers</span>
 
-          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(2.4rem, 5vw, 4rem)", fontWeight: 400, color: "#fff", lineHeight: 1.1, marginBottom: 24, maxWidth: 720 }}>
+          {/* Headline — DM Serif Display like Find Work */}
+          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(2.4rem, 5vw, 4rem)", fontWeight: 400, color: "#fff", lineHeight: 1.1, marginBottom: 24, maxWidth: 680 }}>
             Hire Verified PWD Talent —{" "}
             <span style={{ fontStyle: "italic", background: "linear-gradient(100deg, #7DDCE8, #34D399, #7DDCE8)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "shimmer 3s linear infinite" }}>Skills First.</span>
           </h1>
 
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 17, color: "rgba(224,248,250,0.82)", lineHeight: 1.8, maxWidth: 580, marginBottom: 48 }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 17, color: "rgba(224,248,250,0.82)", lineHeight: 1.8, maxWidth: 560, marginBottom: 56 }}>
             Access a pool of AI-verified, portfolio-backed PWD professionals. No more credential guessing — see exactly what each candidate can do before you hire.
           </p>
 
-          <div style={{ display: "flex", gap: 48, flexWrap: "wrap", marginBottom: 48 }}>
+          {/* Animated stats — same layout as Find Work */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 48, marginBottom: 48 }}>
             {stats.map((s, i) => <StatItem key={s.label} stat={s} visible={heroVisible} index={i} />)}
           </div>
 
+          {/* CTA buttons */}
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             <button onClick={openRoleSelector} style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 14, background: "#34D399", color: "#0A3D2E", padding: "14px 32px", borderRadius: 12, border: "none", cursor: "pointer", boxShadow: "0 4px 20px rgba(52,211,153,0.4)", animation: "pulse 3s ease-in-out infinite", transition: "transform 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"}
@@ -158,6 +164,7 @@ export default function EmployersClient() {
           </div>
         </div>
 
+        {/* Wave bottom — same as Find Work */}
         <div style={{ position: "absolute", bottom: -2, left: 0, right: 0, lineHeight: 0 }}>
           <svg viewBox="0 0 1440 60" preserveAspectRatio="none" style={{ width: "100%", height: 60, display: "block" }}>
             <path d="M0,40 C360,70 1080,10 1440,40 L1440,60 L0,60 Z" fill="#FAF8F5" />
@@ -190,9 +197,12 @@ export default function EmployersClient() {
         {/* HOW IT WORKS */}
         <div id="how-it-works" ref={howRef} style={{ marginBottom: 96 }}>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "2.5px", textTransform: "uppercase", color: "#0F5C6E", marginBottom: 12 }}>The Process</p>
-          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 400, color: "#1A1A2E", marginBottom: 44, lineHeight: 1.15 }}>
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 400, color: "#1A1A2E", marginBottom: 12, lineHeight: 1.15 }}>
             From signup to your first <span style={{ fontStyle: "italic", color: "#0F5C6E" }}>inclusive hire.</span>
           </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#4A6070", marginBottom: 56, lineHeight: 1.7 }}>
+            Four steps from registration to your first PWD hire — no complicated onboarding.
+          </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
             {steps.map((step, i) => (
               <div key={step.num} style={{ background: "#fff", border: "1.5px solid #DDE8EC", borderRadius: 20, padding: "28px 24px", boxShadow: "0 2px 16px rgba(15,92,110,0.06)", animation: howVisible ? `slideUp 0.6s cubic-bezier(0.22,1,0.36,1) ${i * 140}ms both` : "none" }}>
@@ -231,9 +241,10 @@ export default function EmployersClient() {
         </div>
 
         {/* CTA */}
-        <div style={{ position: "relative", background: "linear-gradient(135deg, #0F5C6E 0%, #1A3A5C 100%)", borderRadius: 28, padding: "72px 48px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", overflow: "hidden" }}>
+        <div style={{ position: "relative", background: "linear-gradient(135deg, #0F5C6E 0%, #0A3D4A 100%)", borderRadius: 28, padding: "72px 48px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", overflow: "hidden" }}>
           <Sparkles count={12} />
           <div style={{ position: "absolute", top: "-20%", right: "-5%", width: 300, height: 300, background: "radial-gradient(circle, rgba(125,220,232,0.15) 0%, transparent 70%)", animation: "blobMorph 8s ease-in-out infinite", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: "-20%", left: "-5%", width: 260, height: 260, background: "radial-gradient(circle, rgba(52,211,153,0.12) 0%, transparent 70%)", animation: "blobMorph 11s ease-in-out 1.5s infinite", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
             <h2 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(24px, 4vw, 42px)", fontWeight: 400, color: "#fff", marginBottom: 16, lineHeight: 1.2 }}>
               Ready to hire <span style={{ fontStyle: "italic", color: "#7DDCE8" }}>verified talent?</span>

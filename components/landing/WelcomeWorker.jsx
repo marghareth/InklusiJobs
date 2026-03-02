@@ -14,7 +14,7 @@ export default function WelcomeWorker({ name = "there", onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
       style={{
         backgroundColor: "rgba(30, 41, 59, 0.8)",
         backdropFilter: "blur(8px)",
@@ -22,111 +22,93 @@ export default function WelcomeWorker({ name = "there", onClose }) {
     >
       {/* Message Card */}
       <div
-        className="relative max-w-md w-full rounded-2xl overflow-hidden shadow-2xl animate-fadeIn"
-        style={{ backgroundColor: "white" }}
+        className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+        style={{ backgroundColor: "white", maxWidth: 560 }}
       >
-        {/* Top Gradient Bar - Worker colors */}
+        {/* Top Gradient Bar */}
         <div
           className="h-2 w-full"
           style={{
             background:
               "linear-gradient(135deg, #479880 0%, #4b959e 50%, #648fbf 100%)",
           }}
-        ></div>
+        />
 
         {/* Content */}
-        <div className="p-8 text-center">
+        <div style={{ padding: "52px 56px 48px", textAlign: "center" }}>
+
           {/* Icon Circle */}
-          <div className="flex justify-center mb-4">
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
             <div
-              className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{
-                background:
-                  "linear-gradient(135deg, #479880 0%, #4b959e 50%, #648fbf 100%)",
+                width: 88, height: 88, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "linear-gradient(135deg, #479880 0%, #4b959e 50%, #648fbf 100%)",
+                boxShadow: "0 8px 24px rgba(75,149,158,0.35)",
               }}
             >
-              <svg
-                className="w-12 h-12 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
+              <svg width={48} height={48} fill="none" stroke="white" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
           </div>
 
-          {/* Message */}
-          <h2 className="text-2xl font-bold mb-2" style={{ color: "#1e293b" }}>
-            Welcome to InklusiJobs, {name}!
+          {/* Heading */}
+          <h2 style={{ fontSize: 28, fontWeight: 800, color: "#1e293b", margin: "0 0 10px", letterSpacing: "-0.5px" }}>
+            Welcome to InklusiJobs,<br />{name}!
           </h2>
 
-          <p className="text-lg mb-6" style={{ color: "#4b959e" }}>
+          {/* Subtitle */}
+          <p style={{ fontSize: 16, color: "#4b959e", margin: "0 0 32px", lineHeight: 1.6 }}>
             Your journey to meaningful employment starts here.
           </p>
 
-          {/* Decorative Element */}
-          <div className="flex justify-center gap-2 mb-6">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: "#479880" }}
-            ></span>
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: "#5fa8d3" }}
-            ></span>
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: "#7286d3" }}
-            ></span>
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: "#b8a4e3" }}
-            ></span>
+          {/* Decorative dots */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 36 }}>
+            {["#479880", "#5fa8d3", "#7286d3", "#b8a4e3"].map((c) => (
+              <span key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, display: "inline-block" }} />
+            ))}
           </div>
 
-          {/* Close Button */}
+          {/* CTA Button */}
           <button
             onClick={handleClose}
-            className="px-8 py-3 rounded-xl font-semibold text-white transition-transform hover:scale-105"
             style={{
-              background:
-                "linear-gradient(135deg, #479880 0%, #4b959e 50%, #648fbf 100%)",
+              padding: "14px 48px", borderRadius: 14, fontWeight: 700, fontSize: 16,
+              color: "#fff", border: "none", cursor: "pointer",
+              background: "linear-gradient(135deg, #479880 0%, #4b959e 50%, #648fbf 100%)",
+              boxShadow: "0 6px 20px rgba(75,149,158,0.4)",
+              transition: "transform 0.15s, box-shadow 0.15s",
             }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(75,149,158,0.45)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(75,149,158,0.4)"; }}
           >
             Get Started
           </button>
 
           {/* Footer */}
-          <p className="text-xs mt-6" style={{ color: "#8891c9" }}>
+          <p style={{ fontSize: 12, color: "#8891c9", marginTop: 24, marginBottom: 0 }}>
             ✨ Built by SHE++ with 💙
           </p>
         </div>
 
-        {/* Close X button */}
+        {/* Close X */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-          style={{ backgroundColor: "#eef2f7", color: "#1e293b" }}
+          style={{
+            position: "absolute", top: 16, right: 16,
+            width: 36, height: 36, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "#eef2f7", border: "none", cursor: "pointer",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#dde3ec"}
+          onMouseLeave={e => e.currentTarget.style.background = "#eef2f7"}
           aria-label="Close"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg width={16} height={16} fill="none" stroke="#1e293b" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
