@@ -62,7 +62,7 @@ export default function JobSelectPage() {
       console.warn("Could not save job selection to Firestore:", err);
     }
 
-    router.push("/assessment");
+    router.push("/path-choice");
   }
 
   function handleBack() {

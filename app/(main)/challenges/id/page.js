@@ -175,7 +175,7 @@ export default function ChallengePage() {
           className={`px-6 py-3 rounded-lg font-semibold text-white ${
             !userAnswer.trim() 
               ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700'
+              : 'bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700'
           }`}
         >
           Submit Challenge

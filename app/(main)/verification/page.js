@@ -988,6 +988,10 @@ function ForensicReport({ forensics }) {
 }
 
 // ─── Step 5: Result ───────────────────────────────────────────────────────────
+// ─── PATCH: Replace the ResultStep function in app/(main)/verification/page.js
+// Find the line: "function ResultStep({ analysisResult, onRestart })"
+// Replace the entire function with this:
+
 function ResultStep({ analysisResult, onRestart }) {
   const router   = useRouter();
   const decision = analysisResult?.decision || "HUMAN_REVIEW";
@@ -997,16 +1001,25 @@ function ResultStep({ analysisResult, onRestart }) {
 
   useEffect(() => {
     saveVerificationResult(analysisResult || { decision, score });
+
+    // ✅ Save verification status to localStorage so dashboard can read it
+    try {
+      localStorage.setItem("inklusijobs_verified", decision === "AUTO_APPROVE" ? "true" : "false");
+      localStorage.setItem("inklusijobs_verification_score", String(score));
+    } catch {}
+
     const t1 = setTimeout(() => setBarWidth(score), 400);
+
     if (decision === "AUTO_APPROVE") {
+      // ✅ Go to dashboard (not /verification-success) after 4s auto-redirect
       const t2 = setTimeout(() => router.push("/dashboard/worker"), 4000);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     return () => clearTimeout(t1);
-  }, [decision]);
+  }, [decision, router, score, analysisResult]);
 
   const cfg = {
-    AUTO_APPROVE: { icon: "🏅", title: "PWD Verified!", subtitle: "Your identity has been verified. The PWD Verified badge is now active on your profile. Redirecting to dashboard…", color: T.green, bg: T.greenBg, border: T.greenBorder },
+    AUTO_APPROVE: { icon: "🏅", title: "PWD Verified!", subtitle: "Your identity has been verified. The PWD Verified badge is now active on your profile. You'll be redirected to your dashboard in a moment.", color: T.green, bg: T.greenBg, border: T.greenBorder },
     HUMAN_REVIEW: { icon: "⏳", title: "Under Review", subtitle: "Your submission passed AI checks but needs a final human review. You'll be notified within 24–48 hours.", color: T.amber, bg: T.amberBg, border: T.amberBorder },
     REJECT:       { icon: "❌", title: "Verification Unsuccessful", subtitle: "Your submission could not be verified. Please review the issues below and resubmit.", color: T.red, bg: T.redBg, border: T.redBorder },
   }[decision];
@@ -1071,26 +1084,34 @@ function ResultStep({ analysisResult, onRestart }) {
         </div>
       )}
 
-      {/* CTA */}
+      {/* CTAs */}
       {decision === "AUTO_APPROVE" && (
-        <button onClick={() => router.push("/dashboard/worker")} style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white", boxShadow: `0 4px 16px rgba(15,92,110,0.3)` }}>
-          Go to My Dashboard →
+        <button
+          onClick={() => router.push("/dashboard/worker")}
+          style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white", boxShadow: `0 4px 16px rgba(15,92,110,0.3)` }}
+        >
+          Go to Dashboard →
         </button>
       )}
       {decision === "HUMAN_REVIEW" && (
-        <button onClick={() => router.push("/dashboard/worker")} style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white" }}>
-          Back to Dashboard
+        <button
+          onClick={() => router.push("/dashboard/worker")}
+          style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white" }}
+        >
+          Go to Dashboard
         </button>
       )}
       {decision === "REJECT" && (
-        <button onClick={onRestart} style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white" }}>
+        <button
+          onClick={onRestart}
+          style={{ width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${T.teal}, ${T.tealDark})`, color: "white" }}
+        >
           ↺ Resubmit Verification
         </button>
       )}
     </div>
   );
 }
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function VerificationPage() {
   const [step,            setStep]           = useState(0); // 0 = intro screen

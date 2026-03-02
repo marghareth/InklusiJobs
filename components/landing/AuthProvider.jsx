@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { getProgress } from "@/lib/progressHelpers";
 import { useRouter } from "next/navigation";
 
 const AuthContext = createContext(null);
@@ -22,29 +23,37 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Handle Google redirect result (when popup was blocked)
+    // ✅ Uses Firestore to decide where to redirect — not localStorage
     getRedirectResult(auth).then(async (result) => {
       if (result?.user) {
         const token = await result.user.getIdToken();
         setCookie("firebase_token", token, 7);
+
         const savedRole = localStorage.getItem("ij_role") || "worker";
         setCookie("ij_role", savedRole, 30);
 
-        if (savedRole === "employer") {
-          const empOnboarded = localStorage.getItem("ij_emp_onboarded");
-          router.push(empOnboarded === "true" ? "/employer/dashboard" : "/employer/onboarding");
-        } else {
-          const workerOnboarded = localStorage.getItem("ij_onboarded");
-          if (workerOnboarded === "true") {
-            setCookie("ij_onboarded", "true", 30);
-            router.push("/dashboard/worker");
+        try {
+          const progress = await getProgress(result.user.uid);
+          const role = progress.role || savedRole;
+
+          if (role === "employer") {
+            router.push(progress.onboarding_complete ? "/employer/dashboard" : "/employer/onboarding");
           } else {
-            router.push("/onboarding");
+            if (progress.onboarding_complete) {
+              setCookie("ij_onboarded", "true", 30);
+              router.push("/dashboard/worker");
+            } else {
+              router.push("/onboarding");
+            }
           }
+        } catch {
+          router.push("/onboarding");
         }
       }
     }).catch(() => {});
 
-    // Listen for auth state — keep token cookie fresh
+    // ✅ Only keeps the token cookie fresh — NO redirects here
+    // Redirects are handled by AuthModal.jsx after successful login
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken();

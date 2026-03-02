@@ -34,15 +34,15 @@ export default function VerificationSuccessPage() {
 
       // Store roadmap so the roadmap page can read it
       localStorage.setItem("inklusijobs_roadmap", JSON.stringify(roadmap));
-      router.push("/dashboard/roadmap");
+      router.push("/roadmap");
     } catch (err) {
       console.error("[VerificationSuccess] Roadmap error:", err);
       // Still navigate — roadmap page will show error state
-      router.push("/dashboard/roadmap");
+      router.push("/roadmap");
     }
   };
 
-  const handleDashboard = () => router.push("/dashboard");
+  const handleDashboard = () => router.push("/dashboard/worker");
 
   if (!mounted) return null;
 
