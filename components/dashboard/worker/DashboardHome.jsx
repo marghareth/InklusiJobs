@@ -1,529 +1,625 @@
-'use client';
+"use client";
 
 // ─── DashboardHome.jsx ────────────────────────────────────────────────────────
-// UPDATED: all data now reads from localStorage via useAppData().
-// UI, styles, and layout are 100% identical to the original.
+// Reads ALL user progress from localStorage — zero static/hardcoded data.
 //
-// DATA SOURCES:
-//   profile.name              → Welcome name
-//   challenges[]              → stat cards + current challenge + learning path
-//   tracker.stats             → skills mastered, challenges completed, progress
-//   tracker.phases[]          → learning path bars
-//   tracker.submissions[]     → recent activity
-//   scoring.overallScore      → job match percentage
-//   tracker.applications[]    → portfolio count fallback
+// DATA KEYS consumed:
+//   inklusijobs_profile              → { name, firstName }
+//   inklusijobs_assessment_results   → raw assessment answers
+//   inklusijobs_scoring              → { overallScore, skills[] }
+//   inklusijobs_completed_challenges → string[] of challengeIds
+//   inklusijobs_completed_skills     → string[] of resourceIds
+//   inklusijobs_roadmap_progress     → { phase1, phase2, phase3, overall }
+//   inklusijobs_current_challenge    → { id, title, description, estimatedHours, portfolioWorthy, startedAt }
+//   inklusijobs_job_selection        → { jobId, jobTitle }
+//   inklusijobs_recent_activity      → { icon, title, sub, time, color, bg }[]
 
-import { useState, useEffect, useMemo } from 'react';
-import { useAppData } from '@/hooks/useAppData';
-import StatCard from './StatCard';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── localStorage helper ──────────────────────────────────────────────────────
+const LS = {
+  get: (key) => { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; } },
+};
 
-/** Returns the first in-progress or not-started challenge across all phases */
-function getCurrentChallenge(challenges) {
+const KEYS = {
+  PROFILE:              "inklusijobs_profile",
+  SCORING:              "inklusijobs_scoring",
+  ASSESSMENT_RESULTS:   "inklusijobs_assessment_results",
+  COMPLETED_CHALLENGES: "inklusijobs_completed_challenges",
+  COMPLETED_SKILLS:     "inklusijobs_completed_skills",
+  ROADMAP_PROGRESS:     "inklusijobs_roadmap_progress",
+  CURRENT_CHALLENGE:    "inklusijobs_current_challenge",
+  JOB_SELECTION:        "inklusijobs_job_selection",
+  RECENT_ACTIVITY:      "inklusijobs_recent_activity",
+  ROADMAP:              "inklusijobs_roadmap",
+};
+
+// ─── Greeting logic ───────────────────────────────────────────────────────────
+function getGreeting(firstName) {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return { line: `Good morning, ${firstName}. ☀️`, sub: "Ready to keep going?" };
+  return { line: `Welcome back, ${firstName}.`, sub: "You've got challenges waiting. Let's do this." };
+}
+
+// ─── Animated counter ─────────────────────────────────────────────────────────
+function CountUp({ to, duration = 900 }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!to) return;
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min((Date.now() - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setVal(Math.round(ease * to));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [to, duration]);
+  return <>{val}</>;
+}
+
+// ─── SVG ring ─────────────────────────────────────────────────────────────────
+function RingChart({ pct, size = 80, stroke = 7, color = "#479880" }) {
+  const r    = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const [offset, setOffset] = useState(circ);
+  useEffect(() => {
+    const t = setTimeout(() => setOffset(circ - (pct / 100) * circ), 200);
+    return () => clearTimeout(t);
+  }, [pct, circ]);
   return (
-    challenges.find(c => c.status === 'pending') ||
-    challenges.find(c => c.status === 'not_started') ||
-    null
+    <svg width={size} height={size} style={{ flexShrink: 0 }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(71,152,128,0.12)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition:"stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)", transform:"rotate(-90deg)", transformOrigin:"center" }}
+      />
+      <text x="50%" y="55%" textAnchor="middle" fill="#0f2421" fontSize="14" fontWeight="800" fontFamily="'Syne',sans-serif">
+        {pct}%
+      </text>
+    </svg>
   );
 }
 
-/** Calculates phase progress as % of approved challenges */
-function getPhaseProgress(phase, challenges) {
-  const phaseChallenges = challenges.filter(c => c.phase_id === phase.id);
-  if (!phaseChallenges.length) return 0;
-  const approved = phaseChallenges.filter(c => c.status === 'approved').length;
-  return Math.round((approved / phaseChallenges.length) * 100);
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({ icon, rawValue, displayValue, label, color, delay }) {
+  return (
+    <div className="dh-stat-card" style={{ "--accent": color, animationDelay: `${delay}ms` }}>
+      <div className="dh-stat-icon" style={{ background: `${color}14` }}>{icon}</div>
+      <div className="dh-stat-body">
+        <div className="dh-stat-value" style={{ color }}>
+          {typeof rawValue === "number"
+            ? <><CountUp to={rawValue} />{displayValue?.replace(/^\d+/, "") || ""}</>
+            : (displayValue ?? "—")
+          }
+        </div>
+        <div className="dh-stat-label">{label}</div>
+      </div>
+      <div className="dh-stat-glow" style={{ background: color }} />
+    </div>
+  );
 }
 
-/** Maps phase status + progress to a learning path display config */
-function getPhaseDisplayStatus(phase, progress) {
-  if (progress === 100)           return 'Completed';
-  if (phase.status === 'active')  return 'In Progress';
-  if (phase.status === 'locked')  return 'Locked';
-  return 'Not Started';
+// ─── Progress bar ─────────────────────────────────────────────────────────────
+function ProgressBar({ pct, color, delay }) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setWidth(pct), 300 + delay);
+    return () => clearTimeout(t);
+  }, [pct, delay]);
+  return (
+    <div className="dh-pb-track">
+      <div className="dh-pb-fill" style={{ width: `${width}%`, background: color, transitionDelay: `${delay}ms` }} />
+    </div>
+  );
 }
 
-/** Formats a submission into a recent activity entry */
-function submissionToActivity(submission) {
-  const statusConfig = {
-    approved:       { icon: '✅', title: 'Completed challenge',  c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
-    pending:        { icon: '⏳', title: 'Submitted for review', c: '#1A2744', bg: 'rgba(26,39,68,0.08)'   },
-    rejected:       { icon: '🔁', title: 'Needs revision',       c: '#C0392B', bg: 'rgba(192,57,43,0.08)'  },
-    needs_revision: { icon: '📝', title: 'Revision requested',   c: '#B07D20', bg: 'rgba(176,125,32,0.08)' },
-  };
-  const cfg = statusConfig[submission.status] || { icon: '🕐', title: 'Started challenge', c: '#1A2744', bg: 'rgba(26,39,68,0.06)' };
-  return {
-    icon:  cfg.icon,
-    title: cfg.title,
-    sub:   submission.challengeTitle,
-    time:  formatTimeAgo(submission.submitted_at),
-    c:     cfg.c,
-    bg:    cfg.bg,
-  };
-}
-
-function formatTimeAgo(isoString) {
-  if (!isoString) return '';
-  const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
-  if (diff < 60)     return 'Just now';
-  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// ─── Fallback data (shown before assessment is completed) ──────────────────────
-const FALLBACK_STATS = [
-  { icon: '🏅', value: '—', label: 'Skills Mastered',      delta: '',    color: '#2DB8A0' },
-  { icon: '⚡', value: '—', label: 'Challenges Completed', delta: '',    color: '#1A2744' },
-  { icon: '📈', value: '—', label: 'Overall Progress',     delta: '',    color: '#2DB8A0' },
-  { icon: '🗂️', value: '—', label: 'Portfolio Items',      delta: '',    color: '#1A2744' },
-];
-
-const FALLBACK_ACTIVITY = [
-  { icon: '👋', title: 'Welcome to InklusiJobs', sub: 'Complete your assessment to get started', time: 'Now', c: '#2DB8A0', bg: 'rgba(45,184,160,0.08)' },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function DashboardHome() {
-  const appData = useAppData();
+  const [data, setData] = useState(null);
+  const [revealed, setRevealed] = useState(false);
 
-  // ── Derived data ────────────────────────────────────────────────────────────
-  const firstName = useMemo(() => {
-    const name = appData.profile?.name;
-    if (!name || name === 'Your Name') return '';
-    return name.split(' ')[0];
-  }, [appData.profile?.name]);
+  // Read everything from localStorage on mount
+  useEffect(() => {
+    const profile            = LS.get(KEYS.PROFILE) || {};
+    const scoring            = LS.get(KEYS.SCORING) || {};
+    const assessmentResults  = LS.get(KEYS.ASSESSMENT_RESULTS) || {};
+    const completedChallenges = LS.get(KEYS.COMPLETED_CHALLENGES) || [];
+    const completedSkills    = LS.get(KEYS.COMPLETED_SKILLS) || [];
+    const roadmapProgress    = LS.get(KEYS.ROADMAP_PROGRESS) || {};
+    const currentChallenge   = LS.get(KEYS.CURRENT_CHALLENGE) || null;
+    const jobSelection       = LS.get(KEYS.JOB_SELECTION) || {};
+    const recentActivity     = LS.get(KEYS.RECENT_ACTIVITY) || [];
+    const roadmap            = LS.get(KEYS.ROADMAP) || null;
 
-  const hasAssessment = useMemo(() =>
-    appData.challenges?.length > 0 || appData.tracker?.submissions?.length > 0
-  , [appData.challenges, appData.tracker?.submissions]);
+    // ── Skills Mastered: unique skills from scoring + completed skills ──────────
+    const scoringSkills = scoring?.skills?.filter(s => s.level >= 3)?.length || 0;
+    const skillsMastered = Math.max(scoringSkills, completedSkills.length);
 
-  // Stat cards
-  const stats = useMemo(() => {
-    if (!hasAssessment) return FALLBACK_STATS;
-    const challenges   = appData.challenges || [];
-    const trackerStats = appData.tracker?.stats || {};
-    const approved     = challenges.filter(c => c.status === 'approved').length;
-    const total        = challenges.length;
-    const overallPct   = total > 0 ? Math.round(approved / total * 100) : 0;
-    const portfolioCount = challenges.filter(c => c.portfolioWorthy && c.status === 'approved').length;
+    // ── Challenges completed ────────────────────────────────────────────────────
+    const challengesDone = completedChallenges.length;
 
-    return [
-      { icon: '🏅', value: String(trackerStats.totalApproved || 0),  label: 'Skills Mastered',      delta: '', color: '#2DB8A0' },
-      { icon: '⚡', value: String(approved),                          label: 'Challenges Completed', delta: '', color: '#1A2744' },
-      { icon: '📈', value: `${overallPct}%`,                          label: 'Overall Progress',     delta: '', color: '#2DB8A0' },
-      { icon: '🗂️', value: String(portfolioCount),                   label: 'Portfolio Items',      delta: '', color: '#1A2744' },
+    // ── Overall progress: weighted average of roadmap + challenges ───────────────
+    const roadmapPct     = roadmapProgress.overall || 0;
+    const challengeTotal = roadmap?.phases?.reduce((sum, p) => sum + (p.challengeCount || 1), 0) || 3;
+    const challengePct   = challengeTotal > 0 ? Math.round((challengesDone / challengeTotal) * 100) : 0;
+    const assessmentScore = scoring?.overallScore || 0;
+    const overallProgress = Math.round((roadmapPct + challengePct + (assessmentScore > 0 ? assessmentScore : 0)) / (assessmentScore > 0 ? 3 : 2));
+
+    // ── Portfolio items: completed challenges that are portfolioWorthy ──────────
+    // We track this from currentChallenge history if available
+    const portfolioItems = completedChallenges.filter(id => {
+      // We can't know portfolioWorthy from just the ID, so default to challengesDone
+      return true;
+    }).length;
+
+    // ── Learning path phases ────────────────────────────────────────────────────
+    const learningPath = [
+      { label: roadmap?.phases?.[0]?.title || "Beginner",     pct: roadmapProgress.phase1 || 0, color: "#479880", locked: false },
+      { label: roadmap?.phases?.[1]?.title || "Intermediate",  pct: roadmapProgress.phase2 || 0, color: "#4B959E", locked: (roadmapProgress.phase1 || 0) < 50 },
+      { label: roadmap?.phases?.[2]?.title || "Advanced",      pct: roadmapProgress.phase3 || 0, color: "#6B6B8F", locked: (roadmapProgress.phase2 || 0) < 50 },
     ];
-  }, [appData.challenges, appData.tracker?.stats, hasAssessment]);
 
-  // Current challenge
-  const currentChallenge = useMemo(() =>
-    hasAssessment ? getCurrentChallenge(appData.challenges || []) : null
-  , [appData.challenges, hasAssessment]);
+    // ── Name — check every key the onboarding flow might have used ─────────────
+    // Supabase profile table uses: full_name, first_name, name
+    // Basic-info form saves to: inklusijobs_profile → { name, firstName, fullName }
+    // Onboarding may also save directly as: inklusijobs_basic_info → { firstName, lastName }
+    const basicInfo   = LS.get("inklusijobs_basic_info") || {};
+    const onboarding  = LS.get("inklusijobs_onboarding") || {};
+    const name =
+      profile?.full_name   ||   // Supabase profiles.full_name
+      profile?.first_name  ||   // Supabase profiles.first_name
+      profile?.firstName   ||   // camelCase variant
+      profile?.name        ||   // generic
+      basicInfo?.firstName ||   // BasicInformation form
+      basicInfo?.first_name||
+      basicInfo?.name      ||
+      onboarding?.name     ||
+      onboarding?.firstName||
+      "";
+    const firstName = name.split(" ")[0] || "there";
 
-  // Challenge progress %
-  const challengeProgress = useMemo(() => {
-    if (!currentChallenge) return 0;
-    const submissions = appData.tracker?.submissions || [];
-    const attempts    = submissions.filter(s => s.challengeId === currentChallenge.id);
-    if (!attempts.length) return 0;
-    // Crude progress: pending = 50%, approved = 100%
-    const latest = attempts[0];
-    if (latest.status === 'approved') return 100;
-    if (latest.status === 'pending')  return 50;
-    return 20;
-  }, [currentChallenge, appData.tracker?.submissions]);
-
-  // Learning path
-  const learningPath = useMemo(() => {
-    const phases     = appData.tracker?.phases     || [];
-    const challenges = appData.challenges           || [];
-    if (!phases.length) {
-      // Fallback if no roadmap yet
-      return [
-        { label: 'Beginner',     progress: 0,  status: 'Not Started', color: '#2DB8A0', locked: false },
-        { label: 'Intermediate', progress: 0,  status: 'Locked',      color: '#1A2744', locked: true  },
-        { label: 'Advanced',     progress: 0,  status: 'Locked',      color: '#9BADC8', locked: true  },
-      ];
+    // ── Recent activity: from localStorage + derive from completedChallenges ─────
+    let activity = recentActivity;
+    if (!activity.length && completedChallenges.length > 0) {
+      activity = completedChallenges.slice(-4).reverse().map((id, i) => ({
+        icon: "✅", title: "Completed challenge",
+        sub: `Challenge ${id}`, time: i === 0 ? "Recently" : `${i + 1} challenges ago`,
+        color: "#479880", bg: "rgba(71,152,128,0.10)",
+      }));
     }
-    return phases.slice(0, 3).map((phase, i) => {
-      const progress   = getPhaseProgress(phase, challenges);
-      const dispStatus = getPhaseDisplayStatus(phase, progress);
-      const locked     = phase.status === 'locked';
-      return {
-        label:    phase.phase_name,
-        progress,
-        status:   dispStatus,
-        color:    locked ? '#9BADC8' : i === 0 ? '#2DB8A0' : '#1A2744',
-        locked,
-      };
+    if (!activity.length) {
+      activity = [{ icon: "👋", title: "Welcome to InklusiJobs", sub: "Complete your first challenge to see activity", time: "Now", color: "#4B959E", bg: "rgba(75,149,158,0.10)" }];
+    }
+
+    // ── Job match ────────────────────────────────────────────────────────────────
+    const jobMatchPct = scoring?.overallScore || 0;
+    const jobTitle    = jobSelection?.jobTitle || scoring?.jobTitle || "your target role";
+
+    // ── Has data flag ─────────────────────────────────────────────────────────────
+    const hasData = challengesDone > 0 || completedSkills.length > 0 || assessmentScore > 0;
+
+    setData({
+      firstName, hasData,
+      stats: {
+        skillsMastered, challengesDone,
+        overallProgress, portfolioItems,
+      },
+      currentChallenge,
+      learningPath,
+      jobMatchPct, jobTitle,
+      activity,
+      encouragement: {
+        challengesThisWeek: challengesDone,
+        roadmapPct,
+        employerViews: 0, // will come from Supabase later
+      },
     });
-  }, [appData.tracker?.phases, appData.challenges]);
 
-  // Job match
-  const jobMatchPct = useMemo(() =>
-    appData.scoring?.overallScore || 0
-  , [appData.scoring?.overallScore]);
+    setTimeout(() => setRevealed(true), 80);
+  }, []);
 
-  const jobMatchOffset = useMemo(() => {
-    const circumference = 251;
-    return circumference - (jobMatchPct / 100) * circumference;
-  }, [jobMatchPct]);
+  if (!data) return null;
 
-  // Recent activity — last 4 submissions
-  const recentActivity = useMemo(() => {
-    const submissions = appData.tracker?.submissions || [];
-    if (!submissions.length) return FALLBACK_ACTIVITY;
-    return submissions.slice(0, 4).map(submissionToActivity);
-  }, [appData.tracker?.submissions]);
+  const { firstName, hasData, stats, currentChallenge, learningPath, jobMatchPct, jobTitle, activity, encouragement } = data;
+  const greeting = getGreeting(firstName || "there");
 
-  // Job title for match card
-  const jobTitle = appData.job?.title || 'your target role';
+  // Challenge progress heuristic
+  const challengeProgress = currentChallenge
+    ? (currentChallenge.progress || (currentChallenge.startedAt ? 30 : 0))
+    : 0;
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+          --teal:   #479880;
+          --blue:   #4B959E;
+          --dark:   #0f2421;
+          --bg:     #f4f9f8;
+          --white:  #ffffff;
+          --text:   #0f2421;
+          --muted:  #6b8a87;
+          --border: #e4ecea;
+          --font-d: 'Playfair Display', serif;
+          --font-b: 'Instrument Sans', sans-serif;
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shimmer {
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(100%); }
+        }
 
         .dh-root {
-          display: flex; flex-direction: column; gap: 24px;
-          padding: 36px;
-          min-height: 100%;
-          font-family: 'Instrument Sans', sans-serif;
-          color: #1A2744;
+          min-height: 100%; font-family: var(--font-b);
+          color: var(--text); padding: 28px 32px 60px;
+          display: flex; flex-direction: column; gap: 22px;
+          opacity: 0; transition: opacity 0.4s;
         }
+        .dh-root.revealed { opacity: 1; }
 
-        .dh-card {
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(26,39,68,0.12);
+        /* ── Panel ── */
+        .dh-panel {
+          background: var(--white); border: 1px solid var(--border);
           border-radius: 18px;
-          box-shadow: 0 2px 12px rgba(26,39,68,0.08), 0 1px 3px rgba(26,39,68,0.05);
-          transition: box-shadow .2s ease, transform .2s ease;
+          box-shadow: 0 2px 12px rgba(15,36,33,0.06);
+          transition: box-shadow 0.2s;
+          animation: fadeUp 0.5s both;
         }
-        .dh-card:hover {
-          box-shadow: 0 6px 24px rgba(26,39,68,0.12), 0 2px 6px rgba(26,39,68,0.07);
-        }
+        .dh-panel:hover { box-shadow: 0 4px 24px rgba(15,36,33,0.09); }
 
-        .dh-topbar {
-          display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
-        }
-        .dh-greet {
-          font-family: 'Playfair Display', serif;
-          font-size: 40px; font-weight: 700;
-          color: #1A2744; letter-spacing: -0.3px; line-height: 1.2;
-        }
-        .dh-greet-wave { font-style: normal; }
-        .dh-sub { font-size: 13px; color: rgba(26,39,68,0.50); margin-top: 5px; font-weight: 400; letter-spacing: 0.1px; }
-        .dh-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        /* ── Header ── */
+        .dh-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+        .dh-headline { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; line-height: 1.2; margin-bottom: 5px; }
+        .dh-sub { font-size: 14px; color: var(--muted); }
+        .dh-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
         .dh-btn-outline {
-          padding: 9px 18px; border-radius: 10px;
-          border: 1px solid rgba(26,39,68,0.20);
-          color: rgba(26,39,68,0.70); font-size: 12.5px;
-          font-family: 'Instrument Sans', sans-serif; font-weight: 600;
-          cursor: pointer; background: rgba(255,255,255,0.8);
-          transition: all .2s; letter-spacing: 0.1px;
+          padding: 9px 18px; border-radius: 9px; border: 1.5px solid var(--border);
+          font-family: var(--font-b); font-size: 12px; font-weight: 600;
+          color: var(--muted); cursor: pointer; background: var(--white);
+          transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center;
         }
-        .dh-btn-outline:hover { border-color: rgba(45,184,160,0.50); color: #1A7A6E; background: rgba(45,184,160,0.06); }
-
+        .dh-btn-outline:hover { border-color: var(--teal); color: var(--teal); }
         .dh-btn-primary {
-          padding: 9px 18px; border-radius: 10px; border: none;
-          background: linear-gradient(135deg, #1A2744, #2D3F6B);
-          color: #fff; font-size: 12.5px;
-          font-family: 'Instrument Sans', sans-serif; font-weight: 700;
-          cursor: pointer; transition: all .2s; letter-spacing: 0.2px;
-          box-shadow: 0 4px 14px rgba(26,39,68,0.25);
+          padding: 9px 18px; border-radius: 9px; border: none;
+          background: linear-gradient(135deg, var(--teal), var(--blue));
+          font-family: var(--font-b); font-size: 12px; font-weight: 700;
+          color: #fff; cursor: pointer; transition: all 0.2s;
+          box-shadow: 0 3px 12px rgba(71,152,128,0.3); text-decoration: none;
+          display: inline-flex; align-items: center;
         }
-        .dh-btn-primary:hover { box-shadow: 0 6px 20px rgba(26,39,68,0.35); transform: translateY(-1px); }
+        .dh-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(71,152,128,0.4); }
 
+        /* ── Encouragement pills ── */
+        .dh-encourage {
+          display: flex; flex-wrap: wrap; gap: 10px; animation: fadeUp 0.5s both 0.05s;
+        }
+        .dh-enc-pill {
+          background: rgba(71,152,128,0.08); border: 1px solid rgba(71,152,128,0.2);
+          border-radius: 10px; padding: 10px 16px;
+          font-size: 13px; font-weight: 600; color: #2d5f55; line-height: 1.5;
+          flex: 1; min-width: 200px;
+        }
+
+        /* ── Stats ── */
         .dh-stats {
-          display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+          animation: fadeUp 0.5s both 0.08s;
         }
-        @media (max-width: 1100px) { .dh-stats { grid-template-columns: repeat(2,1fr); } }
-        @media (max-width: 650px)  { .dh-stats { grid-template-columns: 1fr; } }
+        @media (max-width: 1000px) { .dh-stats { grid-template-columns: repeat(2,1fr); } }
+        @media (max-width: 560px)  { .dh-stats { grid-template-columns: 1fr; } }
 
-        .dh-mid { display: grid; grid-template-columns: 1fr 330px; gap: 20px; }
-        @media (max-width: 900px) { .dh-mid { grid-template-columns: 1fr; } }
-
-        .dh-section-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 16px; font-weight: 600; color: #1A2744; letter-spacing: -0.2px;
+        .dh-stat-card {
+          background: var(--white); border: 1px solid var(--border);
+          border-radius: 15px; padding: 18px 20px;
+          display: flex; align-items: center; gap: 14px;
+          position: relative; overflow: hidden;
+          transition: border-color 0.2s, transform 0.2s;
+          animation: fadeUp 0.5s both;
+        }
+        .dh-stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .dh-stat-icon {
+          width: 44px; height: 44px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+        }
+        .dh-stat-value {
+          font-family: var(--font-d); font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -0.5px;
+        }
+        .dh-stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 500; }
+        .dh-stat-glow {
+          position: absolute; bottom: -16px; right: -16px;
+          width: 60px; height: 60px; border-radius: 50%;
+          opacity: 0.08; filter: blur(12px); pointer-events: none;
         }
 
-        .dh-challenge { padding: 26px; }
-        .dh-challenge-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .dh-badge-inprogress {
-          padding: 4px 12px; background: rgba(45,184,160,0.10);
-          border: 1px solid rgba(45,184,160,0.28); border-radius: 20px;
-          font-size: 11px; font-weight: 600; color: #1A7A6E; letter-spacing: 0.3px;
+        /* ── Mid row ── */
+        .dh-mid {
+          display: grid; grid-template-columns: 1fr 300px; gap: 20px;
+          animation: fadeUp 0.5s both 0.12s;
         }
-        .dh-badge-notstarted {
-          padding: 4px 12px; background: rgba(26,39,68,0.06);
-          border: 1px solid rgba(26,39,68,0.14); border-radius: 20px;
-          font-size: 11px; font-weight: 600; color: rgba(26,39,68,0.45); letter-spacing: 0.3px;
+        @media (max-width: 860px) { .dh-mid { grid-template-columns: 1fr; } }
+        .dh-panel-body { padding: 24px; }
+        .dh-panel-title {
+          font-family: var(--font-d); font-size: 15px; font-weight: 800; color: var(--text);
+          margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;
         }
+        .dh-panel-badge {
+          font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+        }
+        .dh-badge-active { background: rgba(71,152,128,0.1); color: var(--teal); border: 1px solid rgba(71,152,128,0.2); }
+        .dh-badge-none   { background: rgba(15,36,33,0.06); color: var(--muted); border: 1px solid var(--border); }
+
+        /* Challenge card */
         .dh-challenge-inner {
-          background: rgba(248,250,253,0.80); border: 1px solid rgba(26,39,68,0.10);
-          border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: flex-start;
+          display: flex; gap: 14px; align-items: flex-start;
+          background: #f8fffe; border: 1px solid var(--border);
+          border-radius: 12px; padding: 16px;
         }
-        .dh-challenge-icon {
-          width: 46px; height: 46px; flex-shrink: 0;
-          background: linear-gradient(135deg, #1A2744, #2D3F6B);
-          border-radius: 13px; display: flex; align-items: center; justify-content: center;
-          font-size: 22px; box-shadow: 0 4px 14px rgba(26,39,68,0.25);
+        .dh-ch-icon {
+          width: 44px; height: 44px; border-radius: 11px; flex-shrink: 0;
+          background: linear-gradient(135deg, var(--teal), var(--blue));
+          display: flex; align-items: center; justify-content: center;
+          font-size: 20px; box-shadow: 0 3px 12px rgba(71,152,128,0.3);
         }
-        .dh-challenge-name {
-          font-family: 'Playfair Display', serif;
-          font-size: 15px; font-weight: 600; color: #1A2744;
-          margin-bottom: 6px; letter-spacing: -0.1px; line-height: 1.3;
-        }
-        .dh-challenge-desc { font-size: 12.5px; color: rgba(26,39,68,0.50); line-height: 1.65; margin-bottom: 14px; }
-        .dh-challenge-meta { display: flex; gap: 16px; margin-bottom: 16px; }
-        .dh-meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(26,39,68,0.45); }
-        .dh-prog-label { display: flex; justify-content: space-between; font-size: 12px; color: rgba(26,39,68,0.45); margin-bottom: 8px; }
-        .dh-prog-track { height: 6px; background: rgba(26,39,68,0.10); border-radius: 10px; overflow: hidden; }
+        .dh-ch-title { font-family: var(--font-d); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; line-height: 1.3; }
+        .dh-ch-desc { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+        .dh-ch-meta { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+        .dh-prog-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+        .dh-prog-label span:last-child { color: var(--teal); font-weight: 700; }
+        .dh-prog-track { height: 5px; background: rgba(71,152,128,0.10); border-radius: 99px; overflow: hidden; }
         .dh-prog-fill {
-          height: 100%; border-radius: 10px;
-          background: linear-gradient(90deg, #2DB8A0, #1A9E88);
-          position: relative; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+          height: 100%; border-radius: 99px;
+          background: linear-gradient(90deg, var(--teal), var(--blue));
+          transition: width 1s cubic-bezier(0.22,1,0.36,1);
+          position: relative;
         }
         .dh-prog-fill::after {
-          content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
-          animation: shimmer 2.4s infinite;
+          content: ''; position: absolute; inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+          animation: shimmer 2s infinite;
         }
-        @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
-
-        .dh-continue-btn {
-          margin-top: 20px; width: 100%; padding: 13px;
-          background: linear-gradient(135deg, #1A2744, #2D3F6B);
-          border: none; border-radius: 12px; color: #fff;
-          font-size: 13px; font-weight: 700;
-          font-family: 'Instrument Sans', sans-serif;
-          cursor: pointer; transition: all .2s;
-          box-shadow: 0 4px 16px rgba(26,39,68,0.25); letter-spacing: 0.3px;
+        .dh-ch-continue {
+          margin-top: 16px; width: 100%; padding: 12px;
+          background: linear-gradient(135deg, var(--teal), var(--blue));
+          border: none; border-radius: 11px; color: #fff;
+          font-family: var(--font-b); font-size: 13px; font-weight: 700;
+          cursor: pointer; transition: all 0.2s;
+          box-shadow: 0 3px 12px rgba(71,152,128,0.3);
+          text-decoration: none; display: block; text-align: center;
         }
-        .dh-continue-btn:hover { box-shadow: 0 6px 24px rgba(26,39,68,0.35); transform: translateY(-1px); }
-
+        .dh-ch-continue:hover { transform: translateY(-1px); }
         .dh-no-challenge {
-          text-align: center; padding: 32px 20px;
-          color: rgba(26,39,68,0.40); font-size: 13px; line-height: 1.6;
+          text-align: center; padding: 28px 16px;
+          font-size: 13px; color: var(--muted); line-height: 1.6;
         }
-        .dh-no-challenge-emoji { font-size: 32px; margin-bottom: 10px; }
+        .dh-no-ch-emoji { font-size: 28px; display: block; margin-bottom: 8px; }
 
-        .dh-path { padding: 26px; display: flex; flex-direction: column; }
-        .dh-path-item { margin-top: 18px; }
-        .dh-path-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        .dh-path-icon {
-          width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center; font-size: 14px;
+        /* Learning path */
+        .dh-lp-item { margin-bottom: 16px; }
+        .dh-lp-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .dh-lp-dot {
+          width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center; font-size: 13px;
         }
-        .dh-path-name { font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; color: #1A2744; }
-        .dh-path-status { font-size: 11px; color: rgba(26,39,68,0.40); margin-top: 1px; }
-        .dh-path-pct { font-size: 13px; font-weight: 700; }
-        .dh-path-bar { height: 5px; background: rgba(26,39,68,0.10); border-radius: 10px; overflow: hidden; margin-left: 44px; }
-        .dh-path-fill { height: 100%; border-radius: 10px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
-        .dh-viewmap-btn {
-          margin-top: 22px; width: 100%; padding: 12px; background: transparent;
-          border: 1px solid rgba(26,39,68,0.18); border-radius: 12px;
-          color: rgba(26,39,68,0.55); font-size: 12.5px; font-weight: 600;
-          font-family: 'Instrument Sans', sans-serif; cursor: pointer; transition: all .2s; letter-spacing: 0.2px;
+        .dh-lp-name { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dh-lp-name.locked { color: rgba(15,36,33,0.3); }
+        .dh-lp-status { font-size: 10px; color: var(--muted); margin-top: 1px; }
+        .dh-lp-pct { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+        .dh-pb-track { height: 5px; background: rgba(15,36,33,0.08); border-radius: 99px; overflow: hidden; margin-left: 42px; }
+        .dh-pb-fill { height: 100%; border-radius: 99px; transition: width 0.9s cubic-bezier(0.22,1,0.36,1); }
+        .dh-lp-viewall {
+          display: block; margin-top: 18px; width: 100%; padding: 11px;
+          background: none; border: 1.5px solid var(--border); border-radius: 10px;
+          font-family: var(--font-b); font-size: 12px; font-weight: 600; color: var(--muted);
+          cursor: pointer; transition: all 0.15s; text-align: center; text-decoration: none;
         }
-        .dh-viewmap-btn:hover { border-color: rgba(45,184,160,0.45); color: #1A7A6E; background: rgba(45,184,160,0.05); }
+        .dh-lp-viewall:hover { border-color: var(--teal); color: var(--teal); }
 
-        .dh-match {
-          padding: 24px; display: flex; align-items: center; gap: 22px;
-          background: rgba(255,255,255,0.92); backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(26,39,68,0.12);
-          border-radius: 18px; box-shadow: 0 2px 12px rgba(26,39,68,0.08);
+        /* ── Job match ── */
+        .dh-jobmatch {
+          display: flex; align-items: center; gap: 20px; padding: 22px 24px;
+          background: var(--white); border: 1px solid var(--border);
+          border-radius: 18px; box-shadow: 0 2px 12px rgba(15,36,33,0.06);
+          animation: fadeUp 0.5s both 0.18s;
           position: relative; overflow: hidden;
         }
-        .dh-match::before {
-          content:''; position:absolute; inset:0; pointer-events:none;
-          background: linear-gradient(135deg, rgba(45,184,160,0.04) 0%, rgba(26,39,68,0.03) 100%);
+        .dh-jobmatch::before {
+          content: ''; position: absolute; inset: 0; pointer-events: none;
+          background: linear-gradient(135deg, rgba(71,152,128,0.04), rgba(75,149,158,0.02));
         }
-        .dh-match-ring { width: 78px; height: 78px; flex-shrink: 0; position: relative; }
-        .dh-match-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .dh-match-ring-bg   { stroke: rgba(26,39,68,0.12); fill: none; }
-        .dh-match-ring-fill {
-          stroke: url(#brandMatchGrad); fill: none; stroke-linecap: round;
-          stroke-dasharray: 251;
-          transition: stroke-dashoffset 1s ease;
+        .dh-jm-text { flex: 1; }
+        .dh-jm-title { font-family: var(--font-d); font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+        .dh-jm-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+        .dh-jm-cta {
+          flex-shrink: 0; padding: 9px 18px; border: 1.5px solid rgba(71,152,128,0.3);
+          border-radius: 9px; color: var(--teal); font-size: 12px; font-weight: 700;
+          font-family: var(--font-b); cursor: pointer; background: rgba(71,152,128,0.06);
+          transition: all 0.15s; text-decoration: none; white-space: nowrap;
         }
-        .dh-match-pct {
-          position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-          font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; color: #1A2744;
-        }
-        .dh-match-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; color: #1A2744; margin-bottom: 5px; }
-        .dh-match-desc  { font-size: 12.5px; color: rgba(26,39,68,0.50); line-height: 1.65; }
-        .dh-match-cta {
-          margin-left: auto; flex-shrink: 0; padding: 9px 16px;
-          border: 1px solid rgba(45,184,160,0.30); border-radius: 10px; color: #1A7A6E;
-          font-size: 12px; font-weight: 600; font-family: 'Instrument Sans', sans-serif;
-          cursor: pointer; background: rgba(45,184,160,0.06); transition: all .2s; white-space: nowrap;
-        }
-        .dh-match-cta:hover { background: rgba(45,184,160,0.12); border-color: rgba(45,184,160,0.50); color: #157062; }
+        .dh-jm-cta:hover { background: rgba(71,152,128,0.12); border-color: var(--teal); }
 
-        .dh-activity { padding: 26px; }
-        .dh-activity-list { display: flex; flex-direction: column; gap: 2px; margin-top: 18px; }
+        /* ── Activity ── */
+        .dh-activity { animation: fadeUp 0.5s both 0.22s; }
+        .dh-activity-list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
         .dh-act-item {
-          display: flex; align-items: center; gap: 14px;
-          padding: 13px 14px; border-radius: 12px; transition: background .15s; cursor: default;
+          display: flex; align-items: center; gap: 12px;
+          padding: 11px 14px; border-radius: 10px;
+          transition: background 0.15s; cursor: default;
         }
-        .dh-act-item:hover { background: rgba(26,39,68,0.04); }
-        .dh-act-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-        .dh-act-title { font-size: 13px; font-weight: 600; color: #1A2744; }
-        .dh-act-sub   { font-size: 11.5px; color: rgba(26,39,68,0.42); margin-top: 1px; }
-        .dh-act-time  { margin-left: auto; font-size: 11px; color: rgba(26,39,68,0.30); white-space: nowrap; flex-shrink: 0; }
+        .dh-act-item:hover { background: rgba(15,36,33,0.04); }
+        .dh-act-icon {
+          width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .dh-act-title { font-size: 13px; font-weight: 600; color: var(--text); }
+        .dh-act-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .dh-act-time  { margin-left: auto; font-size: 11px; color: rgba(15,36,33,0.3); white-space: nowrap; flex-shrink: 0; }
 
-        .dh-divider { height: 1px; background: rgba(26,39,68,0.08); border: none; margin: 0; }
+        /* Empty state */
+        .dh-empty-state {
+          text-align: center; padding: 32px 20px;
+          background: rgba(71,152,128,0.04); border-radius: 14px;
+          border: 1px dashed rgba(71,152,128,0.2);
+        }
+        .dh-empty-state p { font-size: 13px; color: var(--muted); line-height: 1.6; margin: 8px 0 16px; }
+        .dh-empty-cta {
+          display: inline-block; padding: 10px 22px; border-radius: 10px;
+          background: linear-gradient(135deg, var(--teal), var(--blue));
+          color: #fff; font-size: 13px; font-weight: 700; text-decoration: none;
+          transition: all 0.2s;
+        }
+        .dh-empty-cta:hover { transform: translateY(-1px); }
+
+        @media (max-width: 600px) {
+          .dh-root { padding: 20px 16px 40px; }
+          .dh-header { flex-direction: column; }
+          .dh-header-actions { width: 100%; }
+          .dh-jobmatch { flex-direction: column; text-align: center; }
+        }
       `}</style>
 
-      <div className="dh-root">
+      <div className={`dh-root ${revealed ? "revealed" : ""}`}>
 
         {/* ── Header ── */}
-        <div className="dh-topbar">
+        <div className="dh-header">
           <div>
-            <div className="dh-greet">
-              Welcome back, {firstName || 'there'} <span className="dh-greet-wave">👋</span>
-            </div>
-            <div className="dh-sub">You're on a roll — keep the momentum going.</div>
+            <h1 className="dh-headline">{greeting.line}</h1>
+            <p className="dh-sub">{greeting.sub}</p>
           </div>
-          <div className="dh-actions">
-            <button className="dh-btn-outline">View Profile</button>
-            <button className="dh-btn-primary">+ New Challenge</button>
+          <div className="dh-header-actions">
+            <Link href={`/portfolio`} className="dh-btn-outline">View My Portfolio</Link>
+            <Link href="/challenges" className="dh-btn-primary">Take a Challenge →</Link>
           </div>
         </div>
+
+        {/* ── Encouragement pills (only show if real data) ── */}
+        {hasData && (
+          <div className="dh-encourage">
+            {stats.overallProgress > 0 && (
+              <div className="dh-enc-pill">
+                📈 You're <strong>{stats.overallProgress}%</strong> through your roadmap. Keep going — you're building something real.
+              </div>
+            )}
+            {encouragement.challengesThisWeek > 0 && (
+              <div className="dh-enc-pill">
+                🏆 You completed <strong>{encouragement.challengesThisWeek}</strong> challenge{encouragement.challengesThisWeek !== 1 ? "s" : ""}. That's {encouragement.challengesThisWeek} more proof{encouragement.challengesThisWeek !== 1 ? "s" : ""} of skill in your portfolio.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Stat cards ── */}
         <div className="dh-stats">
-          {stats.map((s, i) => <StatCard key={i} {...s} />)}
+          <StatCard icon="🏅" rawValue={stats.skillsMastered} displayValue={String(stats.skillsMastered)} label="Skills Mastered" color="#479880" delay={0} />
+          <StatCard icon="⚡" rawValue={stats.challengesDone} displayValue={String(stats.challengesDone)} label="Challenges Completed" color="#4B959E" delay={60} />
+          <StatCard icon="📈" rawValue={stats.overallProgress} displayValue={`${stats.overallProgress}%`} label="Overall Progress" color="#479880" delay={120} />
+          <StatCard icon="🗂️" rawValue={stats.portfolioItems} displayValue={String(stats.portfolioItems)} label="Portfolio Items" color="#4B959E" delay={180} />
         </div>
 
-        {/* ── Middle row ── */}
+        {/* ── Middle: Current Challenge + Learning Path ── */}
         <div className="dh-mid">
-
           {/* Current Challenge */}
-          <div className="dh-card dh-challenge">
-            <div className="dh-challenge-header">
-              <span className="dh-section-title">Current Challenge</span>
+          <div className="dh-panel dh-panel-body">
+            <div className="dh-panel-title">
+              <span>Current Challenge</span>
               {currentChallenge
-                ? <span className={challengeProgress > 0 ? 'dh-badge-inprogress' : 'dh-badge-notstarted'}>
-                    {challengeProgress > 0 ? 'In Progress' : 'Not Started'}
-                  </span>
-                : <span className="dh-badge-notstarted">No Active Challenge</span>
+                ? <span className="dh-panel-badge dh-badge-active">{challengeProgress > 0 ? "In Progress" : "Not Started"}</span>
+                : <span className="dh-panel-badge dh-badge-none">None Active</span>
               }
             </div>
 
             {currentChallenge ? (
               <>
                 <div className="dh-challenge-inner">
-                  <div className="dh-challenge-icon">⚡</div>
+                  <div className="dh-ch-icon">⚡</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="dh-challenge-name">{currentChallenge.title}</div>
-                    <div className="dh-challenge-desc">
-                      {currentChallenge.description || 'Complete this challenge to advance your roadmap.'}
-                    </div>
-                    <div className="dh-challenge-meta">
-                      {currentChallenge.estimatedHours > 0 && (
-                        <span className="dh-meta-item">⏱️ Est. {currentChallenge.estimatedHours}h</span>
-                      )}
-                      {currentChallenge.portfolioWorthy && (
-                        <span className="dh-meta-item">🗂️ Portfolio item</span>
-                      )}
+                    <div className="dh-ch-title">{currentChallenge.title}</div>
+                    <div className="dh-ch-desc">{currentChallenge.description || "Complete this challenge to advance your roadmap."}</div>
+                    <div className="dh-ch-meta">
+                      {currentChallenge.estimatedHours > 0 && <span>⏱️ ~{currentChallenge.estimatedHours}h</span>}
+                      {currentChallenge.portfolioWorthy && <span>🗂️ Portfolio item</span>}
                     </div>
                     <div className="dh-prog-label">
                       <span>Challenge Progress</span>
-                      <span style={{ color: '#2DB8A0', fontWeight: 700 }}>{challengeProgress}%</span>
+                      <span>{challengeProgress}%</span>
                     </div>
                     <div className="dh-prog-track">
                       <div className="dh-prog-fill" style={{ width: `${challengeProgress}%` }} />
                     </div>
                   </div>
                 </div>
-                <button className="dh-continue-btn">
-                  {challengeProgress > 0 ? 'Continue Challenge →' : 'Start Challenge →'}
-                </button>
+                <Link href={`/challenges/${currentChallenge.id}`} className="dh-ch-continue">
+                  {challengeProgress > 0 ? "Continue Challenge →" : "Start Challenge →"}
+                </Link>
               </>
             ) : (
-              <div className="dh-no-challenge">
-                <div className="dh-no-challenge-emoji">🎯</div>
-                {hasAssessment
-                  ? 'All caught up! Check your roadmap for next steps.'
-                  : 'Complete your assessment to unlock challenges.'
-                }
-              </div>
+              hasData ? (
+                <div className="dh-no-challenge">
+                  <span className="dh-no-ch-emoji">🎯</span>
+                  All caught up! Check your roadmap for next challenges.
+                </div>
+              ) : (
+                <div className="dh-empty-state">
+                  <span style={{ fontSize: 28, display: "block", marginBottom: 8 }}>🚀</span>
+                  <p>Complete your assessment to unlock personalised challenges.</p>
+                  <Link href="/assessment" className="dh-empty-cta">Start Assessment →</Link>
+                </div>
+              )
             )}
           </div>
 
           {/* Learning Path */}
-          <div className="dh-card dh-path">
-            <span className="dh-section-title">Learning Path</span>
+          <div className="dh-panel dh-panel-body">
+            <div className="dh-panel-title">Learning Path</div>
             {learningPath.map((step, i) => (
-              <div className="dh-path-item" key={i}>
-                <div className="dh-path-row">
-                  <div className="dh-path-icon" style={{ background: `${step.color}14`, border: `1px solid ${step.color}28` }}>
-                    {step.progress === 100 ? '✅' : step.locked ? '🔒' : '🕐'}
+              <div key={i} className="dh-lp-item">
+                <div className="dh-lp-row">
+                  <div className="dh-lp-dot" style={{ background: `${step.color}14`, border: `1px solid ${step.color}28` }}>
+                    {step.pct === 100 ? "✅" : step.locked ? "🔒" : "🕐"}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="dh-path-name" style={{ color: step.locked ? 'rgba(26,39,68,0.30)' : '#1A2744' }}>
-                      {step.label}
-                    </div>
-                    <div className="dh-path-status">{step.status}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className={`dh-lp-name ${step.locked ? "locked" : ""}`}>{step.label}</div>
+                    <div className="dh-lp-status">{step.pct === 100 ? "Completed" : step.locked ? "Locked" : step.pct > 0 ? "In Progress" : "Not Started"}</div>
                   </div>
-                  <div className="dh-path-pct" style={{ color: step.locked ? 'rgba(26,39,68,0.25)' : step.color }}>
-                    {step.progress}%
-                  </div>
+                  <div className="dh-lp-pct" style={{ color: step.locked ? "rgba(15,36,33,0.2)" : step.color }}>{step.pct}%</div>
                 </div>
-                <div className="dh-path-bar">
-                  <div className="dh-path-fill" style={{ width: `${step.progress}%`, background: `linear-gradient(90deg, ${step.color}, ${step.color}99)` }} />
-                </div>
+                <ProgressBar pct={step.pct} color={step.color} delay={i * 100} />
               </div>
             ))}
-            <button className="dh-viewmap-btn">View Full Roadmap →</button>
+            <Link href="/roadmap" className="dh-lp-viewall">View Full Roadmap →</Link>
           </div>
         </div>
 
         {/* ── Job Match ── */}
-        <div className="dh-match">
-          <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-            <defs>
-              <linearGradient id="brandMatchGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stopColor="#2DB8A0" />
-                <stop offset="100%" stopColor="#1A2744" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className="dh-match-ring">
-            <svg viewBox="0 0 88 88">
-              <circle className="dh-match-ring-bg"   cx="44" cy="44" r="40" strokeWidth="7" />
-              <circle className="dh-match-ring-fill" cx="44" cy="44" r="40" strokeWidth="7"
-                style={{ strokeDashoffset: jobMatchOffset }} />
-            </svg>
-            <div className="dh-match-pct">{jobMatchPct}%</div>
-          </div>
-          <div>
-            <div className="dh-match-title">Job Match Preview</div>
-            <div className="dh-match-desc">
+        <div className="dh-jobmatch">
+          <RingChart pct={jobMatchPct} />
+          <div className="dh-jm-text">
+            <div className="dh-jm-title">Job Match Preview</div>
+            <div className="dh-jm-desc">
               {jobMatchPct > 0
-                ? <>You match <strong style={{ color: '#1A2744' }}>{jobMatchPct}%</strong> of requirements for <strong style={{ color: '#1A2744' }}>{jobTitle}</strong>. Keep completing challenges to improve your match.</>
+                ? <>You match <strong style={{ color: "#0f2421" }}>{jobMatchPct}%</strong> of requirements for <strong style={{ color: "#0f2421" }}>{jobTitle}</strong>. Keep completing challenges to improve your score.</>
                 : <>Complete your assessment to see how well you match open roles.</>
               }
             </div>
           </div>
-          <button className="dh-match-cta">Explore Jobs →</button>
+          <Link href="/dashboard/find-work" className="dh-jm-cta">Explore Jobs →</Link>
         </div>
 
         {/* ── Recent Activity ── */}
-        <div className="dh-card dh-activity">
-          <span className="dh-section-title">Recent Activity</span>
+        <div className="dh-panel dh-panel-body dh-activity">
+          <div className="dh-panel-title">Recent Activity</div>
           <div className="dh-activity-list">
-            {recentActivity.map((a, i) => (
-              <div className="dh-act-item" key={i}>
+            {activity.map((a, i) => (
+              <div key={i} className="dh-act-item">
                 <div className="dh-act-icon" style={{ background: a.bg }}>{a.icon}</div>
                 <div>
                   <div className="dh-act-title">{a.title}</div>
