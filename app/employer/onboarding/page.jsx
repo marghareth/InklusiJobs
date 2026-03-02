@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { auth } from "@/lib/firebase";
+import { saveProgress } from "@/lib/progressHelpers";
 
 const T = {
   teal:      "#0F5C6E",
@@ -710,11 +712,55 @@ export default function EmployerOnboarding() {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleComplete = () => {
-    let authUser = {};
-    try { authUser = JSON.parse(localStorage.getItem("ij_current_user") || "{}"); } catch {}
-    const profile = { s1: { ...s1, firstName: authUser.firstName || "", lastName: authUser.lastName || "", email: authUser.email || "" }, s2, s3, s4, s5: { theme: "navy", layout: "Comfortable", widgets: s4.dashFirst || [], teammates: [] }, completedAt: Date.now() };
-    localStorage.setItem("inklusijobs_employer", JSON.stringify(profile));
+  const handleComplete = async () => {
+    let authUserMeta = {};
+    try {
+      authUserMeta = JSON.parse(localStorage.getItem("ij_current_user") || "{}");
+    } catch {
+      authUserMeta = {};
+    }
+
+    const profile = {
+      s1: {
+        ...s1,
+        firstName: authUserMeta.firstName || "",
+        lastName:  authUserMeta.lastName  || "",
+        email:     authUserMeta.email     || "",
+      },
+      s2,
+      s3,
+      s4,
+      s5: {
+        theme:   "navy",
+        layout:  "Comfortable",
+        widgets: s4.dashFirst || [],
+        teammates: [],
+      },
+      completedAt: Date.now(),
+    };
+
+    // Persist locally so the dashboard can read it immediately
+    try {
+      localStorage.setItem("inklusijobs_employer", JSON.stringify(profile));
+    } catch {
+      // non-critical
+    }
+
+    // Also save to Firestore so login redirects know employer onboarding is done
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await saveProgress(user.uid, {
+          role: "employer",
+          onboarding_complete: true,
+          employer_profile: profile,
+          employer_onboarded_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn("Could not save employer onboarding to Firestore:", err);
+    }
+
     setComplete(true);
   };
 
