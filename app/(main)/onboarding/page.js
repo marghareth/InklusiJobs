@@ -170,7 +170,7 @@ const Field = ({ label, required, children }) => (
   <div style={{ marginBottom: 16 }}>
     <Label required={required}>{label}</Label>
     {children}
-  </div>
+  </div>)
 const SelectInput = ({ options, value, onChange }) => (
   <select value={value} onChange={onChange}
     style={{ width: "100%", boxSizing: "border-box", padding: "14px 18px", borderRadius: 12,
@@ -763,6 +763,7 @@ export default function OnboardingPage() {
           name:                  fullName,
           firstName:             s1.firstName.trim(),
           lastName:              s1.lastName.trim(),
+          email:                 user.email || "", 
           avatarInitials:        initials,
           age:                   s1.age,
           address:               s1.currentAddress,
