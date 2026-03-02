@@ -1,15 +1,12 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import RoleSelector from "@/components/landing/RoleSelector";
 import AuthModal from "@/components/landing/AuthModal";
 
 const AuthModalContext = createContext(null);
 
 export function AuthModalProvider({ children }) {
-  const router = useRouter();
-
   const [roleOpen, setRoleOpen]         = useState(false);
   const [authOpen, setAuthOpen]         = useState(false);
   const [authTab, setAuthTab]           = useState("signup");
@@ -26,7 +23,7 @@ export function AuthModalProvider({ children }) {
     return () => window.removeEventListener("inklusijobs:open-modal", handler);
   }, []);
 
-  // "Start Your Journey" (worker signup) 
+  // "Start Your Journey" (worker signup)
   const openAsWorker = useCallback(() => {
     setSelectedRole("worker");
     setAuthTab("signup");
@@ -60,26 +57,6 @@ export function AuthModalProvider({ children }) {
     setAuthOpen(true);
   }, []);
 
-  // Sign UP complete — employers must complete onboarding first
-  const handleSignUpComplete = useCallback((role) => {
-    setAuthOpen(false);
-    if (role === "employer") {
-      router.push("/employer/onboarding"); // ← FIXED: was /employer/dashboard
-    } else {
-      router.push("/dashboard/worker");
-    }
-  }, [router]);
-
-  // Sign IN complete — existing users skip onboarding, go straight to dashboard
-  const handleSignInComplete = useCallback((role) => {
-    setAuthOpen(false);
-    if (role === "employer") {
-      router.push("/employer/dashboard");
-    } else {
-      router.push("/dashboard/worker");
-    }
-  }, [router]);
-
   const closeAll = useCallback(() => {
     setRoleOpen(false);
     setAuthOpen(false);
@@ -100,13 +77,17 @@ export function AuthModalProvider({ children }) {
         onClose={closeAll}
         onSelectRole={handleRoleSelect}
       />
+
+      {/* 
+        ✅ No onSignUpComplete / onSignInComplete props here.
+        AuthModal.jsx handles ALL redirects internally after checking Firestore.
+        Removing these prevents double-redirects and the "unregistered user" bug.
+      */}
       <AuthModal
         isOpen={authOpen}
         onClose={closeAll}
         defaultTab={authTab}
         role={selectedRole}
-        onSignUpComplete={() => handleSignUpComplete(selectedRole)}
-        onSignInComplete={() => handleSignInComplete(selectedRole)}
       />
     </AuthModalContext.Provider>
   );
