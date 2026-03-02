@@ -1,14 +1,23 @@
 import { storage } from "@/lib/storage";
+import { auth } from "@/lib/firebase";   // ✅ ADD THIS IMPORT
 
 export function getUserData() {
   const { profile, disability, workPreference } = storage.get();
   const firstName = profile.firstName || profile.name?.split(" ")[0] || "";
   const lastName  = profile.lastName  || profile.name?.split(" ").slice(1).join(" ") || "";
   const fullName  = profile.name      || `${firstName} ${lastName}`.trim() || "Your Name";
+
+  // ✅ Fall back to Firebase Auth email if storage email is missing or is the placeholder
+  const storageEmail = profile.email;
+  const firebaseEmail = auth.currentUser?.email || "";
+  const email = (storageEmail && storageEmail !== "your@email.com")
+    ? storageEmail
+    : firebaseEmail || "—";
+
   return {
     name:        fullName,
     initials:    profile.avatarInitials || getInitials(firstName, lastName),
-    email:       profile.email          || "—",
+    email,                               // ✅ uses resolved email
     phone:       profile.contactNumber  || "—",
     age:         profile.age            || "—",
     address:     profile.address        || "—",
@@ -60,17 +69,25 @@ export const INIT_BIO = "Passionate frontend developer with a love for building 
 
 export const INIT_HEADLINE = "Frontend Developer · Accessibility Advocate";
 
-export const INIT_SECTIONS = [
-  {
-    id: "sec_links", type: "links", title: "Links & Profiles",
-    items: [
-      { id: "lk1", label: "GitHub",   url: "https://github.com/sarahjohnson" },
-      { id: "lk2", label: "LinkedIn", url: "https://linkedin.com/in/sarahjohnson" },
-      { id: "lk3", label: "Facebook", url: "https://facebook.com/sarahjohnson.dev" },
-    ],
-  },
-  {
-    id: "sec_about", type: "text", title: "Professional Summary",
-    content: "I bring a unique perspective to frontend engineering — I use assistive technology every day, which shapes how deeply I approach accessibility. Currently seeking hybrid or remote roles in Metro Manila. Available for interviews starting March 2025.",
-  },
-];
+export function getInitSections(name = "") {
+  const slug = name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
+  return [
+    {
+      id: "sec_links", type: "links", title: "Links & Profiles",
+      items: [
+        { id: "lk1", label: "GitHub",   url: `https://github.com/${slug || "your-username"}` },
+        { id: "lk2", label: "LinkedIn", url: `https://linkedin.com/in/${slug || "your-name"}` },
+        { id: "lk3", label: "Facebook", url: `https://facebook.com/${slug || "your-name"}` },
+      ],
+    },
+    {
+      id: "sec_about", type: "text", title: "Professional Summary",
+      content: "I bring a unique perspective to frontend engineering — I use assistive technology every day, which shapes how deeply I approach accessibility. Currently seeking hybrid or remote roles in Metro Manila. Available for interviews starting March 2025.",
+    },
+  ];
+}

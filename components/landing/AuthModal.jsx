@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * AuthModal.jsx — Firebase Auth Version
- * Replaces localStorage auth with Firebase Email/Password auth.
- * Location: components/landing/AuthModal.jsx
- */
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -19,6 +13,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { storage } from "@/lib/storage";
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 function setCookie(name, value, days = 30) {
@@ -271,7 +266,7 @@ const FacebookIcon = () => (
   </svg>
 );
 
-// ─── Firebase error messages → human-friendly ─────────────────────────────────
+// ─── Firebase error messages ──────────────────────────────────────────────────
 function friendlyError(code) {
   switch (code) {
     case "auth/email-already-in-use":    return "An account with this email already exists. Please sign in instead.";
@@ -286,20 +281,18 @@ function friendlyError(code) {
   }
 }
 
-// ─── Google Sign-In (shared by both forms) ───────────────────────────────────
+// ─── Google Sign-In ───────────────────────────────────────────────────────────
 async function handleGoogleSignIn() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return { user: result.user, error: null };
   } catch (err) {
-    // User closed the popup — not a real error, just ignore it
     if (err.code === "auth/user-cancelled" || err.code === "auth/popup-closed-by-user") {
       return { user: null, error: null };
     }
-    // Popup was blocked by browser — fall back to redirect
     if (err.code === "auth/popup-blocked") {
       await signInWithRedirect(auth, googleProvider);
-      return { user: null, error: null }; // page will redirect, result handled on return
+      return { user: null, error: null };
     }
     console.error("Google sign-in error:", err.code, err.message);
     return { user: null, error: friendlyError(err.code) };
@@ -317,11 +310,9 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const data  = new FormData(e.target);
     const email = data.get("email")?.trim().toLowerCase();
     const pwd   = data.get("password");
-
     try {
       const credential = await signInWithEmailAndPassword(auth, email, pwd);
       onSignIn(credential.user);
@@ -351,7 +342,7 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
           <label className="am-label" htmlFor="si-pwd">Password</label>
           <div className="am-input-wrap">
             <input id="si-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Your password" required autoComplete="current-password" />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+            <button type="button" className="am-eye" onClick={() => setShowPwd(p => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
@@ -364,11 +355,9 @@ function SignInForm({ role, onSignIn, onSwitchTab }) {
             if (!email) { setError("Enter your email above first, then click Forgot password."); setSuccess(""); return; }
             try {
               await sendPasswordResetEmail(auth, email);
-              setError("");
-              setSuccess("✅ Reset email sent! Check your inbox to set your password.");
+              setError(""); setSuccess("✅ Reset email sent! Check your inbox.");
             } catch (err) {
-              setSuccess("");
-              setError(friendlyError(err.code));
+              setSuccess(""); setError(friendlyError(err.code));
             }
           }}>Forgot password?</button>
         </div>
@@ -401,19 +390,14 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const data      = new FormData(e.target);
     const firstName = data.get("firstName")?.trim();
     const lastName  = data.get("lastName")?.trim();
     const email     = data.get("email")?.trim().toLowerCase();
     const pwd       = data.get("password");
-
     try {
       const credential = await createUserWithEmailAndPassword(auth, email, pwd);
-      // Save display name to Firebase profile
-      await updateProfile(credential.user, {
-        displayName: `${firstName} ${lastName}`,
-      });
+      await updateProfile(credential.user, { displayName: `${firstName} ${lastName}` });
       onSignUp(credential.user);
     } catch (err) {
       console.error("Firebase signup error:", err.code, err.message);
@@ -451,7 +435,7 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
           <label className="am-label" htmlFor="su-pwd">Password</label>
           <div className="am-input-wrap">
             <input id="su-pwd" name="password" type={showPwd ? "text" : "password"} className="am-input with-icon" placeholder="Min. 8 characters" autoComplete="new-password" minLength={8} required />
-            <button type="button" className="am-eye" onClick={() => setShowPwd((p) => !p)} aria-label={showPwd ? "Hide" : "Show"}>
+            <button type="button" className="am-eye" onClick={() => setShowPwd(p => !p)} aria-label={showPwd ? "Hide" : "Show"}>
               {showPwd ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
@@ -463,7 +447,6 @@ function SignUpForm({ role, onSignUp, onSwitchTab }) {
         <div className="am-social">
           <button type="button" className="am-social-btn" disabled={loading} onClick={async () => {
             setLoading(true); setError("");
-            // Save role BEFORE redirect so we know where to send them after Google auth
             localStorage.setItem("ij_role", role || "worker");
             const { user, error: err } = await handleGoogleSignIn();
             setLoading(false);
@@ -490,6 +473,7 @@ export default function AuthModal({
   const overlayRef    = useRef(null);
   const modalRef      = useRef(null);
   const closeRef      = useRef(null);
+  const router        = useRouter();
 
   useEffect(() => { if (isOpen) setTab(defaultTab); }, [isOpen, defaultTab]);
   useEffect(() => { document.body.style.overflow = isOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [isOpen]);
@@ -502,30 +486,30 @@ export default function AuthModal({
 
   const handleOverlay = useCallback((e) => { if (e.target === overlayRef.current) onClose(); }, [onClose]);
 
-  const router = useRouter();
-
   const redirectByRole = async (firebaseUser, userRole) => {
     const resolvedRole = userRole || role || "worker";
 
-    // Set Firebase token cookie for middleware auth
     const token = await firebaseUser.getIdToken();
     setCookie("firebase_token", token, 7);
     setCookie("ij_role", resolvedRole, 30);
     localStorage.setItem("ij_role", resolvedRole);
 
+    // ── Save email + display name to storage ──────────────────────────────
+    storage.update({
+      profile: {
+        email:       firebaseUser.email || "",
+        name:        firebaseUser.displayName || "",
+        firebaseUid: firebaseUser.uid,
+      },
+    });
+    // ─────────────────────────────────────────────────────────────────────
+
     onClose?.();
 
     if (resolvedRole === "employer") {
-      // Check if employer has completed onboarding
       const empOnboarded = localStorage.getItem("ij_emp_onboarded");
-      if (empOnboarded === "true") {
-        router.push("/employer/dashboard");
-      } else {
-        router.push("/employer/onboarding");
-      }
+      router.push(empOnboarded === "true" ? "/employer/dashboard" : "/employer/onboarding");
     } else {
-      // Worker — always start onboarding flow after signup
-      // On sign IN, check if already onboarded
       const workerOnboarded = localStorage.getItem("ij_onboarded");
       if (workerOnboarded === "true") {
         setCookie("ij_onboarded", "true", 30);
@@ -555,14 +539,12 @@ export default function AuthModal({
       <div className="am-overlay" ref={overlayRef} onClick={handleOverlay} role="dialog" aria-modal="true" aria-label="Authentication">
         <div className="am-modal" ref={modalRef}>
           <button className="am-close" onClick={onClose} aria-label="Close modal" ref={closeRef}>✕</button>
-
           <div className="am-left" aria-hidden="true">
             <div className="am-left-body">
               <p className="am-left-quote">&ldquo;Skills that speak louder than credentials.&rdquo;</p>
               <p className="am-left-sub">InklusiJobs · Built for PWDs. Powered by AI.</p>
             </div>
           </div>
-
           <div className="am-right">
             <span className="am-logo">Inklusi<span>Jobs</span></span>
             <div className="am-tabs">
@@ -570,8 +552,8 @@ export default function AuthModal({
               <button className={`am-tab ${tab === "signup" ? "active" : ""}`} onClick={() => setTab("signup")}>Sign Up</button>
             </div>
             {tab === "signin"
-              ? <SignInForm  role={role} onSignIn={handleSignIn}  onSwitchTab={setTab} />
-              : <SignUpForm  role={role} onSignUp={handleSignUp}  onSwitchTab={setTab} />
+              ? <SignInForm role={role} onSignIn={handleSignIn}  onSwitchTab={setTab} />
+              : <SignUpForm role={role} onSignUp={handleSignUp} onSwitchTab={setTab} />
             }
           </div>
         </div>
