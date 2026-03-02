@@ -9,6 +9,9 @@ import {
   MessageSquare, Settings, ChevronLeft, ChevronRight,
   Bell, LogOut, BarChart2,
 } from 'lucide-react';
+import { storage } from '@/lib/storage';
+import { auth } from '@/lib/firebase';
+import { useAppData } from '@/hooks/useAppData';
 
 const NAV_ITEMS = [
   { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard/worker', group: 'main' },
@@ -21,13 +24,32 @@ const NAV_ITEMS = [
   { id: 'settings',   label: 'Settings',   icon: Settings,        path: '/dashboard/worker/settings', group: 'support' },
 ];
 
+function getSidebarUser() {
+  const { profile } = storage.get();
+  const firstName = profile.firstName || profile.name?.split(" ")[0] || "";
+  const lastName  = profile.lastName  || profile.name?.split(" ").slice(1).join(" ") || "";
+  const fullName  = profile.name || `${firstName} ${lastName}`.trim() || "Your Name";
+  const initials  = profile.avatarInitials ||
+    ((firstName[0] || "") + (lastName[0] || "")).toUpperCase() || "YN";
+
+  const storageEmail = profile.email;
+  const firebaseEmail = auth.currentUser?.email || "";
+  const email = (storageEmail && storageEmail !== "your@email.com")
+    ? storageEmail
+    : firebaseEmail || "—";
+
+  return { fullName, initials, email };
+}
+
 export default function Sidebar() {
+  useAppData(); // re-renders whenever storage changes
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const w = collapsed ? '72px' : '240px';
 
-  // Check if current path matches item path
   const isActive = (path) => pathname === path;
+
+  const { fullName, initials, email } = getSidebarUser();
 
   return (
     <>
@@ -323,11 +345,11 @@ export default function Sidebar() {
 
         <div className="sb-user">
           <div className="sb-avatar">
-            SJ<div className="sb-dot" />
+            {initials}<div className="sb-dot" />
           </div>
           <div className="sb-uinfo">
-            <div className="sb-uname">Sarah Johnson</div>
-            <div className="sb-uemail">sarah.johnson@email.com</div>
+            <div className="sb-uname">{fullName}</div>
+            <div className="sb-uemail">{email}</div>
           </div>
         </div>
 

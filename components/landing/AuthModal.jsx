@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * AuthModal.jsx — Firebase Auth Version
- * Replaces localStorage auth with Firebase Email/Password auth.
- * Location: components/landing/AuthModal.jsx
- */
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -19,6 +13,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { getProgress } from "@/lib/progressHelpers";
 import { useRouter } from "next/navigation";
+import { storage } from "@/lib/storage";
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 function setCookie(name, value, days = 30) {
@@ -544,6 +539,16 @@ export default function AuthModal({ isOpen, onClose, defaultTab = "signin", role
     setCookie("firebase_token", token, 7);
     setCookie("ij_role", resolvedRole, 30);
     localStorage.setItem("ij_role", resolvedRole);
+
+    // ── Save email + display name to storage ──────────────────────────────
+    storage.update({
+      profile: {
+        email:       firebaseUser.email || "",
+        name:        firebaseUser.displayName || "",
+        firebaseUid: firebaseUser.uid,
+      },
+    });
+    // ─────────────────────────────────────────────────────────────────────
 
     onClose?.();
     router.push(resolvedRole === "employer" ? "/employer/onboarding" : "/onboarding");
