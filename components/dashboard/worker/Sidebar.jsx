@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import {
@@ -435,7 +434,7 @@ export default function Sidebar() {
             </div>
           </div>
 
-          <nav className="sb-nav">
+                    <nav className="sb-nav">
             <div className="sb-section-label">Main Menu</div>
             {NAV_ITEMS.filter(i => i.group === 'main').map(({ id, label, icon: Icon, path, badge }) => (
               <Link
@@ -462,39 +461,24 @@ export default function Sidebar() {
                 <div className="sb-tip">{label}</div>
               </Link>
             ))}
-          </nav>
+          </nav> {/* Make sure this closing tag exists */}
 
           <div className="sb-foot">
             <Link href="/notifications" className="sb-fitem">
               <Bell /><span>Notifications</span>
               <div className="sb-ftip">Notifications</div>
             </Link>
-            <Link href="/api/auth/signout" className="sb-fitem danger">
+            <button onClick={handleSignOut} className="sb-fitem danger">
               <LogOut /><span>Sign Out</span>
               <div className="sb-ftip">Sign Out</div>
-            </Link>
+            </button>
           </div>
-          ))}
-        </nav>
-
-        <div className="sb-foot">
-          <Link href="/notifications" className="sb-fitem">
-            <Bell /><span>Notifications</span>
-            <div className="sb-ftip">Notifications</div>
-          </Link>
-
-          {/* ✅ Fixed: uses Firebase signOut instead of Supabase /api/auth/signout */}
-          <button onClick={handleSignOut} className="sb-fitem danger">
-            <LogOut /><span>Sign Out</span>
-            <div className="sb-ftip">Sign Out</div>
-          </button>
-        </div>
 
           <div className="sb-toggle" onClick={() => setCollapsed(!collapsed)}>
             {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
           </div>
-        </aside>
-      </div>
+        </aside> {/* This should close the <aside> tag */}
+      </div> {/* This should close the <div className="sb-wrapper"> */}
     </>
   );
 }

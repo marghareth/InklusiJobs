@@ -3,8 +3,12 @@ import { useState } from "react";
 import { useConversations } from "@/hooks/useConversations";
 
 const AVATAR_COLORS = [
-  "bg-violet-600", "bg-emerald-600", "bg-sky-600",
-  "bg-rose-600", "bg-amber-600", "bg-teal-600",
+  "#0d9488", // teal-600
+  "#7c3aed", // violet-600
+  "#0284c7", // sky-600
+  "#059669", // emerald-600
+  "#d97706", // amber-600
+  "#db2777", // pink-600
 ];
 
 function formatTime(isoString) {
@@ -16,19 +20,19 @@ function formatTime(isoString) {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
   if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
   if (diffDays === 1) return "Yesterday";
-  return `${diffDays} days ago`;
+  return `${diffDays}d ago`;
 }
 
 function ConversationSkeleton() {
   return (
-    <div className="flex items-center gap-3 px-3 py-3 animate-pulse">
-      <div className="w-11 h-11 rounded-full bg-white/6 shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3 bg-white/6 rounded w-3/4" />
-        <div className="h-2.5 bg-white/4 rounded w-full" />
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px" }}>
+      <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#e2e8f0", flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ height: 12, background: "#e2e8f0", borderRadius: 6, width: "60%", marginBottom: 6 }} />
+        <div style={{ height: 10, background: "#edf2f7", borderRadius: 6, width: "85%" }} />
       </div>
     </div>
   );
@@ -44,80 +48,236 @@ export default function ConversationList({ currentUserId, selectedId, onSelect }
   );
 
   return (
-    <div className="flex flex-col h-full bg-[#0f1117] border-r border-white/6">
-      <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white font-semibold text-lg tracking-tight">Messages</h2>
+    <div
+      role="navigation"
+      aria-label="Conversations"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: "#ffffff",
+        borderRight: "1px solid #e2e8f0",
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: "20px 20px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <h2
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#0f172a",
+              margin: 0,
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            Messages
+          </h2>
           {totalUnread > 0 && (
-            <span className="text-xs bg-violet-500 text-white font-semibold px-2 py-0.5 rounded-full">
+            <span
+              aria-label={`${totalUnread} unread messages`}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                background: "linear-gradient(135deg, #0d9488, #0f766e)",
+                color: "white",
+                padding: "3px 10px",
+                borderRadius: 99,
+              }}
+            >
               {totalUnread} unread
             </span>
           )}
         </div>
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+        {/* Search */}
+        <div style={{ position: "relative" }}>
+          <svg
+            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}
+            width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            aria-hidden="true"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
-            type="text"
+            type="search"
+            aria-label="Search conversations"
             placeholder="Search conversations..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/8 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 transition-all"
+            style={{
+              width: "100%",
+              background: "#f8fafc",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "9px 14px 9px 36px",
+              fontSize: 13,
+              color: "#0f172a",
+              outline: "none",
+              boxSizing: "border-box",
+              transition: "border-color 0.15s",
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+            onFocus={e => (e.target.style.borderColor = "#0d9488")}
+            onBlur={e => (e.target.style.borderColor = "#e2e8f0")}
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+      {/* List */}
+      <div
+        role="list"
+        style={{ flex: 1, overflowY: "auto", padding: "4px 8px" }}
+      >
         {loading && Array.from({ length: 4 }).map((_, i) => <ConversationSkeleton key={i} />)}
-        {error && <p className="text-red-400/70 text-xs text-center py-6 px-4">Failed to load conversations.</p>}
-        {!loading && !error && filtered.length === 0 && (
-          <p className="text-white/30 text-sm text-center py-8">{search ? "No results found" : "No conversations yet"}</p>
+
+        {error && (
+          <p role="alert" style={{ color: "#ef4444", fontSize: 12, textAlign: "center", padding: "24px 16px" }}>
+            Failed to load conversations. Please try again.
+          </p>
         )}
-        {!loading && filtered.map((conv, i) => (
-          <button
-            key={conv.id}
-            onClick={() => onSelect(conv)}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all
-              ${selectedId === conv.id
-                ? "bg-violet-600/20 border border-violet-500/20"
-                : "hover:bg-white/4 border border-transparent"}`}
-          >
-            <div className="relative shrink-0">
-              <div className={`w-11 h-11 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-sm font-semibold`}>
-                {conv.participant.avatar_initials}
-              </div>
-              {conv.participant.is_online && (
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0f1117]" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className={`text-sm font-medium truncate ${selectedId === conv.id ? "text-white" : "text-white/80"}`}>
-                  {conv.participant.name}
-                </span>
-                <span className="text-xs text-white/30 shrink-0 ml-2">{formatTime(conv.last_message_at)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-white/40 truncate pr-2">{conv.last_message || "No messages yet"}</p>
-                {conv.unread_count > 0 && (
-                  <span className="shrink-0 w-5 h-5 bg-violet-500 rounded-full text-[10px] text-white font-semibold flex items-center justify-center">
-                    {conv.unread_count}
-                  </span>
+
+        {!loading && !error && filtered.length === 0 && (
+          <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center", padding: "32px 16px" }}>
+            {search ? "No results found" : "No conversations yet"}
+          </p>
+        )}
+
+        {!loading && filtered.map((conv, i) => {
+          const isSelected = selectedId === conv.id;
+          const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+
+          return (
+            <button
+              key={conv.id}
+              role="listitem"
+              aria-label={`Conversation with ${conv.participant.name}${conv.unread_count > 0 ? `, ${conv.unread_count} unread` : ""}`}
+              aria-pressed={isSelected}
+              onClick={() => onSelect(conv)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: isSelected ? "1.5px solid #99f6e4" : "1.5px solid transparent",
+                background: isSelected
+                  ? "linear-gradient(135deg, #f0fdfa, #ccfbf1)"
+                  : "transparent",
+                cursor: "pointer",
+                textAlign: "left",
+                marginBottom: 2,
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={e => {
+                if (!isSelected) e.currentTarget.style.background = "#f8fafc";
+              }}
+              onMouseLeave={e => {
+                if (!isSelected) e.currentTarget.style.background = "transparent";
+              }}
+            >
+              {/* Avatar */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%",
+                  background: avatarColor,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "white", fontSize: 14, fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>
+                  {conv.participant.avatar_initials}
+                </div>
+                {conv.participant.is_online && (
+                  <span
+                    aria-label="Online"
+                    style={{
+                      position: "absolute", bottom: 1, right: 1,
+                      width: 11, height: 11, background: "#22c55e",
+                      borderRadius: "50%", border: "2px solid white",
+                    }}
+                  />
                 )}
               </div>
-              {conv.participant.company && (
-                <p className="text-[10px] text-violet-400/60 mt-0.5">{conv.participant.company}</p>
-              )}
-            </div>
-          </button>
-        ))}
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                  <span style={{
+                    fontSize: 13,
+                    fontWeight: conv.unread_count > 0 ? 700 : 600,
+                    color: "#0f172a",
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    {conv.participant.name}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0, marginLeft: 6 }}>
+                    {formatTime(conv.last_message_at)}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <p style={{
+                    fontSize: 12,
+                    color: conv.unread_count > 0 ? "#334155" : "#64748b",
+                    fontWeight: conv.unread_count > 0 ? 500 : 400,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    flex: 1, paddingRight: 6,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    {conv.last_message || "No messages yet"}
+                  </p>
+                  {conv.unread_count > 0 && (
+                    <span style={{
+                      flexShrink: 0,
+                      minWidth: 20, height: 20,
+                      background: "linear-gradient(135deg, #0d9488, #0f766e)",
+                      borderRadius: 99,
+                      fontSize: 10, fontWeight: 700,
+                      color: "white",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 5px",
+                    }}>
+                      {conv.unread_count}
+                    </span>
+                  )}
+                </div>
+
+                {conv.participant.company && (
+                  <p style={{ fontSize: 10, color: "#0d9488", marginTop: 2, fontWeight: 500 }}>
+                    {conv.participant.company}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="p-4 border-t border-white/6">
-        <button className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 transition-colors text-white text-sm font-medium py-2.5 rounded-xl">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      {/* New Message Button */}
+      <div style={{ padding: 16, borderTop: "1px solid #e2e8f0" }}>
+        <button
+          aria-label="Start a new message"
+          style={{
+            width: "100%",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            background: "linear-gradient(135deg, #0d9488, #0f766e)",
+            color: "white",
+            fontSize: 13, fontWeight: 600,
+            padding: "11px 0",
+            borderRadius: 12,
+            border: "none",
+            cursor: "pointer",
+            transition: "opacity 0.15s, transform 0.15s",
+            fontFamily: "'DM Sans', sans-serif",
+            boxShadow: "0 4px 12px rgba(13,148,136,0.3)",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+        >
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
           New Message
         </button>
