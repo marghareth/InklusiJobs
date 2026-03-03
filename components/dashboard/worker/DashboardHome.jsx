@@ -23,12 +23,12 @@ const KEYS = {
 function getGreeting(firstName, isNew) {
   const name = firstName || "there";
   if (isNew) return {
-    line: `Welcome, ${name}! 🎉`,
+    line: `Welcome, ${name}!`,
     sub: "Your journey to inclusive employment starts here.",
   };
   const h = new Date().getHours();
   if (h >= 5 && h < 12) return {
-    line: `Good morning, ${name}. ☀️`,
+    line: `Good morning, ${name}. `,
     sub: "Ready to keep going?",
   };
   if (h >= 12 && h < 17) return {
@@ -374,7 +374,7 @@ export default function DashboardHome() {
           </div>
           <div className="dh-header-actions">
             <Link href="/dashboard/worker/portfolio" className="dh-btn-outline">View My Portfolio</Link>
-            <Link href="/challenges" className="dh-btn-primary">Take a Challenge →</Link>
+            <Link href="/dashboard/worker/jobs" className="dh-btn-primary">Take a Challenge →</Link>
           </div>
         </div>
 
