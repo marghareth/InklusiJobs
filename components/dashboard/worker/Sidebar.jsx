@@ -54,28 +54,22 @@ export default function Sidebar() {
   const isActive = (path) => pathname === path;
   const { fullName, initials, email } = getSidebarUser();
 
-  // Handle window scroll to maintain fixed position
   useEffect(() => {
-    // This ensures the sidebar stays fixed regardless of scroll
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, []);
+
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      // ✅ Clear all auth cookies
       document.cookie = "firebase_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
       document.cookie = "ij_role=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
       document.cookie = "ij_onboarded=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-      // ✅ Clear relevant localStorage
       localStorage.removeItem("ij_role");
       localStorage.removeItem("worker_first_name");
       localStorage.removeItem("worker_last_name");
       localStorage.removeItem("worker_welcome_seen");
       localStorage.removeItem("worker_profile");
-      // ✅ Go back to landing page
       router.push("/");
     } catch (err) {
       console.error("Sign out error:", err);
@@ -87,29 +81,19 @@ export default function Sidebar() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap');
 
-        .layout-container {
-          display: flex;
-          height: 100vh;
-          overflow: hidden;
-        }
-
         .sb-wrapper {
           width: ${w};
           flex-shrink: 0;
           height: 100vh;
           position: sticky;
-          top: 0;
-          left: 0;
+          top: 0; left: 0;
           overflow-y: auto;
           overflow-x: hidden;
           transition: width 0.32s cubic-bezier(0.4,0,0.2,1);
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
-
-        .sb-wrapper::-webkit-scrollbar {
-          display: none;
-        }
+        .sb-wrapper::-webkit-scrollbar { display: none; }
 
         .sb {
           min-height: 100vh;
@@ -136,12 +120,15 @@ export default function Sidebar() {
           pointer-events: none;
         }
 
+        /* HEADER — no bottom border */
         .sb-head {
-          padding: ${collapsed ? '20px 16px' : '22px 20px'};
-          display: flex; align-items: center; gap: 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.07);
-          min-height: 76px;
+          padding: ${collapsed ? '20px 16px 10px' : '22px 20px 10px'};
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-height: 66px;
           transition: padding .3s;
+          text-decoration: none;
         }
 
         .sb-logo {
@@ -150,22 +137,16 @@ export default function Sidebar() {
           border: 1.5px solid rgba(45,184,160,0.45);
           border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          position: relative;
           overflow: hidden;
         }
-
         .sb-logo-img {
-          width: 100%;
-          height: 100%;
+          width: 100%; height: 100%;
           object-fit: contain;
-          filter: brightness(0) invert(1); /* Makes dark logos white - remove if logo is already white */
+          filter: brightness(0) invert(1);
         }
-
         .sb-logo-fallback {
           font-family: 'Lexend', sans-serif;
-          font-weight: 700; 
-          font-size: 13px; 
-          color: #fff;
+          font-weight: 700; font-size: 13px; color: #fff;
         }
 
         .sb-brand {
@@ -181,28 +162,26 @@ export default function Sidebar() {
           color: #FFFFFF;
           letter-spacing: -.3px; line-height: 1.2;
         }
-        .sb-brand-sub {
-          font-family: 'Lexend', sans-serif;
-          font-size: 9.5px; font-weight: 500;
-          color: rgba(45,184,160,0.80);
-          letter-spacing: 1.4px; text-transform: uppercase;
-          margin-top: 2px;
-        }
 
+        /* USER — avatar + name/email all centered */
         .sb-user {
-          padding: ${collapsed ? '14px 12px' : '14px 20px'};
+          padding: ${collapsed ? '10px 12px 16px' : '10px 20px 18px'};
           border-bottom: 1px solid rgba(255,255,255,0.07);
-          display: flex; align-items: center; gap: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
           transition: padding .3s;
         }
+
         .sb-avatar {
-          width: 38px; height: 38px; flex-shrink: 0;
+          width: 44px; height: 44px; flex-shrink: 0;
           background: rgba(45,184,160,0.25);
           border: 1.5px solid rgba(45,184,160,0.45);
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-family: 'Lexend', sans-serif;
-          font-weight: 700; font-size: 12px; color: #fff;
+          font-weight: 700; font-size: 14px; color: #fff;
           position: relative;
         }
         .sb-dot {
@@ -213,8 +192,11 @@ export default function Sidebar() {
           border: 2px solid #1A2744;
           box-shadow: 0 0 0 1.5px rgba(45,184,160,0.4);
         }
+
         .sb-uinfo {
           overflow: hidden;
+          width: 100%;
+          text-align: center;
           opacity: ${collapsed ? 0 : 1};
           transition: opacity .2s;
         }
@@ -229,9 +211,10 @@ export default function Sidebar() {
           font-size: 10.5px; font-weight: 300;
           color: rgba(45,184,160,0.70);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-          margin-top: 1px;
+          margin-top: 2px;
         }
 
+        /* NAV */
         .sb-nav {
           flex: 1; padding: 10px 8px;
           display: flex; flex-direction: column; gap: 1px;
@@ -311,18 +294,16 @@ export default function Sidebar() {
           position: absolute; left: 62px;
           background: rgba(13,24,41,0.97);
           backdrop-filter: blur(10px);
-          color: #FFFFFF;
-          font-size: 12px;
-          font-family: 'Lexend', sans-serif;
-          font-weight: 500;
+          color: #FFFFFF; font-size: 12px;
+          font-family: 'Lexend', sans-serif; font-weight: 500;
           padding: 5px 11px; border-radius: 7px; white-space: nowrap;
           border: 1px solid rgba(45,184,160,0.22);
           pointer-events: none; opacity: 0; transition: opacity .15s;
-          z-index: 100;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.30);
+          z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.30);
         }
         .sb-item:hover .sb-tip { opacity: 1; }
 
+        /* FOOTER */
         .sb-foot {
           padding: 10px 8px;
           border-top: 1px solid rgba(255,255,255,0.07);
@@ -338,8 +319,7 @@ export default function Sidebar() {
           justify-content: ${collapsed ? 'center' : 'flex-start'};
           position: relative;
           text-decoration: none;
-          background: none;
-          width: 100%;
+          background: none; width: 100%;
           font-family: 'Lexend', sans-serif;
         }
         .sb-fitem:hover {
@@ -354,8 +334,7 @@ export default function Sidebar() {
         .sb-fitem svg { width: 15px; height: 15px; flex-shrink: 0; }
         .sb-fitem span {
           font-size: 13px;
-          font-family: 'Lexend', sans-serif;
-          font-weight: 400;
+          font-family: 'Lexend', sans-serif; font-weight: 400;
           color: rgba(255,255,255,0.65);
           white-space: nowrap;
           opacity: ${collapsed ? 0 : 1};
@@ -369,10 +348,8 @@ export default function Sidebar() {
           position: absolute; left: 62px;
           background: rgba(13,24,41,0.97);
           backdrop-filter: blur(10px);
-          color: #FFFFFF;
-          font-size: 12px;
-          font-family: 'Lexend', sans-serif;
-          font-weight: 500;
+          color: #FFFFFF; font-size: 12px;
+          font-family: 'Lexend', sans-serif; font-weight: 500;
           padding: 5px 11px; border-radius: 7px; white-space: nowrap;
           border: 1px solid rgba(45,184,160,0.22);
           pointer-events: none; opacity: 0; transition: opacity .15s;
@@ -402,7 +379,9 @@ export default function Sidebar() {
 
       <div className="sb-wrapper">
         <aside className="sb">
-          <Link href="/dashboard/worker" className="sb-head" style={{ textDecoration: 'none' }}>
+
+          {/* HEADER */}
+          <Link href="/dashboard/worker" className="sb-head">
             <div className="sb-logo">
               {!logoError ? (
                 <Image
@@ -420,10 +399,10 @@ export default function Sidebar() {
             </div>
             <div className="sb-brand">
               <div className="sb-brand-name">InklusiJobs</div>
-              <div className="sb-brand-sub">AI Platform</div>
             </div>
           </Link>
 
+          {/* USER — centered avatar, name, email */}
           <div className="sb-user">
             <div className="sb-avatar">
               {initials}<div className="sb-dot" />
@@ -434,7 +413,8 @@ export default function Sidebar() {
             </div>
           </div>
 
-                    <nav className="sb-nav">
+          {/* NAV */}
+          <nav className="sb-nav">
             <div className="sb-section-label">Main Menu</div>
             {NAV_ITEMS.filter(i => i.group === 'main').map(({ id, label, icon: Icon, path, badge }) => (
               <Link
@@ -461,8 +441,9 @@ export default function Sidebar() {
                 <div className="sb-tip">{label}</div>
               </Link>
             ))}
-          </nav> {/* Make sure this closing tag exists */}
+          </nav>
 
+          {/* FOOTER */}
           <div className="sb-foot">
             <Link href="/notifications" className="sb-fitem">
               <Bell /><span>Notifications</span>
@@ -477,8 +458,9 @@ export default function Sidebar() {
           <div className="sb-toggle" onClick={() => setCollapsed(!collapsed)}>
             {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
           </div>
-        </aside> {/* This should close the <aside> tag */}
-      </div> {/* This should close the <div className="sb-wrapper"> */}
+
+        </aside>
+      </div>
     </>
   );
 }

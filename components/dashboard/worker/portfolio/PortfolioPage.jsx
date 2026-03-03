@@ -21,7 +21,7 @@ export default function PortfolioPage() {
   const [editBio, setEditBio]         = useState(false);
   const [headline, setHeadline]       = useState(INIT_HEADLINE);
   const [editHL, setEditHL]           = useState(false);
-  const [sections, setSections]       = useState(() => getInitSections(USER.name)); // ← uses real user name
+  const [sections, setSections]       = useState(() => getInitSections(USER.name));
   const [showPreview, setShowPreview] = useState(false);
   const [bannerOpen, setBannerOpen]   = useState(true);
   const [copied, setCopied]           = useState(false);
