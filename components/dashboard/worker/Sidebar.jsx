@@ -3,7 +3,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import {
   LayoutDashboard, Map, Zap, Briefcase, Search,
   MessageSquare, Settings, ChevronLeft, ChevronRight,
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
   { id: 'portfolio',  label: 'Portfolio',  icon: Briefcase,       path: '/dashboard/worker/portfolio', group: 'main' },
   { id: 'tracker',    label: 'Tracker',    icon: BarChart2,       path: '/dashboard/worker/tracker', group: 'main' },
   { id: 'jobs',       label: 'Jobs',       icon: Search,          path: '/jobs', group: 'main', badge: '3' },
-  { id: 'feedback', label: 'Feedback', icon: MessageSquare, path: '/dashboard/worker/feedback', group: 'support' },
+  { id: 'feedback',   label: 'Feedback',   icon: MessageSquare,   path: '/dashboard/worker/feedback', group: 'support' },
   { id: 'settings',   label: 'Settings',   icon: Settings,        path: '/dashboard/worker/settings', group: 'support' },
 ];
 
@@ -33,7 +34,7 @@ function getSidebarUser() {
   const initials  = profile.avatarInitials ||
     ((firstName[0] || "") + (lastName[0] || "")).toUpperCase() || "YN";
 
-  const storageEmail = profile.email;
+  const storageEmail  = profile.email;
   const firebaseEmail = auth.currentUser?.email || "";
   const email = (storageEmail && storageEmail !== "your@email.com")
     ? storageEmail
@@ -43,14 +44,34 @@ function getSidebarUser() {
 }
 
 export default function Sidebar() {
-  useAppData(); // re-renders whenever storage changes
+  useAppData();
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router   = useRouter();
   const w = collapsed ? '72px' : '240px';
 
   const isActive = (path) => pathname === path;
-
   const { fullName, initials, email } = getSidebarUser();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // ✅ Clear all auth cookies
+      document.cookie = "firebase_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+      document.cookie = "ij_role=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+      document.cookie = "ij_onboarded=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+      // ✅ Clear relevant localStorage
+      localStorage.removeItem("ij_role");
+      localStorage.removeItem("worker_first_name");
+      localStorage.removeItem("worker_last_name");
+      localStorage.removeItem("worker_welcome_seen");
+      localStorage.removeItem("worker_profile");
+      // ✅ Go back to landing page
+      router.push("/");
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
 
   return (
     <>
@@ -276,6 +297,9 @@ export default function Sidebar() {
           justify-content: ${collapsed ? 'center' : 'flex-start'};
           position: relative;
           text-decoration: none;
+          background: none;
+          width: 100%;
+          font-family: 'Lexend', sans-serif;
         }
         .sb-fitem:hover {
           background: rgba(255,255,255,0.07);
@@ -388,10 +412,12 @@ export default function Sidebar() {
             <Bell /><span>Notifications</span>
             <div className="sb-ftip">Notifications</div>
           </Link>
-          <Link href="/api/auth/signout" className="sb-fitem danger">
+
+          {/* ✅ Fixed: uses Firebase signOut instead of Supabase /api/auth/signout */}
+          <button onClick={handleSignOut} className="sb-fitem danger">
             <LogOut /><span>Sign Out</span>
             <div className="sb-ftip">Sign Out</div>
-          </Link>
+          </button>
         </div>
 
         <div className="sb-toggle" onClick={() => setCollapsed(!collapsed)}>

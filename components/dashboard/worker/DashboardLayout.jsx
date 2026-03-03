@@ -2,13 +2,32 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { Bell } from 'lucide-react';
 import AccessibilityPanel from '@/components/accessibility/AccessibilityPanel';
+import { auth } from '@/lib/firebase';
+import { storage } from '@/lib/storage';
+
+function getInitials() {
+  // Try storage first
+  const { profile } = storage.get();
+  if (profile?.avatarInitials) return profile.avatarInitials;
+  if (profile?.firstName || profile?.lastName) {
+    return ((profile.firstName?.[0] || '') + (profile.lastName?.[0] || '')).toUpperCase();
+  }
+  // Fall back to Firebase displayName
+  const name = auth.currentUser?.displayName || '';
+  const parts = name.trim().split(' ');
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+}
 
 export default function DashboardLayout({ children }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab]       = useState('dashboard');
+  const [showNotif, setShowNotif]       = useState(false);
+  const router                          = useRouter();
   const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const initials = getInitials();
 
   return (
     <>
@@ -46,7 +65,7 @@ export default function DashboardLayout({ children }) {
           font-size: 12.5px; color: rgba(26,39,68,0.38);
           display: flex; align-items: center; gap: 8px; letter-spacing: 0.1px;
         }
-        .dl-bc-sep { color: rgba(26,39,68,0.20); }
+        .dl-bc-sep    { color: rgba(26,39,68,0.20); }
         .dl-bc-active { color: rgba(26,39,68,0.75); font-weight: 600; }
 
         .dl-tr { display: flex; align-items: center; gap: 10px; }
@@ -76,6 +95,60 @@ export default function DashboardLayout({ children }) {
           border-radius: 50%; border: 1.5px solid #F0F2F7;
         }
 
+        /* ── Notification dropdown ── */
+        .dl-notif-wrap { position: relative; }
+        .dl-notif-panel {
+          position: absolute; top: 44px; right: 0;
+          width: 300px;
+          background: rgba(255,255,255,0.98);
+          border: 1px solid rgba(26,39,68,0.12);
+          border-radius: 14px;
+          box-shadow: 0 12px 40px rgba(26,39,68,0.16);
+          overflow: hidden;
+          z-index: 100;
+          animation: notif-in .18s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes notif-in {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .dl-notif-head {
+          padding: 14px 18px;
+          border-bottom: 1px solid rgba(26,39,68,0.08);
+          font-weight: 700; font-size: 13px; color: #1A2744;
+          font-family: 'Instrument Sans', sans-serif;
+          display: flex; align-items: center; justify-content: space-between;
+        }
+        .dl-notif-mark {
+          font-size: 11px; font-weight: 500; color: #2DB8A0;
+          cursor: pointer; background: none; border: none;
+          font-family: 'Instrument Sans', sans-serif;
+        }
+        .dl-notif-item {
+          padding: 13px 18px;
+          border-bottom: 1px solid rgba(26,39,68,0.06);
+          display: flex; gap: 12px; align-items: flex-start;
+        }
+        .dl-notif-dot {
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #2DB8A0; flex-shrink: 0; margin-top: 5px;
+        }
+        .dl-notif-dot.read { background: rgba(26,39,68,0.18); }
+        .dl-notif-text {
+          font-size: 12.5px; color: #1A2744; line-height: 1.5;
+          font-family: 'Instrument Sans', sans-serif;
+        }
+        .dl-notif-time {
+          font-size: 11px; color: rgba(26,39,68,0.40);
+          margin-top: 3px; font-family: 'Instrument Sans', sans-serif;
+        }
+        .dl-notif-empty {
+          padding: 28px 18px; text-align: center;
+          font-size: 13px; color: rgba(26,39,68,0.40);
+          font-family: 'Instrument Sans', sans-serif;
+        }
+
+        /* ── Avatar button ── */
         .dl-av {
           width: 34px; height: 34px;
           background: linear-gradient(135deg, #1A2744, #2D3F6B);
@@ -83,6 +156,11 @@ export default function DashboardLayout({ children }) {
           font-size: 11px; font-weight: 700; color: #fff; cursor: pointer;
           font-family: 'Instrument Sans', sans-serif; letter-spacing: 0.3px;
           box-shadow: 0 2px 8px rgba(26,39,68,0.25);
+          border: none; transition: all .2s;
+        }
+        .dl-av:hover {
+          box-shadow: 0 4px 14px rgba(26,39,68,0.35);
+          transform: translateY(-1px);
         }
 
         .dl-content {
@@ -106,11 +184,57 @@ export default function DashboardLayout({ children }) {
               <span className="dl-date">
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
-              <div className="dl-notif">
-                <Bell size={14} />
-                <div className="dl-nd" />
+
+              {/* ✅ Notifications dropdown */}
+              <div className="dl-notif-wrap">
+                <div className="dl-notif" onClick={() => setShowNotif(v => !v)}>
+                  <Bell size={14} />
+                  <div className="dl-nd" />
+                </div>
+                {showNotif && (
+                  <>
+                    {/* Click outside to close */}
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowNotif(false)} />
+                    <div className="dl-notif-panel">
+                      <div className="dl-notif-head">
+                        Notifications
+                        <button className="dl-notif-mark">Mark all read</button>
+                      </div>
+                      {/* Sample notifications — replace with real data later */}
+                      <div className="dl-notif-item">
+                        <div className="dl-notif-dot" />
+                        <div>
+                          <div className="dl-notif-text">Your assessment results are ready to view.</div>
+                          <div className="dl-notif-time">2 hours ago</div>
+                        </div>
+                      </div>
+                      <div className="dl-notif-item">
+                        <div className="dl-notif-dot" />
+                        <div>
+                          <div className="dl-notif-text">New job match: UI/UX Designer at TechCorp.</div>
+                          <div className="dl-notif-time">Yesterday</div>
+                        </div>
+                      </div>
+                      <div className="dl-notif-item">
+                        <div className="dl-notif-dot read" />
+                        <div>
+                          <div className="dl-notif-text">Complete your profile to get better matches.</div>
+                          <div className="dl-notif-time">3 days ago</div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="dl-av">SJ</div>
+
+              {/* ✅ Avatar → goes to settings/profile */}
+              <button
+                className="dl-av"
+                onClick={() => router.push('/dashboard/worker/settings')}
+                title="Go to profile settings"
+              >
+                {initials}
+              </button>
             </div>
           </div>
           <div className="dl-content">
