@@ -1,6 +1,19 @@
+<div align="center">
+
 # 💼 InklusiJobs
 
-**Track:** SDG 8 — Decent Work & Economic Growth
+### *Bridging the gap between capability and opportunity for Persons with Disabilities in the Philippines.*
+
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-inklusi--jobs.vercel.app-4CAF50?style=for-the-badge)](https://inklusi-jobs.vercel.app)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%2B%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![SDG 8](https://img.shields.io/badge/SDG%208-Decent%20Work%20%26%20Economic%20Growth-E5243B?style=for-the-badge)](https://sdgs.un.org/goals/goal8)
+[![WCAG 2.1 AA](https://img.shields.io/badge/WCAG%202.1-AA%20Compliant-005A9C?style=for-the-badge)](https://www.w3.org/WAI/WCAG21/quickref/)
+
+</div>
+
+---
 
 > An accessibility-first platform that helps Persons with Disabilities become verified, job-ready professionals through personalized learning paths, portfolio-based challenges, and AI-driven skill and identity verification.
 
@@ -8,17 +21,30 @@
 
 ## 📋 Table of Contents
 
-- [Problem Statement](#-problem-statement)
-- [Solution](#-solution)
-- [Key Features](#-key-features)
-- [PWD Identity Verification System](#-pwd-identity-verification-system)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [User Flows](#-user-flows)
-- [What Makes InklusiJobs Different](#-what-makes-inklusijobs-different)
-- [Existing Alternatives and Gaps](#-existing-alternatives-and-gaps)
-- [Team](#-team)
+- [🌐 Live Demo](#-live-demo)
+- [🔍 Problem Statement](#-problem-statement)
+- [💡 Solution](#-solution)
+- [✨ Key Features](#-key-features)
+- [🛡️ PWD Identity Verification System](#%EF%B8%8F-pwd-identity-verification-system)
+- [🛠️ Tech Stack](#%EF%B8%8F-tech-stack)
+- [🚀 Getting Started](#-getting-started)
+- [🔐 Environment Variables](#-environment-variables)
+- [🔄 User Flows](#-user-flows)
+- [🏆 What Makes InklusiJobs Different](#-what-makes-inklusijobs-different)
+- [📊 Existing Alternatives and Gaps](#-existing-alternatives-and-gaps)
+- [👥 Team](#-team)
+
+---
+
+## 🌐 Live Demo
+
+**🔗 [https://inklusi-jobs.vercel.app](https://inklusi-jobs.vercel.app)**
+
+| Role | How to Access |
+|---|---|
+| 👤 Job Seeker (PWD) | Sign up → Select **Worker** → Complete onboarding |
+| 🏢 Employer | Sign up → Select **Employer** → Complete company profile |
+| 🛡️ Admin | `/admin/review-queue` — PWD verification review dashboard |
 
 ---
 
@@ -48,30 +74,50 @@ InklusiJobs is an end-to-end ecosystem connecting three key stakeholders: job se
 
 The platform integrates personalized AI-generated learning roadmaps, hands-on portfolio-building challenges with automated evaluation, inclusive job matching, and multi-layer PWD identity verification — all within a single, WCAG 2.1 AA-compliant interface that dynamically adapts to the user's specific accessibility needs.
 
+```
+PWD Job Seeker  ──▶  Onboarding  ──▶  AI Roadmap  ──▶  Portfolio Challenges
+                                                               │
+                                                     AI Rubric Evaluation
+                                                               │
+                          Employer  ◀──  Verified Profile  ◀──┘
+                              │
+                    PWD Verification Badge
+                    (Multi-layer AI + Human Review)
+```
+
 ---
 
 ## ✨ Key Features
 
 ### 👤 For Job Seekers (PWDs)
-- **Guided Multi-Step Onboarding** — Structured profile creation that provides the AI with sufficient context for personalized recommendations, covering technical skills, soft skills, career goals, and optional disability disclosure
-- **AI Skills Gap Analysis** — Powered by the Gemini API, identifies specific skill gaps with actionable, encouraging insights tailored to the user's target role
-- **Interactive Visual Roadmap** — Personalized learning pathway displayed as an interactive visual timeline with phases from Beginner to Advanced, recommended resources, and estimated completion timeframes
-- **Portfolio Challenge Library** — Curated practical tasks spanning multiple skill categories and difficulty levels, including both pre-written and AI-generated challenges that simulate real work scenarios
-- **Rubric-Based AI Evaluation** — Automated quality assessment with detailed feedback; each challenge is evaluated against strict rubrics for quality, completeness, and technical accuracy before being added to the portfolio
-- **Badge and Certification System** — Visual recognition of verified skills with milestone achievement ceremonies
-- **Public Portfolio Pages** — Shareable profile URLs showcasing verified work, AI evaluation scores, and demonstrated skills — serving as a credential-free alternative to traditional resumes
-- **PWD Identity Verification** — Multi-layer system granting a "PWD Verified" badge visible to all employers on the platform
+
+| Feature | Description |
+|---|---|
+| **Guided Multi-Step Onboarding** | Structured profile creation covering technical skills, soft skills, career goals, and optional disability disclosure — gives the AI sufficient context for personalized recommendations |
+| **AI Skills Gap Analysis** | Powered by the Gemini API; identifies specific skill gaps with actionable, encouraging insights tailored to the user's target role |
+| **Interactive Visual Roadmap** | Personalized learning pathway displayed as an interactive visual timeline with phases from Beginner to Advanced, recommended resources, and estimated completion timeframes |
+| **Portfolio Challenge Library** | Curated practical tasks spanning multiple skill categories and difficulty levels, including both pre-written and AI-generated challenges that simulate real work scenarios |
+| **Rubric-Based AI Evaluation** | Automated quality assessment with detailed feedback; each challenge is evaluated against strict rubrics for quality, completeness, and technical accuracy before being added to the portfolio |
+| **Badge & Certification System** | Visual recognition of verified skills with milestone achievement ceremonies |
+| **Public Portfolio Pages** | Shareable profile URLs showcasing verified work, AI evaluation scores, and demonstrated skills — a credential-free alternative to traditional resumes |
+| **PWD Identity Verification** | Multi-layer system granting a "PWD Verified" badge visible to all employers on the platform |
 
 ### 🏢 For Employers
-- **Advanced Candidate Search** — Filter the verified talent pool by specific skills, availability, work arrangement preference, and disability type
-- **Work Request System** — Streamlined hiring communication with in-platform notifications between employers and candidates
-- **Employer Dashboard** — Centralized interface for candidate management, job posting, portfolio review, and hiring workflow
-- **Inclusive Employer Badge** — A verified inclusive employer badge issued upon hiring through the platform, suitable for use on websites, job postings, and LinkedIn — supporting CSR and employer branding initiatives
+
+| Feature | Description |
+|---|---|
+| **Advanced Candidate Search** | Filter the verified talent pool by specific skills, availability, work arrangement preference, and disability type |
+| **Work Request System** | Streamlined hiring communication with in-platform notifications between employers and candidates |
+| **Employer Dashboard** | Centralized interface for candidate management, job posting, portfolio review, and hiring workflow |
+| **Inclusive Employer Badge** | A verified badge issued upon hiring through the platform — suitable for websites, job postings, and LinkedIn; supports CSR and employer branding |
 
 ### 🌐 Platform-Wide
-- **Dual Dashboards** — Fully separate, role-based interfaces for workers (progress tracking, portfolio, roadmap) and employers (candidate management, job listings, hiring pipeline)
-- **Messaging System** — In-platform real-time chat between job seekers and employers, with conversation history and notification support
-- **Accessibility Panel** — Dynamic UI adjustments based on the user's specific disability profile, with strict adherence to WCAG 2.1 Level AA standards including screen reader support, keyboard navigation, high contrast modes, and skip links
+
+| Feature | Description |
+|---|---|
+| **Dual Dashboards** | Fully separate, role-based interfaces for workers (progress, portfolio, roadmap) and employers (candidates, listings, pipeline) |
+| **Messaging System** | In-platform real-time chat between job seekers and employers with conversation history and notification support |
+| **Accessibility Panel** | Dynamic UI adjustments based on the user's disability profile; strict WCAG 2.1 AA adherence including screen reader support, keyboard navigation, high contrast modes, and skip links |
 
 ---
 
@@ -81,27 +127,37 @@ One of InklusiJobs' core differentiators is its multi-layer PWD identity verific
 
 ### ⚙️ How It Works
 
-1. **Multi-Document Submission** — Users are required to submit two documents simultaneously: a photo of their PWD ID (front and back) issued by their Local Government Unit, and one supporting document such as a medical certificate, barangay certification, or PhilHealth records indicating disability status. Requiring multiple documents significantly raises the difficulty of fraudulent submissions.
+```
+Step 1: Multi-Document Upload
+   └── PWD ID (front + back) + supporting document (medical cert / barangay cert / PhilHealth)
 
-2. **AI-Powered Document Analysis** — The Gemini Vision API automatically performs OCR to extract text from uploaded documents, validates that all required fields are present (name, ID number, disability category, issuing LGU, expiry date), checks the ID format against known LGU PWD ID templates, and flags inconsistencies such as mismatched fonts, missing seals, or suspicious formatting patterns.
+Step 2: Gemini Vision AI Analysis
+   └── OCR extraction → field validation → LGU format check → forgery flag detection
 
-3. **Liveness Check (Selfie Verification)** — Users are prompted to take a real-time selfie holding their PWD ID during registration, implemented directly in the browser using the device's native camera API. This approach — consistent with standard KYC (Know Your Customer) practices used by banks — is extremely difficult to fake without access to both the physical ID and the registered user's face, and requires no special hardware.
+Step 3: Browser Liveness Check
+   └── Real-time selfie holding PWD ID (KYC-standard, no special hardware required)
 
-4. **Duplicate ID Detection** — The extracted PWD ID number is stored in the database and cross-checked against all existing records upon each new submission. This prevents a single physical PWD ID from being registered across multiple accounts, a common fraud vector.
+Step 4: Duplicate ID Detection
+   └── PWD ID number cross-checked against all Firestore records
 
-5. **Human Review Queue** — After AI pre-screening, submissions flagged as suspicious or requiring additional review are routed to a dedicated human reviewer queue accessible through the admin dashboard. Only accounts that pass both AI and human review receive the "PWD Verified" badge on their public profile.
+Step 5: Human Review Queue
+   └── Flagged submissions routed to admin dashboard → Approve / Reject / Request Resubmission
+        └── Only passes get the "PWD Verified" badge ✅
+```
 
 ### 🗺️ Verification Roadmap
 
 | Phase | Timeline | Target |
 |---|---|---|
-| ✅ Short Term | MVP | Multi-document upload with Gemini Vision AI analysis and human review queue |
+| ✅ Short Term | MVP (Current) | Multi-document upload with Gemini Vision AI analysis and human review queue |
 | 🔄 Medium Term | Post-launch | Partnership with NCDA and select LGUs to cross-reference ID numbers against official PWD registries |
 | 🔮 Long Term | Future | PhilSys (Philippine National ID) integration for fully digital, government-backed verification |
 
 ### 🏦 Verification-as-a-Service (VaaS)
 
-Beyond the employment platform, InklusiJobs is designed to operate a licensable B2B verification product. Every business that offers PWD discounts or must comply with RA 7277 — including SM, Robinsons, Mercury Drug, Jollibee, airlines, and hospitals — currently has no reliable way to verify whether a PWD ID is legitimate. InklusiJobs addresses this gap by enabling businesses to verify PWD status instantly at point-of-sale, during online transactions, or at service counters through a simple API integration. This is not a future plan — it is a core component of the InklusiJobs business model from launch.
+Beyond the employment platform, InklusiJobs is designed to operate a licensable B2B verification product. Every business that offers PWD discounts or must comply with RA 7277 — including SM, Robinsons, Mercury Drug, Jollibee, airlines, and hospitals — currently has no reliable way to verify whether a PWD ID is legitimate.
+
+InklusiJobs addresses this gap by enabling businesses to verify PWD status instantly at point-of-sale, during online transactions, or at service counters through a simple API integration. This is not a future plan — it is a core component of the InklusiJobs business model from launch.
 
 ---
 
@@ -109,15 +165,17 @@ Beyond the employment platform, InklusiJobs is designed to operate a licensable 
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 14, React, JavaScript / TypeScript, Tailwind CSS |
-| **UI Components** | shadcn/ui, React Hook Form, React Dropzone |
-| **Authentication** | Firebase Authentication (email/password and Google OAuth) |
+| **Framework** | Next.js 16, React 19, JavaScript |
+| **Styling** | Tailwind CSS v4 |
+| **UI Components** | shadcn/ui, Lucide React, React Dropzone |
+| **Authentication** | Firebase Authentication (email/password + Google OAuth) |
 | **Database** | Firestore (Firebase) |
 | **File Storage** | Firebase Storage |
 | **AI — Text** | Google Gemini API (skill gap analysis, roadmap generation, challenge evaluation) |
 | **AI — Vision** | Google Gemini Vision API (OCR, PWD document analysis, formatting validation) |
 | **AI — Fallback** | OpenRouter API (alternative model routing for reliability) |
 | **PWD Verification** | Gemini Vision API + Browser Camera API (liveness check) + Firestore (duplicate detection) |
+| **PDF Export** | jsPDF + html2canvas |
 | **Deployment** | Vercel |
 | **Dev Tools** | VS Code, Git / GitHub, npm / pnpm, Figma, Canva |
 
@@ -125,22 +183,24 @@ Beyond the employment platform, InklusiJobs is designed to operate a licensable 
 
 ---
 
-
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18 or higher
 - npm or pnpm
 - A Firebase project with **Authentication**, **Firestore**, and **Storage** enabled
 - A Google Gemini API key (with Vision API access)
 - An OpenRouter API key (optional, used as fallback)
 
+> ⚠️ **Important — Firebase Domain Authorization:** After deploying to Vercel, you must add your Vercel domain to Firebase's authorized domains list. Go to **Firebase Console → Authentication → Settings → Authorized domains** and add your deployment URL (e.g. `your-app.vercel.app`). Without this, sign-up and Google OAuth will not work on the deployed site.
+
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/inklusijobs.git
-   cd inklusijobs
+   git clone https://github.com/marghareth/InklusiJobs.git
+   cd InklusiJobs
    ```
 
 2. **Install dependencies**
@@ -179,7 +239,7 @@ Beyond the employment platform, InklusiJobs is designed to operate a licensable 
 
 Create a `.env.local` file in the project root with the following variables:
 
-> Never commit `.env.local` to version control. It is listed in `.gitignore` by default.
+> **Never commit `.env.local` to version control.** It is listed in `.gitignore` by default.
 
 ```env
 # Firebase Configuration
@@ -204,37 +264,70 @@ OPENROUTER_API_KEY=
 ## 🔄 User Flows
 
 ### 👤 Job Seeker (PWD)
-1. Sign up via email/password or Google OAuth through Firebase Authentication
-2. Select role as **Worker** on the path choice screen
-3. Complete the multi-step onboarding form covering personal details, skills, career goals, and disability profile
-4. Complete an interactive skill assessment with multiple question types
-5. Receive an AI-generated personalized learning roadmap via the Gemini API
-6. Optionally submit PWD ID and supporting documents through the multi-layer verification system to receive the "PWD Verified" badge
-7. Follow the roadmap and complete portfolio challenges; each submission is AI-evaluated against a rubric before being added to the portfolio
-8. Browse job listings filtered by verified skill match percentage
-9. Apply with one click, automatically sharing the verified portfolio with the employer
-10. Communicate with employers through the in-platform messaging system
+
+```
+Sign Up / Google OAuth
+       │
+       ▼
+Select Role: Worker
+       │
+       ▼
+Multi-Step Onboarding (personal info, skills, career goals, disability profile)
+       │
+       ▼
+Skill Assessment Quiz
+       │
+       ▼
+AI-Generated Learning Roadmap (Gemini API)
+       │
+       ├──▶ [Optional] PWD ID Verification → "PWD Verified" badge
+       │
+       ▼
+Complete Portfolio Challenges → AI Rubric Evaluation
+       │
+       ▼
+Browse Job Listings (filtered by skill match %)
+       │
+       ▼
+One-Click Apply (portfolio auto-shared) → Message Employer
+```
 
 ### 🏢 Employer
-1. Sign up via email/password or Google OAuth
-2. Select role as **Employer** on the path choice screen
-3. Complete employer onboarding including company profile and inclusive hiring preferences
-4. Post job listings with required skills, work arrangement, compensation, and accommodation details
-5. Browse and search candidates from the verified talent pool, filtered by skills, availability, and match score
-6. Review individual portfolio pages including challenge scores, AI evaluation ratings, and verified badges
-7. Contact shortlisted candidates via in-platform messaging
-8. Mark positions as filled and submit post-hire feedback to improve future matching
+
+```
+Sign Up / Google OAuth
+       │
+       ▼
+Select Role: Employer
+       │
+       ▼
+Employer Onboarding (company profile, inclusive hiring preferences)
+       │
+       ▼
+Post Job Listings (skills, work arrangement, compensation, accommodations)
+       │
+       ▼
+Browse & Search Verified Candidate Pool
+       │
+       ▼
+Review Portfolio Pages (challenge scores, AI ratings, verified badges)
+       │
+       ▼
+Message Candidates → Mark Position Filled → Earn Inclusive Employer Badge
+```
 
 ---
 
 ## 🏆 What Makes InklusiJobs Different
 
-- **End-to-End Platform** — Learning roadmaps, AI-evaluated portfolio challenges, job matching, and PWD identity verification are all integrated into one platform. No switching between tools.
-- **Evidence-Based Portfolio Building** — Skills are demonstrated through completed, AI-graded challenges rather than stated credentials, removing the traditional work history barrier entirely.
-- **Multi-Layer PWD Verification** — The only platform in the Philippines combining Gemini Vision AI document analysis, browser-based liveness detection, duplicate ID checking, and human review for reliable PWD identity verification.
-- **Skills-First Employer Presentation** — Employer-facing profiles lead with verified skill scores, challenge outcomes, and AI ratings before any disability context appears, framing PWD hiring as a talent decision rather than a charitable one.
-- **Built-In Employer Value Proposition** — Reduces time-to-hire, surfaces pre-verified candidates, supports RA 7277 compliance, and helps employers maximize the 25% additional tax deduction available under the Magna Carta for PWDs.
-- **Verification-as-a-Service Infrastructure** — The verification system is architected from day one to be licensable to retailers, hospitals, airlines, and other institutions across the Philippines — making InklusiJobs not just a job platform, but a PWD verification infrastructure provider.
+| Differentiator | Details |
+|---|---|
+| **End-to-End Platform** | Learning roadmaps, AI-evaluated portfolio challenges, job matching, and PWD identity verification integrated into one platform — no switching between tools |
+| **Evidence-Based Portfolios** | Skills are demonstrated through completed, AI-graded challenges rather than stated credentials, removing the traditional work history barrier entirely |
+| **Multi-Layer PWD Verification** | The only platform in the Philippines combining Gemini Vision AI document analysis, browser-based liveness detection, duplicate ID checking, and human review |
+| **Skills-First Employer Presentation** | Employer-facing profiles lead with verified skill scores and challenge outcomes before any disability context appears — framing PWD hiring as a talent decision, not a charitable one |
+| **Built-In Employer Value Proposition** | Reduces time-to-hire, surfaces pre-verified candidates, supports RA 7277 compliance, and helps employers maximize the 25% additional tax deduction under the Magna Carta for PWDs |
+| **Verification-as-a-Service Infrastructure** | The verification system is architected from day one to be licensable to retailers, hospitals, airlines, and institutions — making InklusiJobs not just a job platform, but PWD verification infrastructure |
 
 ---
 
@@ -254,14 +347,24 @@ OPENROUTER_API_KEY=
 
 Built by a team of five for a hackathon under **SDG 8 — Decent Work & Economic Growth**.
 
-| Name |
-|---|
-| Mary Marghareth Bueno |
-| Julianni Jade Cuartero |
-| Stephanie Comendador |
-| Irish Francisco |
-| Methuselah Noreen Presbitero |
+| Name | Role |
+|---|---|
+| Mary Marghareth Bueno | Team Lead & Developer |
+| Julianni Jade Cuartero | Developer |
+| Stephanie Comendador | Developer |
+| Irish Francisco | Developer |
+| Methuselah Noreen Presbitero | Developer |
 
 ---
 
-*InklusiJobs — Bridging the gap between capability and opportunity for Persons with Disabilities in the Philippines.*
+<div align="center">
+
+**🌐 [inklusi-jobs.vercel.app](https://inklusi-jobs.vercel.app/)**
+
+*InklusiJobs — Built for PWDs.*
+
+[![SDG 8](https://img.shields.io/badge/SDG%208-Decent%20Work%20%26%20Economic%20Growth-E5243B?style=flat-square)](https://sdgs.un.org/goals/goal8)
+[![WCAG 2.1 AA](https://img.shields.io/badge/WCAG%202.1-AA%20Compliant-005A9C?style=flat-square)](https://www.w3.org/WAI/WCAG21/quickref/)
+[![Made in Philippines](https://img.shields.io/badge/Made%20in-Philippines%20🇵🇭-0038A8?style=flat-square)](https://inklusi-jobs.vercel.app)
+
+</div>
