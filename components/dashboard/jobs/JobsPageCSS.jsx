@@ -136,8 +136,8 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
 .jp-pop-wrap { position:relative; }
 .ac-panel {
   position:absolute; top:calc(100% + 10px); right:0;
-  width:256px; background:var(--sf); border:1px solid var(--bd2);
-  border-radius:16px; box-shadow:0 10px 36px var(--sh);
+  width:256px; background:#ffffff; background:var(--sf); border:1px solid rgba(26,39,68,0.20); border:1px solid var(--bd2);
+  border-radius:16px; box-shadow:0 10px 36px rgba(26,39,68,0.12); box-shadow:0 10px 36px var(--sh);
   padding:1rem 1.1rem; z-index:300;
   animation:afd .18s ease;
 }
@@ -249,8 +249,8 @@ export default function JobsPageCSS({ dark, hc, rm, fontScale, fontFamily }) {
 .jc-badge{position:absolute;top:-1px;right:1rem;padding:.18rem .6rem;border-radius:0 0 8px 8px;font-size:.65rem;font-weight:700;letter-spacing:.04em;}
 .jc-badge-top{background:linear-gradient(135deg,#2DB8A0,#1A9E88);color:#fff;}
 .jc-badge-good{background:var(--td);color:var(--teal);border:1px solid var(--tb);border-top:none;}
-.jc-urgent{position:absolute;top:.85rem;right:.85rem;padding:.15rem .5rem;background:rgba(192,57,43,.10);color:#C0392B;border:1px solid rgba(192,57,43,.28);border-radius:999px;font-size:.65rem;font-weight:700;}
-.jc-urgent-shift{right:7.5rem;}
+.jc-urgent{position:absolute;top:.75rem;right:.85rem;padding:.15rem .55rem;background:rgba(192,57,43,.12);color:#C0392B;border:1px solid rgba(192,57,43,.3);border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.03em;}
+.jc-urgent-shift{top:2.1rem;right:1rem;}
 .jc-header{display:flex;align-items:flex-start;gap:.85rem;margin-bottom:.75rem;padding-right:5rem;}
 .jc-logo{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:800;flex-shrink:0;letter-spacing:.02em;}
 .jc-pos{font-size:calc(0.98rem * ${fontScale});font-weight:700;color:var(--t1);margin-bottom:.18rem;letter-spacing:-.01em;}

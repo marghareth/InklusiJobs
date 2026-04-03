@@ -87,20 +87,36 @@ export default function ChallengePage() {
     });
     localStorage.setItem('recent_activity', JSON.stringify(recentActivity.slice(0, 10)));
     
-    // 6. Show success message
-    alert('Challenge completed! 🎉');
-    
-    // 7. Redirect to dashboard or tracker
-    router.push('/dashboard/worker/tracker');
+    // 6. Redirect to challenges page with success state
+    router.push('/challenges?completed=1');
   };
 
-  // Mock function to simulate challenge submission
-  const handleSubmitChallenge = () => {
-    // In a real app, you'd validate the answer, calculate score, etc.
-    const mockScore = Math.floor(Math.random() * 30) + 70; // Random score between 70-100
-    const passed = mockScore >= 70;
-    
-    handleChallengeComplete(challenge, mockScore, passed);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const handleSubmitChallenge = async () => {
+    if (!userAnswer.trim()) return;
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const res = await fetch('/api/challenges/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challengeId: challenge.id,
+          challengeTitle: challenge.title,
+          challengeBrief: challenge.description,
+          submissionText: userAnswer,
+          userId: 'demo_user',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Evaluation failed');
+      handleChallengeComplete(challenge, data.score, data.passed);
+    } catch (err) {
+      setSubmitError('Could not submit. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -171,15 +187,18 @@ export default function ChallengePage() {
         {/* Submit Button - This triggers the challenge completion */}
         <button
           onClick={handleSubmitChallenge}
-          disabled={!userAnswer.trim()}
+          disabled={!userAnswer.trim() || submitting}
           className={`px-6 py-3 rounded-lg font-semibold text-white ${
-            !userAnswer.trim() 
-              ? 'bg-gray-400 cursor-not-allowed' 
+            !userAnswer.trim() || submitting
+              ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-linear-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700'
           }`}
         >
-          Submit Challenge
+          {submitting ? 'Evaluating…' : 'Submit Challenge'}
         </button>
+        {submitError && (
+          <p className="mt-2 text-sm text-red-500 font-medium">{submitError}</p>
+        )}
       </div>
 
       {/* Navigation */}

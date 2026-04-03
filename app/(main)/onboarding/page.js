@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { saveProgress } from "@/lib/progressHelpers";
@@ -229,7 +229,15 @@ const Sidebar = ({ step }) => (
 );
 
 // ── Complete screen ───────────────────────────────────────────────────────────
-const CompleteScreen = ({ firstName }) => (
+const CompleteScreen = ({ firstName }) => {
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => router.push("/job-select"), 2500);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return (
   <div style={{ display: "flex", minHeight: "100vh", fontFamily: "inherit" }}>
     <Sidebar step={5} />
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
@@ -247,21 +255,26 @@ const CompleteScreen = ({ firstName }) => (
         <p style={{ fontSize: 16, color: T.muted, margin: "0 0 36px", lineHeight: 1.7 }}>
           Welcome{firstName ? `, ${firstName}` : ""}! We&apos;re already finding <strong>inclusive job matches</strong> for you.
         </p>
-        <a href="/job-select"
+        <button onClick={() => router.push("/job-select")}
           style={{ display: "inline-block", padding: "16px 44px", borderRadius: 14,
             background: `linear-gradient(135deg, ${T.teal}, ${T.tealMid})`,
-            color: "#fff", fontSize: 16, fontWeight: 800, textDecoration: "none",
+            color: "#fff", fontSize: 16, fontWeight: 800, border: "none", cursor: "pointer",
             boxShadow: `0 8px 24px ${T.teal}55` }}>
           Continue to Job Selection →
-        </a>
-        <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        </button>
+        <div style={{ marginTop: 20, fontSize: 13, color: T.muted }}>
+          Redirecting automatically…
+        </div>
+        <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <Icon d={ICONS.checkCircle} size={18} color={T.success} />
           <span style={{ fontSize: 14, color: T.success, fontWeight: 700 }}>Profile verified & ready for matching!</span>
         </div>
       </div>
     </div>
   </div>
-);
+  );
+};
+
 
 // ── STEP 1 — Basic Info ───────────────────────────────────────────────────────
 const Step1 = ({ data, set }) => {

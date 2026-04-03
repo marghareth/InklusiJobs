@@ -215,17 +215,47 @@ function useGlobalStyles() {
         border: 2px solid var(--hc-accent) !important;
         color: var(--hc-accent) !important;
       }
-      /* ── IMPORTANT: Accessibility panel itself is EXEMPT from high contrast ── */
-      [data-a11y-panel],
-      [data-a11y-panel] *,
-      [data-a11y-panel] div,
-      [data-a11y-panel] button,
-      [data-a11y-panel] span,
-      [data-a11y-panel] p {
-        background-color: unset !important;
-        color: unset !important;
-        border-color: unset !important;
+      /* ── Accessibility panel: fully exempt from ALL page styles ──────────── */
+      /* Never use revert/inherit here — revert on divs resolves to transparent */
+      [data-a11y-panel-root] {
+        background-color: #ffffff !important;
+        color: #1E293B !important;
+        border-color: #E2E8F0 !important;
         filter: none !important;
+        opacity: 1 !important;
+        isolation: isolate !important;
+        contain: layout style !important;
+      }
+      [data-a11y-panel] {
+        background-color: #ffffff !important;
+        color: #1E293B !important;
+        filter: none !important;
+        opacity: 1 !important;
+      }
+      [data-a11y-panel] div,
+      [data-a11y-panel] span,
+      [data-a11y-panel] p,
+      [data-a11y-panel] label {
+        background-color: transparent !important;
+        color: inherit !important;
+        filter: none !important;
+        opacity: 1 !important;
+      }
+      [data-a11y-panel] button {
+        filter: none !important;
+        opacity: 1 !important;
+      }
+      [data-a11y-panel-inner] {
+        background-color: #ffffff !important;
+        color: #1E293B !important;
+      }
+      [data-a11y-panel-header] {
+        background: linear-gradient(135deg, #F0FDFA, #E6F4F6) !important;
+        color: #0A2A35 !important;
+      }
+      [data-a11y-panel-footer] {
+        background-color: #FAFAFA !important;
+        color: #CBD5E1 !important;
       }
 
       /* ── Highlight links — very noticeable ── */
@@ -330,15 +360,17 @@ function useGlobalStyles() {
 
 // ── Drag hook ─────────────────────────────────────────────────────────────────
 function useDrag() {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
+  // FIX 1: Lazy initializer instead of useEffect + setState to avoid
+  // the "setState synchronously within an effect" ESLint error.
+  const [pos, setPos] = useState(() => {
+    if (typeof window === "undefined") return { x: 0, y: 0 };
+    return { x: window.innerWidth - 76, y: window.innerHeight - 76 };
+  });
+
   const dragging = useRef(false);
   const moved = useRef(false);
   const startOffset = useRef({ x: 0, y: 0 });
   const btnRef = useRef(null);
-
-  useEffect(() => {
-    setPos({ x: window.innerWidth - 76, y: window.innerHeight - 76 });
-  }, []);
 
   const onMouseDown = useCallback((e) => {
     if (e.button !== 0) return;
@@ -497,13 +529,13 @@ function PanelSectionLabel({ children }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function AccessibilityPanel() {
-  const [mounted, setMounted] = useState(false);
+  // FIX 2: Lazy initializer instead of useEffect + setState to avoid
+  // the "setState synchronously within an effect" ESLint error.
+  const [mounted] = useState(() => typeof window !== "undefined");
   const [open, setOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [settings, dispatch] = usePersistedSettings();
   const panelRef = useRef(null);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const { pos, btnRef, onMouseDown, onTouchStart, wasMoved } = useDrag();
   const tts = useTTS();
@@ -533,7 +565,8 @@ export default function AccessibilityPanel() {
     return () => window.removeEventListener("keydown", handler);
   }, [settings.fontSize, tts, dispatch]);
 
-  // Close on outside click
+  // FIX 3: Added btnRef to the dependency array to satisfy react-hooks/exhaustive-deps.
+  // Refs are stable across renders so this has no performance impact.
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -541,7 +574,9 @@ export default function AccessibilityPanel() {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [open, btnRef]);
+
+
 
   if (!mounted) return null;
 
@@ -607,6 +642,7 @@ export default function AccessibilityPanel() {
       {open && (
         <div
           data-a11y-panel
+          data-a11y-panel-root
           ref={panelRef}
           role="dialog"
           aria-label="Accessibility Settings"
@@ -620,6 +656,7 @@ export default function AccessibilityPanel() {
             width: panelW,
             maxHeight: "80vh",
             background: "#FFFFFF",
+            backgroundColor: "#FFFFFF",
             borderRadius: 20,
             boxShadow: "0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)",
             border: "1.5px solid #E2E8F0",
@@ -628,12 +665,17 @@ export default function AccessibilityPanel() {
             overflow: "hidden",
             fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif",
             animation: "a11ySlideIn 0.2s cubic-bezier(0.22,1,0.36,1)",
-            // Ensure panel is ALWAYS white, never affected by HC mode
             colorScheme: "light",
+            isolation: "isolate",
+            contain: "layout style",
+            opacity: 1,
           }}
         >
           {/* Panel Header */}
-          <div style={{
+          <div
+            data-a11y-panel
+            data-a11y-panel-header
+            style={{
             padding: "15px 18px 13px",
             borderBottom: "1px solid #F1F5F9",
             background: "linear-gradient(135deg, #F0FDFA, #E6F4F6)",
@@ -682,7 +724,10 @@ export default function AccessibilityPanel() {
           </div>
 
           {/* Scrollable content */}
-          <div style={{
+          <div
+            data-a11y-panel
+            data-a11y-panel-inner
+            style={{
             flex: 1, overflowY: "auto", padding: "4px 18px 16px",
             scrollbarWidth: "thin", scrollbarColor: "#D0E4E8 transparent",
             background: "#fff", color: "#1E293B",
@@ -851,8 +896,8 @@ export default function AccessibilityPanel() {
           </div>
 
           {/* Footer */}
-          <div style={{ padding: "8px 18px", borderTop: "1px solid #F1F5F9",
-            background: "#FAFAFA", display: "flex", alignItems: "center",
+          <div data-a11y-panel data-a11y-panel-footer style={{ padding: "8px 18px", borderTop: "1px solid #F1F5F9",
+            background: "#FAFAFA", backgroundColor: "#FAFAFA", display: "flex", alignItems: "center",
             justifyContent: "center", gap: 6 }}>
             <span style={{ fontSize: 10, color: "#CBD5E1" }}>♿ WCAG 2.1 AA</span>
             <span style={{ color: "#CBD5E1", fontSize: 10 }}>·</span>

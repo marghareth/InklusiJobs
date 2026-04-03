@@ -4,11 +4,9 @@
  * AccessibilityToolbar.jsx — Enhanced
  * WCAG 2.2 AA compliant accessibility settings panel
  *
- * NEW in this version:
- * - TTS reads from current viewport position, not from top
- * - TTS highlights the element currently being read
- * - Keyboard shortcuts for all features
- * - Shortcuts cheat sheet inside panel
+ * FIXES:
+ * - Kbd, SectionLabel, OptionBtn moved outside component (react-hooks/static-components)
+ * - State initialized via useState(loadPrefs()) instead of useEffect (react-hooks/set-state-in-effect)
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -50,13 +48,11 @@ function getReadableElementsFromViewport() {
     const text = el.innerText?.trim();
     if (!text || text.length < 2) return false;
     if (el.closest("#a11y-toolbar")) return false;
-    // Skip hidden elements
     const style = window.getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden") return false;
     return true;
   });
 
-  // Find first element at or below current scroll position
   const scrollY = window.scrollY || window.pageYOffset;
 
   let startIndex = 0;
@@ -72,9 +68,60 @@ function getReadableElementsFromViewport() {
   return { elements: readable, startIndex };
 }
 
+// ── Sub-components declared OUTSIDE the main component ───────────────────────
+
+const btnStyle = (active) => ({
+  display: "flex", alignItems: "center", gap: 10, width: "100%",
+  padding: "10px 12px", borderRadius: 10, minHeight: 44,
+  border: `2px solid ${active ? "#0023FF" : "#E5E7EB"}`,
+  background: active ? "#EEF1FF" : "#FFFFFF",
+  color: active ? "#0023FF" : "#374151",
+  fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+  textAlign: "left", cursor: "pointer", transition: "all 0.15s",
+});
+
+const Kbd = ({ k }) => (
+  <kbd style={{ fontSize: 9, fontWeight: 700, background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 4, padding: "2px 5px", color: "#6B7280", fontFamily: "monospace", whiteSpace: "nowrap" }}>{k}</kbd>
+);
+
+const SectionLabel = ({ children }) => (
+  <p style={{ fontSize: 10, fontWeight: 800, color: "#9CA3AF", letterSpacing: "0.1em", margin: "14px 0 6px", textTransform: "uppercase" }}>{children}</p>
+);
+
+const OptionBtn = ({ label, active, onClick, icon, shortcut }) => (
+  <button onClick={onClick} style={btnStyle(active)} aria-pressed={active}
+    onFocus={e => { if (!active) e.currentTarget.style.borderColor = "#0023FF"; }}
+    onBlur={e => { if (!active) e.currentTarget.style.borderColor = "#E5E7EB"; }}>
+    <span aria-hidden="true" style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+    <span style={{ flex: 1 }}>{label}{active ? " ✓" : ""}</span>
+    {shortcut && <Kbd k={shortcut} />}
+  </button>
+);
+
+const fontLabels = ["Normal Text", "Large Text", "Extra Large"];
+const fontIcons = ["A", "A+", "A++"];
+
+const SHORTCUTS = [
+  { keys: "Alt+A", desc: "Open/close panel" },
+  { keys: "Alt+T", desc: "Read from here" },
+  { keys: "Alt+H", desc: "High contrast" },
+  { keys: "Alt+D", desc: "Dark mode" },
+  { keys: "Alt+F", desc: "Cycle font size" },
+  { keys: "Alt+R", desc: "Reduce motion" },
+  { keys: "Alt+M", desc: "Reading mode" },
+  { keys: "Alt+L", desc: "Highlight links" },
+  { keys: "Alt+Y", desc: "Dyslexia font" },
+  { keys: "Alt+C", desc: "Large cursor" },
+  { keys: "Alt+0", desc: "Reset all" },
+  { keys: "Esc", desc: "Close panel" },
+];
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function AccessibilityToolbar() {
   const [open, setOpen] = useState(false);
-  const [prefs, setPrefs] = useState(DEFAULTS);
+  // FIX: initialize directly from loadPrefs() instead of useEffect + setPrefs
+  const [prefs, setPrefs] = useState(loadPrefs);
   const [announcement, setAnnouncement] = useState("");
   const [saveStatus, setSaveStatus] = useState("idle");
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -83,10 +130,7 @@ export default function AccessibilityToolbar() {
   const triggerRef = useRef(null);
   const ttsElementsRef = useRef([]);
   const highlightedElRef = useRef(null);
-  const ttsActiveRef = useRef(false); // track if TTS is still active
-
-  // Load prefs on mount
-  useEffect(() => { setPrefs(loadPrefs()); }, []);
+  const ttsActiveRef = useRef(false);
 
   // Apply prefs to <html>
   useEffect(() => {
@@ -102,6 +146,12 @@ export default function AccessibilityToolbar() {
     html.classList.toggle("a11y-highlight-links", prefs.highlightLinks);
     html.classList.toggle("a11y-large-cursor", prefs.largeCursor);
   }, [prefs]);
+
+  // ── Screen reader announcements ───────────────────────────────────────────
+  const announce = useCallback((msg) => {
+    setAnnouncement("");
+    setTimeout(() => setAnnouncement(msg), 50);
+  }, []);
 
   // ── Highlight element being read ──────────────────────────────────────────
   const clearHighlight = useCallback(() => {
@@ -148,7 +198,6 @@ export default function AccessibilityToolbar() {
     announce("Reading aloud from current position.");
 
     const speakNext = (index) => {
-      // Stop if TTS was cancelled or no more elements
       if (!ttsActiveRef.current) return;
       if (index >= elements.length) {
         clearHighlight();
@@ -168,13 +217,13 @@ export default function AccessibilityToolbar() {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.92;
       utterance.pitch = 1;
-      utterance.lang = "en-PH"; // Filipino English accent
+      utterance.lang = "en-PH";
       utterance.onend = () => {
         if (!ttsActiveRef.current) return;
         speakNext(index + 1);
       };
       utterance.onerror = (e) => {
-        if (e.error === "interrupted") return; // expected on stop
+        if (e.error === "interrupted") return;
         speakNext(index + 1);
       };
 
@@ -182,7 +231,7 @@ export default function AccessibilityToolbar() {
     };
 
     speakNext(startIndex);
-  }, [clearHighlight, highlightElement]);
+  }, [clearHighlight, highlightElement, announce]);
 
   const handleTTS = useCallback(() => {
     if (ttsPlaying) {
@@ -192,16 +241,10 @@ export default function AccessibilityToolbar() {
       setPrefs(p => ({ ...p, textToSpeech: true }));
       speakFromViewport();
     }
-  }, [ttsPlaying, stopTTS, speakFromViewport]);
+  }, [ttsPlaying, stopTTS, speakFromViewport, announce]);
 
   // Cleanup TTS on unmount
   useEffect(() => () => stopTTS(), [stopTTS]);
-
-  // ── Screen reader announcements ───────────────────────────────────────────
-  const announce = useCallback((msg) => {
-    setAnnouncement("");
-    setTimeout(() => setAnnouncement(msg), 50);
-  }, []);
 
   const toggle = useCallback((key, label) => {
     setPrefs(prev => {
@@ -286,53 +329,6 @@ export default function AccessibilityToolbar() {
     } catch { announce("Could not save preferences."); }
   };
 
-  // ── UI helpers ────────────────────────────────────────────────────────────
-  const btnStyle = (active) => ({
-    display: "flex", alignItems: "center", gap: 10, width: "100%",
-    padding: "10px 12px", borderRadius: 10, minHeight: 44,
-    border: `2px solid ${active ? "#0023FF" : "#E5E7EB"}`,
-    background: active ? "#EEF1FF" : "#FFFFFF",
-    color: active ? "#0023FF" : "#374151",
-    fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-    textAlign: "left", cursor: "pointer", transition: "all 0.15s",
-  });
-
-  const Kbd = ({ k }) => (
-    <kbd style={{ fontSize: 9, fontWeight: 700, background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: 4, padding: "2px 5px", color: "#6B7280", fontFamily: "monospace", whiteSpace: "nowrap" }}>{k}</kbd>
-  );
-
-  const SectionLabel = ({ children }) => (
-    <p style={{ fontSize: 10, fontWeight: 800, color: "#9CA3AF", letterSpacing: "0.1em", margin: "14px 0 6px", textTransform: "uppercase" }}>{children}</p>
-  );
-
-  const OptionBtn = ({ label, active, onClick, icon, shortcut }) => (
-    <button onClick={onClick} style={btnStyle(active)} aria-pressed={active}
-      onFocus={e => { if (!active) e.currentTarget.style.borderColor = "#0023FF"; }}
-      onBlur={e => { if (!active) e.currentTarget.style.borderColor = "#E5E7EB"; }}>
-      <span aria-hidden="true" style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
-      <span style={{ flex: 1 }}>{label}{active ? " ✓" : ""}</span>
-      {shortcut && <Kbd k={shortcut} />}
-    </button>
-  );
-
-  const fontLabels = ["Normal Text", "Large Text", "Extra Large"];
-  const fontIcons = ["A", "A+", "A++"];
-
-  const SHORTCUTS = [
-    { keys: "Alt+A", desc: "Open/close panel" },
-    { keys: "Alt+T", desc: "Read from here" },
-    { keys: "Alt+H", desc: "High contrast" },
-    { keys: "Alt+D", desc: "Dark mode" },
-    { keys: "Alt+F", desc: "Cycle font size" },
-    { keys: "Alt+R", desc: "Reduce motion" },
-    { keys: "Alt+M", desc: "Reading mode" },
-    { keys: "Alt+L", desc: "Highlight links" },
-    { keys: "Alt+Y", desc: "Dyslexia font" },
-    { keys: "Alt+C", desc: "Large cursor" },
-    { keys: "Alt+0", desc: "Reset all" },
-    { keys: "Esc", desc: "Close panel" },
-  ];
-
   return (
     <>
       {/* Screen reader live region */}
@@ -345,9 +341,11 @@ export default function AccessibilityToolbar() {
       <style>{`
         .a11y-text-large { font-size: 112% !important; }
         .a11y-text-xl    { font-size: 125% !important; }
-        .a11y-high-contrast,.a11y-high-contrast * { background-color:#000!important;color:#fff!important;border-color:#fff!important; }
-        .a11y-high-contrast a { color:#FFFF00!important;text-decoration:underline!important; }
-        .a11y-high-contrast button { outline:2px solid #fff!important; }
+        .a11y-high-contrast body,.a11y-high-contrast main,.a11y-high-contrast section,.a11y-high-contrast article,.a11y-high-contrast header,.a11y-high-contrast footer,.a11y-high-contrast nav,.a11y-high-contrast aside,.a11y-high-contrast p,.a11y-high-contrast h1,.a11y-high-contrast h2,.a11y-high-contrast h3,.a11y-high-contrast h4,.a11y-high-contrast h5,.a11y-high-contrast h6,.a11y-high-contrast li,.a11y-high-contrast td,.a11y-high-contrast th,.a11y-high-contrast span:not([data-a11y-panel] span) { background-color:#000!important;color:#fff!important;border-color:#fff!important; }
+        .a11y-high-contrast a:not([data-a11y-panel] a) { color:#FFFF00!important;text-decoration:underline!important; }
+        .a11y-high-contrast button:not([data-a11y-panel] button):not([data-a11y-panel-btn]) { outline:2px solid #fff!important; }
+        [data-a11y-panel],[data-a11y-panel] *,[data-a11y-panel-root],[data-a11y-panel-root] * { background-color:revert;color:revert;border-color:revert;filter:none!important; }
+        [data-a11y-panel-root] { background-color:#fff!important;color:#1E293B!important; }
         .a11y-dark-mode { background-color:#0F172A!important;color:#F1F5F9!important; }
         .a11y-dark-mode main,.a11y-dark-mode section { background-color:#1E293B!important;color:#F1F5F9!important; }
         .a11y-dark-mode header,.a11y-dark-mode nav,.a11y-dark-mode footer { background-color:#0F172A!important;color:#F1F5F9!important; }

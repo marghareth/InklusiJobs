@@ -216,10 +216,13 @@ const Step1 = ({ data, set }) => {
     set({ ...data, posTypes: c.includes(t) ? c.filter(x => x !== t) : [...c, t] });
   };
 
+  const [logoError, setLogoError] = useState("");
+
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("File too large. Please upload an image under 2MB."); return; }
+    if (file.size > 2 * 1024 * 1024) { setLogoError("File too large. Please upload an image under 2MB."); return; }
+    setLogoError("");
     const reader = new FileReader();
     reader.onload = (ev) => {
       const preview = ev.target.result;
@@ -333,6 +336,7 @@ const Step1 = ({ data, set }) => {
           <div style={{ fontSize: 13, color: T.muted, marginTop: 6 }}>PNG, JPG, SVG up to 2MB</div>
         </div>
       )}
+      {logoError && <div style={{ fontSize: 13, color: "#EF4444", marginTop: 8, fontWeight: 600 }}>⚠ {logoError}</div>}
     </div>
   );
 };

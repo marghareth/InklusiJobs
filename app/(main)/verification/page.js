@@ -59,40 +59,6 @@ function saveVerificationResult(result) {
   } catch { /**/ }
 }
 
-const MOCK_RESULT = {
-  decision: "AUTO_APPROVE", score: 87, flags: [],
-  analysis: {
-    idDocument: { extractedName: "Sample User", issuingLgu: "Quezon City", disabilityCategory: "Orthopedic / Physical Disability", forgerySignalCount: 0, suspicionLevel: "LOW", summary: "PWD ID appears authentic. All required fields present and consistent." },
-    supportingDocument: { summary: "Medical certificate format is valid. Physician signature present." },
-    crossDocument: { consistency: "CONSISTENT", summary: "Name and disability category match across both documents." },
-    faceMatch: { confidence: 91, summary: "Face matches ID photo with high confidence." },
-  },
-  nextSteps: { idNumberForDoh: null, prcLicenseNumber: null },
-  forensics: {
-    overallRisk: "LOW",
-    elaAnalysis: { result: "PASS", detail: "No inconsistent compression artifacts detected. Pixel noise patterns are uniform across all text fields, indicating no digital post-editing." },
-    metadataAudit: { result: "PASS", detail: "EXIF data shows no editing software (Adobe Photoshop, PicsArt, etc.). File originates from a mobile camera capture as expected." },
-    moireDetection: { result: "PASS", detail: "No Moiré patterns detected. Image was captured from a physical card, not a screen or printout." },
-    fontAnalysis: { result: "PASS", detail: "Font weight and typeface in the Name and ID Number fields match the known Quezon City LGU PWD ID template (Calibri Regular, 10pt)." },
-    sealAnalysis: { result: "PASS", detail: "LGU dry seal shows correct light-to-shadow gradient consistent with an embossed physical seal. No flat 2D overlay detected." },
-    psgcLogic: { result: "PASS", detail: "PSGC prefix '137' correctly matches Metro Manila / NCR region. Issuing LGU 'Quezon City' is consistent with geographic code." },
-    physicianSpecialization: { result: "PASS", detail: "Dr. on medical certificate holds a Rehabilitation Medicine specialization — consistent with Orthopedic / Physical Disability category." },
-    microprint: { result: "PASS", detail: "Background security micro-text pattern is sharp and unblurred, indicating original document rather than photocopy or re-scan." },
-  },
-};
-
-// Mock forensic result for a flagged/fake ID (used when demoing rejection)
-const MOCK_FORENSIC_FLAGGED = {
-  overallRisk: "HIGH",
-  elaAnalysis: { result: "FAIL", detail: "Inconsistent JPEG compression artifacts detected around the Name field. The text block shows higher compression noise than the surrounding background — consistent with Photoshop layer insertion." },
-  metadataAudit: { result: "FAIL", detail: "EXIF 'Software' tag reads 'Adobe Photoshop 24.0'. File was processed by editing software before submission — immediate forensic red flag." },
-  moireDetection: { result: "WARN", detail: "Faint Moiré interference patterns detected in the background texture. Image may have been captured from a screen rather than a physical card." },
-  fontAnalysis: { result: "FAIL", detail: "Font in the ID Number field is Arial Bold — does not match the Quezon City LGU standard (Calibri Regular). Common 'Recto' forgery error." },
-  sealAnalysis: { result: "WARN", detail: "LGU seal appears flat with uniform lighting across the embossed area. Expected light-to-shadow gradient from physical embossing is absent." },
-  psgcLogic: { result: "FAIL", detail: "PSGC prefix '13' indicates NCR / Metro Manila, but issuing LGU field reads 'Davao City' (Region XI). Geographic disconnect — impossible for a legitimately issued ID." },
-  physicianSpecialization: { result: "PASS", detail: "PRC license number found. Physician specialization could not be cross-referenced." },
-  microprint: { result: "FAIL", detail: "Background security micro-text is blurred and pixelated — consistent with a photocopy or digitally re-scanned document rather than an original." },
-};
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 function StepIndicator({ currentStep }) {
@@ -440,9 +406,10 @@ function AIAnalysisStep({ documents, onComplete }) {
       });
       if (!res.ok) throw new Error();
       data = await res.json();
-    } catch {
-      await new Promise(r => setTimeout(r, 1000));
-      data = MOCK_RESULT;
+    } catch (err) {
+      setStatus("error");
+      setChecks([{ label: "AI Document Analysis", result: "fail", detail: "Unable to reach verification service. Please check your connection and try again." }]);
+      return;
     }
 
     setApiResult(data);
