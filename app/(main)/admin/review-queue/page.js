@@ -11,7 +11,11 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase";
+import { db } from "@/lib/firebase";
+import {
+  collection, query, orderBy, getDocs,
+  doc, updateDoc, where,
+} from "firebase/firestore";
 
 // ─────────────────────────────────────────────
 // Risk score color helper
@@ -39,7 +43,7 @@ function SuspicionBadge({ level }) {
 }
 
 // ─────────────────────────────────────────────
-// Submission detail modal
+// Field display component (used inside ReviewModal)
 // ─────────────────────────────────────────────
 function Field({ label, value, flag }) {
   return (
@@ -53,6 +57,9 @@ function Field({ label, value, flag }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// Submission detail modal
+// ─────────────────────────────────────────────
 function ReviewModal({ submission, onClose, onDecision }) {
   const [decision, setDecision]   = useState(null);
   const [note, setNote]           = useState("");
@@ -289,68 +296,56 @@ export default function AdminReviewQueue() {
   const [loading, setLoading]         = useState(true);
   const [stats, setStats]             = useState({ pending: 0, approved: 0, rejected: 0 });
   const [filter, setFilter]           = useState("pending_review");
-  const supabase = createClient();
-
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch from the admin_review_queue view we created in the schema
-      const { data, error } = await supabase
-        .from("admin_review_queue")
-        .select("*")
-        .order("risk_score", { ascending: true })   // Most suspicious first
-        .order("submitted_at", { ascending: true }); // FIFO within same score
+      const q = query(
+        collection(db, "pwd_verifications"),
+        where("status", "==", "pending_review"),
+        orderBy("risk_score", "asc"),
+        orderBy("submitted_at", "asc")
+      );
+      const snap = await getDocs(q);
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setSubmissions(data);
 
-      if (error) throw error;
-      setSubmissions(data || []);
-
-      // Fetch stats
-      const { data: allData } = await supabase
-        .from("pwd_verifications")
-        .select("status");
-
-      if (allData) {
-        setStats({
-          pending:  allData.filter(r => r.status === "pending_review").length,
-          approved: allData.filter(r => r.status === "approved").length,
-          rejected: allData.filter(r => r.status === "rejected").length,
-        });
-      }
+      const allSnap = await getDocs(collection(db, "pwd_verifications"));
+      const allData = allSnap.docs.map(d => d.data());
+      setStats({
+        pending:  allData.filter(r => r.status === "pending_review").length,
+        approved: allData.filter(r => r.status === "approved").length,
+        rejected: allData.filter(r => r.status === "rejected").length,
+      });
     } catch (err) {
       console.error("Failed to fetch submissions:", err);
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
   const handleDecision = async (id, decision, note) => {
-    const { error } = await supabase
-      .from("pwd_verifications")
-      .update({
+    try {
+      await updateDoc(doc(db, "pwd_verifications", id), {
         status: decision,
         decision_reason: note || null,
         reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+      });
 
-    if (!error) {
-      // If approved, also set the PWD verified badge on their profile
       if (decision === "approved") {
         const sub = submissions.find(s => s.id === id);
         if (sub?.user_id) {
-          await supabase
-            .from("profiles")
-            .update({
-              pwd_verified: true,
-              pwd_verified_at: new Date().toISOString(),
-              pwd_verification_id: id,
-            })
-            .eq("id", sub.user_id);
+          await updateDoc(doc(db, "users", sub.user_id), {
+            pwd_verified: true,
+            pwd_verified_at: new Date().toISOString(),
+            pwd_verification_id: id,
+          });
         }
       }
       await fetchSubmissions();
+    } catch (err) {
+      console.error("Failed to submit decision:", err);
     }
   };
 
