@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { NOTION_CLIENT_ID, APP_URL } from '@/lib/notion';
 
 export async function GET(request) {
@@ -8,12 +7,7 @@ export async function GET(request) {
   
   try {
     // Get the cookie store properly
-    const cookieStore = cookies();
-    
-    // Create Supabase client with the cookie store
-    const supabase = createRouteHandlerClient({ 
-      cookies: () => cookieStore 
-    });
+    const supabase = await createClient();
     
     // Get the user
     const { data: { user }, error } = await supabase.auth.getUser();

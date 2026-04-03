@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { appendUnlockedChallenge } from '@/lib/notion-tracker';
 export async function POST(request) {
  try {
  const { workerId, challengeId } = await request.json();
- const supabase = createRouteHandlerClient({ cookies });
+ const supabase = await createClient();
  // Get worker's Notion info
  const { data: profile } = await supabase
  .from('worker_profiles')
