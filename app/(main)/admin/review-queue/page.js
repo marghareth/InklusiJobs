@@ -41,6 +41,18 @@ function SuspicionBadge({ level }) {
 // ─────────────────────────────────────────────
 // Submission detail modal
 // ─────────────────────────────────────────────
+function Field({ label, value, flag }) {
+  return (
+    <div className={`p-3 rounded-xl border ${flag ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100"}`}>
+      <div className="text-xs font-semibold text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-sm font-medium ${flag ? "text-red-700" : "text-gray-800"}`}>
+        {value || <span className="text-gray-300 italic">Not extracted</span>}
+      </div>
+      {flag && <div className="text-xs text-red-500 mt-1">⚠️ {flag}</div>}
+    </div>
+  );
+}
+
 function ReviewModal({ submission, onClose, onDecision }) {
   const [decision, setDecision]   = useState(null);
   const [note, setNote]           = useState("");
@@ -55,16 +67,6 @@ function ReviewModal({ submission, onClose, onDecision }) {
     setSubmitting(false);
     onClose();
   };
-
-  const Field = ({ label, value, flag }) => (
-    <div className={`p-3 rounded-xl border ${flag ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100"}`}>
-      <div className="text-xs font-semibold text-gray-500 mb-0.5">{label}</div>
-      <div className={`text-sm font-medium ${flag ? "text-red-700" : "text-gray-800"}`}>
-        {value || <span className="text-gray-300 italic">Not extracted</span>}
-      </div>
-      {flag && <div className="text-xs text-red-500 mt-1">⚠️ {flag}</div>}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -319,7 +321,7 @@ export default function AdminReviewQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
